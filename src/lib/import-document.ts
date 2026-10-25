@@ -16,18 +16,27 @@ import {
   isPagesPath,
 } from '@/lib/import/pages'
 import {
+  importNumbersDocumentFromPath,
+  isNumbersPath,
+} from '@/lib/import/numbers'
+import {
+  importKeynoteDocumentFromPath,
+  isKeynotePath,
+} from '@/lib/import/keynote'
+import {
   importExcelDocumentFromPath,
   isExcelPath,
   isLegacyExcelPath,
 } from '@/lib/import/excel-xlsx'
 import { isWordDocxPath } from '@/lib/import/word-docx'
+import { importPdfDocumentFromPath, isPdfPath } from '@/lib/import/pdf-document'
 import { assertImportAllowedByAntivirus } from '@/lib/antivirus/scan-import'
 import { toast } from '@/lib/toast'
 import i18n from '@/i18n'
 
 /** Extensions accepted for document import (picker + window drop). */
 export const IMPORTABLE_DOCUMENT_EXT =
-  /\.(scribe\.json|scribe|pages|md|markdown|txt|docx|rtf|doc|xlsx|xlsm|csv|tsv|xls|odt|ods|html|htm|epub|pptx|opml|json|jsonc|jsonl|ndjson|rs|py|pyw|pyi|ts|tsx|js|jsx|mjs|cjs|go|java|kt|kts|swift|c|h|hh|hpp|cc|cpp|cxx|cs|fs|rb|php|lua|r|pl|pm|ex|exs|erl|hs|clj|cljs|ml|elm|nim|zig|vue|svelte|css|scss|sass|less|toml|ya?ml|xml|xsl|svg|sql|graphql|gql|proto|sh|bash|zsh|fish|ps1|bat|cmd|tf|hcl|nix|wasm|wat|ini|cfg|conf|env|gradle|groovy|tex|latex|mdx|astro|sol|diff|patch|log)$/i
+  /\.(scribe\.json|scribe|pages|numbers|key|md|markdown|txt|docx|rtf|doc|xlsx|xlsm|csv|tsv|xls|odt|ods|html|htm|epub|pptx|opml|json|jsonc|jsonl|ndjson|pdf|org|rst|rest|adoc|asciidoc|asc|fountain|spmd|wiki|mediawiki|ics|ical|ifb|eml|rs|py|pyw|pyi|ts|tsx|js|jsx|mjs|cjs|go|java|kt|kts|swift|c|h|hh|hpp|cc|cpp|cxx|cs|fs|rb|php|lua|r|pl|pm|ex|exs|erl|hs|clj|cljs|ml|elm|nim|zig|vue|svelte|css|scss|sass|less|toml|ya?ml|xml|xsl|svg|sql|graphql|gql|proto|sh|bash|zsh|fish|ps1|bat|cmd|tf|hcl|nix|wasm|wat|ini|cfg|conf|env|gradle|groovy|tex|latex|mdx|astro|sol|diff|patch|log)$/i
 
 /** Extensionless build files accepted on drop / open. */
 const IMPORTABLE_BASENAMES = /^(dockerfile|makefile|gnumakefile|cmakelists\.txt)(\.|$)/i
@@ -101,7 +110,20 @@ export async function importDocumentFromPath(path: string): Promise<Document> {
     return await importPagesDocumentFromPath(selected)
   }
 
-  // .docx / text / .scribe — Rust import_file (office_import for Word).
+  if (isNumbersPath(selected)) {
+    return await importNumbersDocumentFromPath(selected)
+  }
+
+  if (isKeynotePath(selected)) {
+    return await importKeynoteDocumentFromPath(selected)
+  }
+
+  // Prefer pdf.js path (richer page text); Rust pdf-extract is used by native picker.
+  if (isPdfPath(selected)) {
+    return await importPdfDocumentFromPath(selected)
+  }
+
+  // .docx / text / .scribe / markup / ics / eml — Rust import_file.
   if (isWordDocxPath(selected) || isLegacyWordPath(selected)) {
     return await importFile(selected)
   }

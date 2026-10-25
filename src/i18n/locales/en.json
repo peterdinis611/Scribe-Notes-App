@@ -996,6 +996,14 @@
       "title": "Import from Apple Pages",
       "description": "Open .pages documents with formatting — via Apple Pages, HTML, or a plain-text fallback."
     },
+    "numbersImport": {
+      "title": "Import from Apple Numbers",
+      "description": "Open .numbers spreadsheets as editable tables — via Apple Numbers → Excel, or a plain-text fallback."
+    },
+    "keynoteImport": {
+      "title": "Import from Apple Keynote",
+      "description": "Open .key presentations — via Apple Keynote → PowerPoint, or a plain-text fallback."
+    },
     "wordImport": {
       "title": "Import from Word",
       "description": ".docx support with headings, tables, and images saved into the document folder."
@@ -2511,7 +2519,7 @@
     },
     "import": {
       "label": "Import",
-      "description": "Import .scribe, .pages, .md, .txt, .docx, .xlsx"
+      "description": "Import .scribe, .pages, .numbers, .key, .md, .txt, .docx, .xlsx"
     },
     "toggleTheme": {
       "label": "Toggle theme",
@@ -5215,7 +5223,7 @@
     "skipped": "Skipped {{count}} unsupported file(s)",
     "failed": "Could not import {{count}} file(s)",
     "unsupportedTitle": "Unsupported files",
-    "unsupportedBody": "Drop .md, .docx, .pages, .xlsx, .txt, or .scribe files",
+    "unsupportedBody": "Drop .md, .docx, .pages, .numbers, .key, .xlsx, .txt, or .scribe files",
     "busy": "Import already in progress",
     "error": "Drop import failed"
   },

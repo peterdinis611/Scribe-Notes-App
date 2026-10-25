@@ -11,6 +11,8 @@ describe('import-document path helpers', () => {
     expect(isImportableDocumentPath('/tmp/pack.scribe.json')).toBe(true)
     expect(isImportableDocumentPath('C:\\Docs\\file.DOCX')).toBe(true)
     expect(isImportableDocumentPath('/tmp/sheet.xlsx')).toBe(true)
+    expect(isImportableDocumentPath('/tmp/Budget.numbers')).toBe(true)
+    expect(isImportableDocumentPath('/tmp/Talk.key')).toBe(true)
     expect(isImportableDocumentPath('/tmp/photo.png')).toBe(false)
     expect(isImportableDocumentPath('/tmp/plugin.scribe-ext')).toBe(false)
   })

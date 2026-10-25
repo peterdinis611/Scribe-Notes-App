@@ -419,6 +419,8 @@ pub fn run() {
             commands::ui::parse_map_spec_ui,
             commands::ui::import_title_from_path_ui,
             commands::ui::is_pages_path_ui,
+            commands::ui::is_numbers_path_ui,
+            commands::ui::is_keynote_path_ui,
             commands::ui::theme_preset_ids_ui,
             commands::ui::suggest_orphan_links_ui,
             commands::ui::resolve_color_ui,
@@ -590,6 +592,8 @@ pub fn run() {
             commands::import_export::pick_and_import_file,
             commands::import_export::import_file,
             commands::import_export::prepare_pages_import,
+            commands::import_export::prepare_numbers_import,
+            commands::import_export::prepare_keynote_import,
             commands::import_export::cleanup_temp_import_file,
             commands::import_export::export_document,
             commands::import_export::export_pdf_bytes,
@@ -684,6 +688,8 @@ pub fn run() {
                         || lower.ends_with(".yaml")
                         || lower.ends_with(".yml")
                         || lower.ends_with(".pages")
+                        || lower.ends_with(".numbers")
+                        || lower.ends_with(".key")
                         || lower.ends_with(".md")
                         || lower.ends_with(".markdown")
                         || lower.ends_with(".txt")

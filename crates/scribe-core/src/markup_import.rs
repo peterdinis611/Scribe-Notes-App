@@ -443,17 +443,17 @@ fn format_ics_date(raw: &str) -> String {
 
 pub fn eml_text_to_tiptap(text: &str) -> String {
     let (headers, body) = split_eml(text);
-    let subject = header_value(&headers, "Subject").unwrap_or("Email");
-    let from = header_value(&headers, "From").unwrap_or("");
-    let date = header_value(&headers, "Date").unwrap_or("");
-    let mut nodes = vec![heading(1, subject)];
+    let subject = header_value(&headers, "Subject").unwrap_or_else(|| "Email".into());
+    let from = header_value(&headers, "From").unwrap_or_default();
+    let date = header_value(&headers, "Date").unwrap_or_default();
+    let mut nodes = vec![heading(1, &subject)];
     if !from.is_empty() {
         nodes.push(paragraph(&format!("From: {from}")));
     }
     if !date.is_empty() {
         nodes.push(paragraph(&format!("Date: {date}")));
     }
-    let content_type = header_value(&headers, "Content-Type").unwrap_or("");
+    let content_type = header_value(&headers, "Content-Type").unwrap_or_default();
     let body_text = if content_type.to_ascii_lowercase().contains("text/html") {
         strip_simple_html(&extract_eml_body(body, &content_type))
     } else {

@@ -1278,11 +1278,15 @@ export const pickAndImportFiles = async () => {
 export const importFile = async (path: string) => {
   const [
     { isPagesPath, importPagesDocumentFromPath },
+    { isNumbersPath, importNumbersDocumentFromPath },
+    { isKeynotePath, importKeynoteDocumentFromPath },
     { isExcelPath, isLegacyExcelPath, importExcelDocumentFromPath },
     { isWordDocxPath },
     { readAntivirusPolicy },
   ] = await Promise.all([
     import('@/lib/import/pages'),
+    import('@/lib/import/numbers'),
+    import('@/lib/import/keynote'),
     import('@/lib/import/excel-xlsx'),
     import('@/lib/import/word-docx'),
     import('@/lib/antivirus/prefs'),
@@ -1298,6 +1302,14 @@ export const importFile = async (path: string) => {
 
   if (isPagesPath(path)) {
     return importPagesDocumentFromPath(path)
+  }
+
+  if (isNumbersPath(path)) {
+    return importNumbersDocumentFromPath(path)
+  }
+
+  if (isKeynotePath(path)) {
+    return importKeynoteDocumentFromPath(path)
   }
 
   if (isWordDocxPath(path)) {

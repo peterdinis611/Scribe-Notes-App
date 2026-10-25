@@ -268,6 +268,246 @@ pub fn pages_app_installed() -> bool {
     Path::new("/Applications/Pages.app").exists()
 }
 
+pub fn numbers_app_installed() -> bool {
+    Path::new("/Applications/Numbers.app").exists()
+}
+
+pub fn keynote_app_installed() -> bool {
+    Path::new("/Applications/Keynote.app").exists()
+}
+
+/// Export Numbers → temporary .xlsx via Apple Numbers (best table fidelity).
+pub fn export_numbers_to_xlsx(path: &Path) -> Result<PathBuf, String> {
+    if !numbers_app_installed() {
+        return Err("Apple Numbers nie je nainštalovaný.".to_string());
+    }
+
+    let temp_xlsx = std::env::temp_dir().join(format!(
+        "scribe-numbers-import-{}.xlsx",
+        uuid::Uuid::new_v4()
+    ));
+    let path_str = path.to_string_lossy();
+    let out_str = temp_xlsx.to_string_lossy();
+    let escaped_in = escape_applescript_string(&path_str);
+    let escaped_out = escape_applescript_string(&out_str);
+
+    let script = format!(
+        r#"set inPath to POSIX file "{escaped_in}"
+set outPath to POSIX file "{escaped_out}"
+tell application "Numbers"
+    set openedDoc to open inPath
+    try
+        export openedDoc to outPath as Microsoft Excel
+        close openedDoc saving no
+    on error errMsg number errNum
+        try
+            close openedDoc saving no
+        end try
+        error errMsg number errNum
+    end try
+end tell"#
+    );
+
+    run_osascript(&script, "scribe-numbers-export")?;
+
+    if !temp_xlsx.is_file() {
+        return Err("Numbers neexportoval dočasný .xlsx súbor.".to_string());
+    }
+    Ok(temp_xlsx)
+}
+
+/// Export Keynote → temporary .pptx via Apple Keynote.
+pub fn export_keynote_to_pptx(path: &Path) -> Result<PathBuf, String> {
+    if !keynote_app_installed() {
+        return Err("Apple Keynote nie je nainštalovaný.".to_string());
+    }
+
+    let temp_pptx = std::env::temp_dir().join(format!(
+        "scribe-keynote-import-{}.pptx",
+        uuid::Uuid::new_v4()
+    ));
+    let path_str = path.to_string_lossy();
+    let out_str = temp_pptx.to_string_lossy();
+    let escaped_in = escape_applescript_string(&path_str);
+    let escaped_out = escape_applescript_string(&out_str);
+
+    let script = format!(
+        r#"set inPath to POSIX file "{escaped_in}"
+set outPath to POSIX file "{escaped_out}"
+tell application "Keynote"
+    set openedDoc to open inPath
+    try
+        export openedDoc to outPath as Microsoft PowerPoint
+        close openedDoc saving no
+    on error errMsg number errNum
+        try
+            close openedDoc saving no
+        end try
+        error errMsg number errNum
+    end try
+end tell"#
+    );
+
+    run_osascript(&script, "scribe-keynote-export")?;
+
+    if !temp_pptx.is_file() {
+        return Err("Keynote neexportoval dočasný .pptx súbor.".to_string());
+    }
+    Ok(temp_pptx)
+}
+
+/// Best-effort plain text from Numbers (AppleScript cell dump).
+pub fn extract_numbers_text(path: &Path) -> Result<String, String> {
+    if !numbers_app_installed() {
+        return Err(
+            "Na import .numbers je potrebná aplikácia Apple Numbers (App Store), alebo exportujte do .xlsx / .csv."
+                .to_string(),
+        );
+    }
+
+    let path_str = path.to_string_lossy();
+    let escaped_path = escape_applescript_string(&path_str);
+    let script = format!(
+        r#"set inPath to POSIX file "{escaped_path}"
+tell application "Numbers"
+    set openedDoc to open inPath
+    try
+        set outText to ""
+        repeat with sh in sheets of openedDoc
+            repeat with t in tables of sh
+                set rowCount to count of rows of t
+                set colCount to count of columns of t
+                repeat with r from 1 to rowCount
+                    set rowBits to {{}}
+                    repeat with c from 1 to colCount
+                        try
+                            set cellVal to value of cell c of row r of t
+                            if cellVal is missing value then
+                                set end of rowBits to ""
+                            else
+                                set end of rowBits to (cellVal as text)
+                            end if
+                        on error
+                            set end of rowBits to ""
+                        end try
+                    end repeat
+                    set AppleScript's text item delimiters to tab
+                    set rowLine to rowBits as text
+                    set AppleScript's text item delimiters to ""
+                    set outText to outText & rowLine & return
+                end repeat
+                set outText to outText & return
+            end repeat
+        end repeat
+        close openedDoc saving no
+        return outText
+    on error errMsg number errNum
+        try
+            close openedDoc saving no
+        end try
+        error errMsg number errNum
+    end try
+end tell"#
+    );
+
+    let text = run_osascript_stdout(&script, "scribe-numbers-text")?;
+    if text.trim().is_empty() {
+        return Err("Numbers dokument neobsahuje žiadne tabuľky/text.".to_string());
+    }
+    Ok(text)
+}
+
+/// Best-effort plain text from Keynote slides.
+pub fn extract_keynote_text(path: &Path) -> Result<String, String> {
+    if !keynote_app_installed() {
+        return Err(
+            "Na import .key je potrebná aplikácia Apple Keynote (App Store), alebo exportujte do .pptx."
+                .to_string(),
+        );
+    }
+
+    let path_str = path.to_string_lossy();
+    let escaped_path = escape_applescript_string(&path_str);
+    let script = format!(
+        r#"set inPath to POSIX file "{escaped_path}"
+tell application "Keynote"
+    set openedDoc to open inPath
+    try
+        set outText to ""
+        set slideIndex to 0
+        repeat with s in slides of openedDoc
+            set slideIndex to slideIndex + 1
+            set outText to outText & "Slide " & slideIndex & return
+            try
+                set outText to outText & (default title item of s as text) & return
+            end try
+            try
+                set outText to outText & (default body item of s as text) & return
+            end try
+            repeat with ti in text items of s
+                try
+                    set outText to outText & (object text of ti as text) & return
+                end try
+            end repeat
+            set outText to outText & return
+        end repeat
+        close openedDoc saving no
+        return outText
+    on error errMsg number errNum
+        try
+            close openedDoc saving no
+        end try
+        error errMsg number errNum
+    end try
+end tell"#
+    );
+
+    let text = run_osascript_stdout(&script, "scribe-keynote-text")?;
+    if text.trim().is_empty() {
+        return Err("Keynote prezentácia neobsahuje žiadny text.".to_string());
+    }
+    Ok(text)
+}
+
+fn run_osascript(script: &str, prefix: &str) -> Result<(), String> {
+    let temp_script =
+        std::env::temp_dir().join(format!("{prefix}-{}.scpt", uuid::Uuid::new_v4()));
+    std::fs::write(&temp_script, script).map_err(|e| e.to_string())?;
+
+    let output = Command::new("/usr/bin/osascript")
+        .arg(&temp_script)
+        .output()
+        .map_err(|e| format!("osascript zlyhal: {e}"))?;
+
+    let _ = std::fs::remove_file(&temp_script);
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("AppleScript zlyhal: {stderr}"));
+    }
+    Ok(())
+}
+
+fn run_osascript_stdout(script: &str, prefix: &str) -> Result<String, String> {
+    let temp_script =
+        std::env::temp_dir().join(format!("{prefix}-{}.scpt", uuid::Uuid::new_v4()));
+    std::fs::write(&temp_script, script).map_err(|e| e.to_string())?;
+
+    let output = Command::new("/usr/bin/osascript")
+        .arg(&temp_script)
+        .output()
+        .map_err(|e| format!("osascript zlyhal: {e}"))?;
+
+    let _ = std::fs::remove_file(&temp_script);
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("AppleScript zlyhal: {stderr}"));
+    }
+
+    Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+}
+
 fn escape_applescript_string(value: &str) -> String {
     value
         .replace('\\', "\\\\")

@@ -201,6 +201,8 @@ pub fn pick_and_import_file(
             &[
                 "scribe",
                 "pages",
+                "numbers",
+                "key",
                 "md",
                 "markdown",
                 "txt",
@@ -271,6 +273,17 @@ pub fn pick_and_import_file(
                 "sol",
                 "diff",
                 "patch",
+                "pdf",
+                "org",
+                "rst",
+                "adoc",
+                "asciidoc",
+                "fountain",
+                "wiki",
+                "mediawiki",
+                "ics",
+                "ical",
+                "eml",
             ],
         )
         .blocking_pick_files();
@@ -335,6 +348,68 @@ pub fn prepare_pages_import(
 
     let text = export::extract_pages_text(&path)?;
     Ok(PagesImportPrepared::Text { text })
+}
+
+#[derive(Debug, Serialize)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum NumbersImportPrepared {
+    Xlsx { path: String },
+    Text { text: String },
+}
+
+#[tauri::command]
+pub fn prepare_numbers_import(
+    app: AppHandle,
+    state: State<'_, DbState>,
+    gate: State<'_, PathAccessGate>,
+    path: String,
+) -> Result<NumbersImportPrepared, String> {
+    let path = PathBuf::from(path);
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    gate.validate_read(&app, &conn, &path)?;
+    drop(conn);
+
+    if export::numbers_app_installed() {
+        if let Ok(xlsx_path) = export::export_numbers_to_xlsx(&path) {
+            return Ok(NumbersImportPrepared::Xlsx {
+                path: xlsx_path.to_string_lossy().to_string(),
+            });
+        }
+    }
+
+    let text = export::extract_numbers_text(&path)?;
+    Ok(NumbersImportPrepared::Text { text })
+}
+
+#[derive(Debug, Serialize)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum KeynoteImportPrepared {
+    Pptx { path: String },
+    Text { text: String },
+}
+
+#[tauri::command]
+pub fn prepare_keynote_import(
+    app: AppHandle,
+    state: State<'_, DbState>,
+    gate: State<'_, PathAccessGate>,
+    path: String,
+) -> Result<KeynoteImportPrepared, String> {
+    let path = PathBuf::from(path);
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    gate.validate_read(&app, &conn, &path)?;
+    drop(conn);
+
+    if export::keynote_app_installed() {
+        if let Ok(pptx_path) = export::export_keynote_to_pptx(&path) {
+            return Ok(KeynoteImportPrepared::Pptx {
+                path: pptx_path.to_string_lossy().to_string(),
+            });
+        }
+    }
+
+    let text = export::extract_keynote_text(&path)?;
+    Ok(KeynoteImportPrepared::Text { text })
 }
 
 #[tauri::command]
@@ -411,6 +486,42 @@ fn import_file_at_path(
                 export::text_to_tiptap_json(&text),
                 now,
             )
+        }
+        ImportFormat::Numbers => {
+            let title = import_title_from_path(&validated, "Import z Numbers");
+            let content_json = if export::numbers_app_installed() {
+                match export::export_numbers_to_xlsx(&validated) {
+                    Ok(xlsx_path) => {
+                        let bytes = std::fs::read(&xlsx_path).map_err(|e| e.to_string())?;
+                        let _ = std::fs::remove_file(&xlsx_path);
+                        scribe_core::xlsx_bytes_to_tiptap(&bytes)?
+                    }
+                    Err(_) => {
+                        export::text_to_tiptap_json(&export::extract_numbers_text(&validated)?)
+                    }
+                }
+            } else {
+                export::text_to_tiptap_json(&export::extract_numbers_text(&validated)?)
+            };
+            (Uuid::new_v4().to_string(), title, content_json, now)
+        }
+        ImportFormat::Keynote => {
+            let title = import_title_from_path(&validated, "Import z Keynote");
+            let content_json = if export::keynote_app_installed() {
+                match export::export_keynote_to_pptx(&validated) {
+                    Ok(pptx_path) => {
+                        let bytes = std::fs::read(&pptx_path).map_err(|e| e.to_string())?;
+                        let _ = std::fs::remove_file(&pptx_path);
+                        scribe_core::pptx_bytes_to_tiptap(&bytes)?
+                    }
+                    Err(_) => {
+                        export::text_to_tiptap_json(&export::extract_keynote_text(&validated)?)
+                    }
+                }
+            } else {
+                export::text_to_tiptap_json(&export::extract_keynote_text(&validated)?)
+            };
+            (Uuid::new_v4().to_string(), title, content_json, now)
         }
         ImportFormat::Text => {
             let text = export::import_text_from_file(&validated)?;
@@ -540,6 +651,30 @@ fn import_file_at_path(
                 .ok_or_else(|| "Nepodporovaný programovací formát".to_string())?;
             (Uuid::new_v4().to_string(), title, content_json, now)
         }
+        ImportFormat::Markup => {
+            let bytes = std::fs::read(&validated).map_err(|e| e.to_string())?;
+            let ext = validated
+                .extension()
+                .and_then(|e| e.to_str())
+                .unwrap_or("org");
+            let title = import_title_from_path(&validated, "Importovaný dokument");
+            (
+                Uuid::new_v4().to_string(),
+                title,
+                scribe_core::markup_bytes_to_tiptap(ext, &bytes)?,
+                now,
+            )
+        }
+        ImportFormat::Pdf => {
+            let bytes = std::fs::read(&validated).map_err(|e| e.to_string())?;
+            let title = import_title_from_path(&validated, "Import z PDF");
+            (
+                Uuid::new_v4().to_string(),
+                title,
+                scribe_core::pdf_bytes_to_tiptap(&bytes)?,
+                now,
+            )
+        }
     };
 
     let existing: Option<String> = conn
@@ -584,6 +719,8 @@ fn import_file_at_path(
 enum ImportFormat {
     Scribe,
     Pages,
+    Numbers,
+    Keynote,
     Text,
     Docx,
     Xlsx,
@@ -597,6 +734,8 @@ enum ImportFormat {
     Opml,
     Json,
     SourceCode,
+    Markup,
+    Pdf,
 }
 
 fn import_title_from_path(path: &Path, fallback: &str) -> String {
@@ -635,6 +774,12 @@ fn detect_import_format(path: &Path) -> Result<ImportFormat, String> {
     if file_name.ends_with(".pages") {
         return Ok(ImportFormat::Pages);
     }
+    if file_name.ends_with(".numbers") {
+        return Ok(ImportFormat::Numbers);
+    }
+    if file_name.ends_with(".key") {
+        return Ok(ImportFormat::Keynote);
+    }
 
     // Extensionless / special build files.
     if file_name == "dockerfile"
@@ -655,6 +800,8 @@ fn detect_import_format(path: &Path) -> Result<ImportFormat, String> {
     match extension.as_str() {
         "scribe" => Ok(ImportFormat::Scribe),
         "pages" => Ok(ImportFormat::Pages),
+        "numbers" => Ok(ImportFormat::Numbers),
+        "key" => Ok(ImportFormat::Keynote),
         "docx" => Ok(ImportFormat::Docx),
         "xlsx" | "xlsm" => Ok(ImportFormat::Xlsx),
         "csv" | "tsv" => Ok(ImportFormat::Csv),
@@ -668,10 +815,12 @@ fn detect_import_format(path: &Path) -> Result<ImportFormat, String> {
         // Structured Scribe JSON when shape matches; otherwise code block.
         "json" => Ok(ImportFormat::Json),
         "md" | "markdown" | "txt" | "doc" => Ok(ImportFormat::Text),
+        "pdf" => Ok(ImportFormat::Pdf),
+        ext if scribe_core::is_markup_extension(ext) => Ok(ImportFormat::Markup),
         ext if scribe_core::is_source_extension(ext) => Ok(ImportFormat::SourceCode),
         _ => Err(
-            "Podporované formáty: dokumenty (docx, odt, md, …), tabuľky (xlsx, ods, csv), \
-             EPUB/PPTX/OPML/JSON a zdrojový kód (rs, ts, py, go, …)"
+            "Podporované formáty: dokumenty (docx, odt, md, pdf, org, …), tabuľky (xlsx, ods, csv), \
+             EPUB/PPTX/OPML/JSON/ICS/EML a zdrojový kód (rs, ts, py, go, …)"
                 .to_string(),
         ),
     }
@@ -700,6 +849,14 @@ mod tests {
             ImportFormat::Pages
         );
         assert_eq!(
+            detect_import_format(Path::new("/tmp/budget.numbers")).unwrap(),
+            ImportFormat::Numbers
+        );
+        assert_eq!(
+            detect_import_format(Path::new("/tmp/Talk.key")).unwrap(),
+            ImportFormat::Keynote
+        );
+        assert_eq!(
             detect_import_format(Path::new("/tmp/readme.md")).unwrap(),
             ImportFormat::Text
         );
@@ -718,6 +875,22 @@ mod tests {
         assert_eq!(
             detect_import_format(Path::new("/tmp/people.tsv")).unwrap(),
             ImportFormat::Csv
+        );
+        assert_eq!(
+            detect_import_format(Path::new("/tmp/notes.pdf")).unwrap(),
+            ImportFormat::Pdf
+        );
+        assert_eq!(
+            detect_import_format(Path::new("/tmp/todo.org")).unwrap(),
+            ImportFormat::Markup
+        );
+        assert_eq!(
+            detect_import_format(Path::new("/tmp/calendar.ics")).unwrap(),
+            ImportFormat::Markup
+        );
+        assert_eq!(
+            detect_import_format(Path::new("/tmp/mail.eml")).unwrap(),
+            ImportFormat::Markup
         );
         assert_eq!(
             detect_import_format(Path::new("/tmp/note.odt")).unwrap(),

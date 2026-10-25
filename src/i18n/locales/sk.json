@@ -996,6 +996,14 @@
       "title": "Import z Apple Pages",
       "description": "Načítajte .pages dokumenty s formátovaním — cez Apple Pages, HTML alebo textový fallback."
     },
+    "numbersImport": {
+      "title": "Import z Apple Numbers",
+      "description": "Načítajte .numbers tabuľky ako editovateľné tabuľky — cez Apple Numbers → Excel, alebo textový fallback."
+    },
+    "keynoteImport": {
+      "title": "Import z Apple Keynote",
+      "description": "Načítajte .key prezentácie — cez Apple Keynote → PowerPoint, alebo textový fallback."
+    },
     "wordImport": {
       "title": "Import z Wordu",
       "description": "Podpora .docx s nadpismi, tabuľkami a obrázkami uloženými do priečinka dokumentu."
@@ -2511,7 +2519,7 @@
     },
     "import": {
       "label": "Importovať",
-      "description": "Import .scribe, .pages, .md, .txt, .docx, .xlsx"
+      "description": "Import .scribe, .pages, .numbers, .key, .md, .txt, .docx, .xlsx"
     },
     "toggleTheme": {
       "label": "Prepínať tému",
@@ -5231,7 +5239,7 @@
     "skipped": "Preskočených nepodporovaných súborov: {{count}}",
     "failed": "Nepodarilo sa importovať {{count}} súbor(ov)",
     "unsupportedTitle": "Nepodporované súbory",
-    "unsupportedBody": "Pretiahnite .md, .docx, .pages, .xlsx, .txt alebo .scribe",
+    "unsupportedBody": "Pretiahnite .md, .docx, .pages, .numbers, .key, .xlsx, .txt alebo .scribe",
     "busy": "Import už prebieha",
     "error": "Drop import zlyhal"
   },

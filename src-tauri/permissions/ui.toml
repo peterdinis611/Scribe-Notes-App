@@ -274,6 +274,16 @@ description = "Allow is_pages_path_ui"
 commands.allow = ["is_pages_path_ui"]
 
 [[permission]]
+identifier = "allow-is-numbers-path-ui"
+description = "Allow is_numbers_path_ui"
+commands.allow = ["is_numbers_path_ui"]
+
+[[permission]]
+identifier = "allow-is-keynote-path-ui"
+description = "Allow is_keynote_path_ui"
+commands.allow = ["is_keynote_path_ui"]
+
+[[permission]]
 identifier = "allow-is-ui-skin"
 description = "Allow is_ui_skin"
 commands.allow = ["is_ui_skin"]
@@ -527,6 +537,8 @@ permissions = [
   "allow-is-dark-color-ui",
   "allow-is-orphan-asset-ui",
   "allow-is-pages-path-ui",
+  "allow-is-numbers-path-ui",
+  "allow-is-keynote-path-ui",
   "allow-is-ui-skin",
   "allow-is-untitled-orphan-title-ui",
   "allow-library-asset-kind-filters-ui",

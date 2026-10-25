@@ -433,6 +433,16 @@ pub fn is_pages_path_ui(path: String) -> bool {
 }
 
 #[tauri::command]
+pub fn is_numbers_path_ui(path: String) -> bool {
+    scribe_ui::is_numbers_path(&path)
+}
+
+#[tauri::command]
+pub fn is_keynote_path_ui(path: String) -> bool {
+    scribe_ui::is_keynote_path(&path)
+}
+
+#[tauri::command]
 pub fn theme_preset_ids_ui() -> Vec<String> {
     scribe_ui::theme_preset_ids()
 }

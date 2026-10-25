@@ -12,6 +12,8 @@ pub mod journal;
 pub mod manuscripts;
 pub mod nlp;
 pub mod office_import;
+pub mod markup_import;
+pub mod pdf_import;
 pub mod rich_import;
 pub mod source_code;
 pub mod path;
@@ -55,6 +57,12 @@ pub use journal::{JournalNote, JournalSlot, JournalSummary, JournalSummaryInput}
 pub use office_import::{
     csv_bytes_to_tiptap, csv_text_to_tiptap, docx_bytes_to_tiptap, matrix_to_csv, xlsx_bytes_to_tiptap,
 };
+pub use markup_import::{
+    adoc_text_to_tiptap, eml_text_to_tiptap, fountain_text_to_tiptap, ics_text_to_tiptap,
+    is_markup_extension, markup_bytes_to_tiptap, org_text_to_tiptap, rst_text_to_tiptap,
+    wiki_text_to_tiptap,
+};
+pub use pdf_import::{pdf_bytes_to_tiptap, pdf_text_to_tiptap};
 pub use rich_import::{
     epub_bytes_to_tiptap, html_bytes_to_tiptap, html_text_to_tiptap, json_bytes_to_tiptap,
     json_text_to_tiptap, ods_bytes_to_tiptap, odt_bytes_to_tiptap, opml_bytes_to_tiptap,

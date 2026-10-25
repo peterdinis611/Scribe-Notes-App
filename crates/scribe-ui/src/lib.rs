@@ -164,7 +164,9 @@ pub use html_content::{
     empty_doc_json, normalize_doc_json, plain_text_to_content_json, title_from_html,
 };
 pub use ics::{build_ics_calendar, IcsEventInput};
-pub use import_path::{import_title_from_path, is_pages_path};
+pub use import_path::{
+    import_title_from_path, is_keynote_path, is_numbers_path, is_pages_path,
+};
 pub use journal_dates::{
     compute_journal_streak, current_week_range, format_date_key, format_date_key_today,
     format_week_key,

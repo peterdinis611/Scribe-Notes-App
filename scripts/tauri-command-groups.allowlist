@@ -117,6 +117,8 @@ import_export	pick_and_grant_path
 import_export	pick_and_grant_save_path
 import_export	pick_and_import_file
 import_export	prepare_pages_import
+import_export	prepare_numbers_import
+import_export	prepare_keynote_import
 import_export	read_binary_file
 import_export	read_text_file
 import_export	scan_scribe_files
@@ -310,6 +312,8 @@ ui	import_title_from_path_ui
 ui	is_dark_color_ui
 ui	is_orphan_asset_ui
 ui	is_pages_path_ui
+ui	is_numbers_path_ui
+ui	is_keynote_path_ui
 ui	is_ui_skin
 ui	is_untitled_orphan_title_ui
 ui	library_asset_kind_filters_ui
