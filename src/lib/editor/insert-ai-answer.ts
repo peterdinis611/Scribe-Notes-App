@@ -4,7 +4,7 @@ import { editorRefs } from '@/store/editorRefs'
 
 export type AgentApplyMode = 'callout' | 'checklist' | 'frontmatter'
 
-/** Strip light markdown so callout body stays readable. */
+/** Strip light markdown so callout body stays readable. Canonical: `scribe_ui::strip_answer_markdown`. */
 export function stripAnswerMarkdown(source: string): string {
   return source
     .replace(/^Based on (this document|your notes)(\s*\([^)]+\))?:\s*/i, '')

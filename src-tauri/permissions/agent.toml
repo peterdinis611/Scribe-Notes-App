@@ -88,6 +88,42 @@ identifier = "allow-set-agent-role-states"
 description = "Allow set_agent_role_states"
 commands.allow = ["set_agent_role_states"]
 
+
+[[permission]]
+identifier = "allow-parse-handoff-goal"
+description = "Allow parse_handoff_goal"
+commands.allow = ["parse_handoff_goal"]
+
+
+[[permission]]
+identifier = "allow-apply-agent-optimize"
+description = "Allow apply_agent_optimize"
+commands.allow = ["apply_agent_optimize"]
+
+
+[[permission]]
+identifier = "allow-is-quiet-hour-now"
+description = "Allow is_quiet_hour_now"
+commands.allow = ["is_quiet_hour_now"]
+
+
+[[permission]]
+identifier = "allow-can-run-agent-budget"
+description = "Allow can_run_agent_budget"
+commands.allow = ["can_run_agent_budget"]
+
+
+[[permission]]
+identifier = "allow-should-run-digest-now"
+description = "Allow should_run_digest_now"
+commands.allow = ["should_run_digest_now"]
+
+
+[[permission]]
+identifier = "allow-should-catch-up-digest"
+description = "Allow should_catch_up_digest"
+commands.allow = ["should_catch_up_digest"]
+
 [[set]]
 identifier = "group-agent"
 description = "Command group: agent"

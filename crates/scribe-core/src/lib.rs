@@ -105,6 +105,9 @@ pub use vault::{
     McpVaultScope, ERR_VAULT_DENIED, ERR_VAULT_NLP, VAULT_CONTENT_MARKER,
 };
 pub use nlp::{
-    filter_agent_slash_commands, list_agent_slash_commands, match_agent_intents,
-    match_document_chat_intent, parse_agent_slash, AgentSlashCommandDef, ParsedAgentSlash,
+    decode_phase_followup, encode_phase_followup, filter_agent_slash_commands,
+    is_phase_followup, is_weak_agent_answer, list_agent_slash_commands, match_agent_intents,
+    match_document_chat_intent, normalize_plan_phases, now_tools_from_phases, parse_agent_slash,
+    phases_to_followups, AgentPhaseWhen, AgentPlanPhase, AgentSlashCommandDef, ParsedAgentSlash,
+    PHASE_PREFIX,
 };

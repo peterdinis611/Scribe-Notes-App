@@ -692,3 +692,65 @@ pub fn document_highlight_css_ui() -> String {
 pub fn pdf_capture_css_ui() -> String {
     scribe_ui::PDF_CAPTURE_CSS.to_string()
 }
+
+#[tauri::command]
+pub fn list_agent_roles_ui() -> Vec<scribe_ui::AgentRoleDef> {
+    scribe_ui::agent_roles()
+}
+
+#[tauri::command]
+pub fn list_agent_recipes_ui() -> Vec<scribe_ui::AgentRecipeDef> {
+    scribe_ui::agent_recipes()
+}
+
+#[tauri::command]
+pub fn filter_tools_by_agents_ui(tools: Vec<String>, enabled_roles: Vec<String>) -> Vec<String> {
+    scribe_ui::filter_tools_by_agents(&tools, &enabled_roles)
+}
+
+#[tauri::command]
+pub fn preferred_tools_for_role_ui(role_id: String) -> Vec<String> {
+    scribe_ui::preferred_tools_for_role(&role_id)
+}
+
+#[tauri::command]
+pub fn suggest_followup_recipes_ui(
+    ok_tools: Vec<String>,
+    scope: String,
+    enabled_roles: Vec<String>,
+) -> Vec<String> {
+    scribe_ui::suggest_followup_recipes(&ok_tools, &scope, &enabled_roles)
+}
+
+#[tauri::command]
+pub fn pick_canvas_template_id_ui(goal: String) -> String {
+    scribe_ui::pick_canvas_template_id(&goal).to_string()
+}
+
+#[tauri::command]
+pub fn strip_answer_markdown_ui(source: String) -> String {
+    scribe_ui::strip_answer_markdown(&source)
+}
+
+#[tauri::command]
+pub fn title_from_markdown_ui(markdown: String, fallback: String) -> String {
+    scribe_ui::title_from_markdown(&markdown, &fallback)
+}
+
+#[tauri::command]
+pub fn build_agent_goal_chips_ui(
+    analysis: Option<scribe_ui::AgentSuggestionAnalysis>,
+    tasks: Vec<scribe_ui::AgentSuggestionTask>,
+    title: Option<String>,
+    slovak: Option<bool>,
+) -> Vec<String> {
+    scribe_ui::build_agent_goal_chips(analysis.as_ref(), &tasks, title.as_deref(), slovak.unwrap_or(false))
+}
+
+#[tauri::command]
+pub fn build_agent_tool_options_ui(
+    analysis: Option<scribe_ui::AgentSuggestionAnalysis>,
+    tasks: Vec<scribe_ui::AgentSuggestionTask>,
+) -> Vec<String> {
+    scribe_ui::build_agent_tool_options(analysis.as_ref(), &tasks)
+}

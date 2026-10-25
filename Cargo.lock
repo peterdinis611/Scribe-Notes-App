@@ -4413,6 +4413,7 @@ name = "scribe-agent"
 version = "4.3.0"
 dependencies = [
  "chrono",
+ "regex",
  "rusqlite",
  "serde",
  "serde_json",

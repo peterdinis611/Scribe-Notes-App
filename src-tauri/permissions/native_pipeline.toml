@@ -78,6 +78,36 @@ identifier = "allow-render-document-html"
 description = "Allow render_document_html"
 commands.allow = ["render_document_html"]
 
+
+[[permission]]
+identifier = "allow-encode-phase-followup"
+description = "Allow encode_phase_followup"
+commands.allow = ["encode_phase_followup"]
+
+
+[[permission]]
+identifier = "allow-decode-phase-followup"
+description = "Allow decode_phase_followup"
+commands.allow = ["decode_phase_followup"]
+
+
+[[permission]]
+identifier = "allow-is-weak-agent-answer"
+description = "Allow is_weak_agent_answer"
+commands.allow = ["is_weak_agent_answer"]
+
+
+[[permission]]
+identifier = "allow-normalize-plan-phases"
+description = "Allow normalize_plan_phases"
+commands.allow = ["normalize_plan_phases"]
+
+
+[[permission]]
+identifier = "allow-phases-to-followups"
+description = "Allow phases_to_followups"
+commands.allow = ["phases_to_followups"]
+
 [[set]]
 identifier = "group-native-pipeline"
 description = "Command group: native_pipeline"

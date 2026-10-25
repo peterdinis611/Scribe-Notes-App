@@ -615,6 +615,7 @@ export function teachingsToMemoryContext(
 /**
  * Reorder / filter a planned tool list using optimization prefs.
  * Preferred tools first, disabled removed, heavy tools dropped when preferFast or quiet hours.
+ * Canonical: `scribe_agent::apply_agent_optimize` (Tauri `apply_agent_optimize`).
  */
 export function applyAgentOptimize(
   tools: AgentToolId[],

@@ -482,6 +482,60 @@ export const filterAgentSlashCommands = (
 export const parseAgentSlash = (raw: string, scope: string) =>
   invoke<ParsedAgentSlashDto>('parse_agent_slash', { raw, scope })
 
+export const parseHandoffGoalNative = (goal: string, fromAgentId: string) =>
+  invoke<{ toAgentId: string; summary: string } | null>('parse_handoff_goal', {
+    goal,
+    fromAgentId,
+  })
+
+export const applyAgentOptimizeNative = (
+  tools: string[],
+  prefs: {
+    maxSteps: number
+    preferFast: boolean
+    preferredTools: string[]
+    disabledTools: string[]
+    quietHours: boolean
+    allowedTools?: string[]
+  },
+  hour?: number | null,
+) => invoke<string[]>('apply_agent_optimize', { tools, prefs, hour: hour ?? null })
+
+export const listAgentRolesUi = () => invoke('list_agent_roles_ui')
+export const listAgentRecipesUi = () => invoke('list_agent_recipes_ui')
+export const suggestFollowupRecipesUi = (
+  okTools: string[],
+  scope: string,
+  enabledRoles: string[],
+) =>
+  invoke<string[]>('suggest_followup_recipes_ui', {
+    okTools,
+    scope,
+    enabledRoles,
+  })
+
+export const buildAgentGoalChipsUi = (input: {
+  analysis?: unknown
+  tasks: unknown[]
+  title?: string | null
+  slovak?: boolean
+}) =>
+  invoke<string[]>('build_agent_goal_chips_ui', {
+    analysis: input.analysis ?? null,
+    tasks: input.tasks,
+    title: input.title ?? null,
+    slovak: input.slovak ?? false,
+  })
+
+export const stripAnswerMarkdownUi = (source: string) =>
+  invoke<string>('strip_answer_markdown_ui', { source })
+
+export const titleFromMarkdownUi = (markdown: string, fallback: string) =>
+  invoke<string>('title_from_markdown_ui', { markdown, fallback })
+
+export const pickCanvasTemplateIdUi = (goal: string) =>
+  invoke<string>('pick_canvas_template_id_ui', { goal })
+
 export type AgentBackendDigestSchedule = {
   enabled: boolean
   timeLocal: string

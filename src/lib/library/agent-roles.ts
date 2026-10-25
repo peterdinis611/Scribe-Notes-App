@@ -1,3 +1,8 @@
+/**
+ * Agent role catalog + gating.
+ * Canonical role/recipe tool lists: `crates/scribe-ui/src/agent_catalog.rs`
+ * (Tauri: list_agent_roles_ui / filter_tools_by_agents_ui / …).
+ */
 import type { AgentToolId } from '@/lib/library/agent-prefs'
 import type { AgentRecipeId } from '@/lib/library/agent-recipes'
 

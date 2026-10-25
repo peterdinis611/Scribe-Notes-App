@@ -1,6 +1,7 @@
 //! Scribe UI domain — catalogs, helpers, and optional Dioxus chrome surfaces.
 
 mod agent_catalog;
+mod agent_suggestions;
 mod canvas_doc;
 mod canvas_flow;
 mod code_languages;
@@ -79,8 +80,14 @@ pub mod components;
 pub mod render;
 
 pub use agent_catalog::{
-    agent_recipe_ids, agent_recipes, agent_role_ids, is_agent_recipe_id, is_agent_role_id,
-    AgentRecipeDef, AGENT_RECIPE_IDS, AGENT_ROLE_IDS,
+    agent_recipe_ids, agent_recipes, agent_role_ids, agent_roles, filter_tools_by_agents,
+    get_agent_role, is_agent_recipe_id, is_agent_role_id, is_recipe_allowed_by_agents,
+    pick_canvas_template_id, preferred_tools_for_role, recipe_owner_role, resolve_agent_recipe,
+    strip_answer_markdown, suggest_followup_recipes, title_from_markdown, tools_allowed_by_agents,
+    AgentRecipeDef, AgentRoleDef, AGENT_RECIPE_IDS, AGENT_ROLE_IDS,
+};
+pub use agent_suggestions::{
+    build_agent_goal_chips, build_agent_tool_options, AgentSuggestionAnalysis, AgentSuggestionTask,
 };
 pub use canvas_doc::{
     empty_canvas_document, is_canvas_content, parse_canvas_document, serialize_canvas_document,

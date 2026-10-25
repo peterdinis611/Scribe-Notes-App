@@ -39,6 +39,7 @@ export function serializeContentJsonToMarkdown(contentJson: string): string {
   return getMarkdownManager().serialize(doc).trimEnd()
 }
 
+/** Canonical: `scribe_ui::title_from_markdown` (Tauri `title_from_markdown_ui`). */
 export function titleFromMarkdown(markdown: string, fallback: string): string {
   const match = markdown.match(/^#\s+(.+)$/m)
   if (match?.[1]) {

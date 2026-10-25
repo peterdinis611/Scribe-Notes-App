@@ -478,6 +478,66 @@ identifier = "allow-validate-snippet-input-ui"
 description = "Allow validate_snippet_input_ui"
 commands.allow = ["validate_snippet_input_ui"]
 
+
+[[permission]]
+identifier = "allow-list-agent-roles-ui"
+description = "Allow list_agent_roles_ui"
+commands.allow = ["list_agent_roles_ui"]
+
+
+[[permission]]
+identifier = "allow-list-agent-recipes-ui"
+description = "Allow list_agent_recipes_ui"
+commands.allow = ["list_agent_recipes_ui"]
+
+
+[[permission]]
+identifier = "allow-filter-tools-by-agents-ui"
+description = "Allow filter_tools_by_agents_ui"
+commands.allow = ["filter_tools_by_agents_ui"]
+
+
+[[permission]]
+identifier = "allow-preferred-tools-for-role-ui"
+description = "Allow preferred_tools_for_role_ui"
+commands.allow = ["preferred_tools_for_role_ui"]
+
+
+[[permission]]
+identifier = "allow-suggest-followup-recipes-ui"
+description = "Allow suggest_followup_recipes_ui"
+commands.allow = ["suggest_followup_recipes_ui"]
+
+
+[[permission]]
+identifier = "allow-pick-canvas-template-id-ui"
+description = "Allow pick_canvas_template_id_ui"
+commands.allow = ["pick_canvas_template_id_ui"]
+
+
+[[permission]]
+identifier = "allow-strip-answer-markdown-ui"
+description = "Allow strip_answer_markdown_ui"
+commands.allow = ["strip_answer_markdown_ui"]
+
+
+[[permission]]
+identifier = "allow-title-from-markdown-ui"
+description = "Allow title_from_markdown_ui"
+commands.allow = ["title_from_markdown_ui"]
+
+
+[[permission]]
+identifier = "allow-build-agent-goal-chips-ui"
+description = "Allow build_agent_goal_chips_ui"
+commands.allow = ["build_agent_goal_chips_ui"]
+
+
+[[permission]]
+identifier = "allow-build-agent-tool-options-ui"
+description = "Allow build_agent_tool_options_ui"
+commands.allow = ["build_agent_tool_options_ui"]
+
 [[set]]
 identifier = "group-ui"
 description = "Command group: ui"

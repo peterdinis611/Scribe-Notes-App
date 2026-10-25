@@ -1,3 +1,4 @@
+mod agent_phases;
 mod agent_slash;
 mod chat_context;
 mod chat_intent;
@@ -31,6 +32,11 @@ pub mod vault_index;
 pub use chat_context::{
     followups_from_sidecar, is_chat_memory_citation_title, merge_chat_memory_passages, ChatTurn,
     DOCUMENT_CHAT_CONTEXT_LIMIT, MERGED_PASSAGE_LIMIT,
+};
+pub use agent_phases::{
+    decode_phase_followup, encode_phase_followup, is_phase_followup, is_weak_agent_answer,
+    normalize_plan_phases, now_tools_from_phases, phases_to_followups, AgentPhaseWhen,
+    AgentPlanPhase, PHASE_PREFIX,
 };
 pub use agent_slash::{
     filter_agent_slash_commands, list_agent_slash_commands, parse_agent_slash, AgentSlashCommandDef,

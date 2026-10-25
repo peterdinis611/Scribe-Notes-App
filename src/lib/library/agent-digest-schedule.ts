@@ -32,6 +32,7 @@ function weekdayKey(date = new Date()): number {
   return date.getDay() // 0 = Sun
 }
 
+/** Canonical: `scribe_agent::should_run_digest_now` (Tauri `should_run_digest_now`). */
 export function shouldRunDigestNow(schedule: AgentDigestSchedule, now = new Date()): boolean {
   if (!schedule.enabled) return false
   const hm = localHm(now)

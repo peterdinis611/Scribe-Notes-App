@@ -328,6 +328,7 @@ function defaultAnswerTool(scope: ChatScope): AgentToolId {
   return scope === 'document' ? 'document_answer' : 'library_answer'
 }
 
+/** Canonical: `scribe_ui::suggest_followup_recipes` (Tauri `suggest_followup_recipes_ui`). */
 export function suggestFollowupRecipes(
   steps: AgentStep[],
   scope: ChatScope,

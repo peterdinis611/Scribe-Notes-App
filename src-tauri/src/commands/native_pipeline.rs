@@ -465,6 +465,35 @@ pub fn parse_agent_slash(raw: String, scope: String) -> scribe_core::ParsedAgent
     scribe_core::parse_agent_slash(&raw, &scope)
 }
 
+#[tauri::command]
+pub fn encode_phase_followup(phase: scribe_core::AgentPlanPhase) -> Option<String> {
+    scribe_core::encode_phase_followup(&phase)
+}
+
+#[tauri::command]
+pub fn decode_phase_followup(token: String) -> Option<scribe_core::AgentPlanPhase> {
+    scribe_core::decode_phase_followup(&token)
+}
+
+#[tauri::command]
+pub fn is_weak_agent_answer(answer: Option<String>) -> bool {
+    scribe_core::is_weak_agent_answer(answer.as_deref())
+}
+
+#[tauri::command]
+pub fn normalize_plan_phases(
+    raw: serde_json::Value,
+    fallback_tools: Vec<String>,
+    goal: String,
+) -> Vec<scribe_core::AgentPlanPhase> {
+    scribe_core::normalize_plan_phases(&raw, &fallback_tools, &goal)
+}
+
+#[tauri::command]
+pub fn phases_to_followups(phases: Vec<scribe_core::AgentPlanPhase>) -> Vec<String> {
+    scribe_core::phases_to_followups(&phases)
+}
+
 /// Parse convention tags (`status:` / `project:` / `year:`).
 #[tauri::command]
 pub fn parse_meta_tag(raw: String) -> scribe_core::ParsedTag {

@@ -1,3 +1,8 @@
+/**
+ * Agent plan phases — sync helpers for FE.
+ * Canonical implementation: `crates/scribe-core/src/nlp/agent_phases.rs`
+ * (Tauri: encode_phase_followup / decode_phase_followup / normalize_plan_phases / …).
+ */
 import type { AgentToolId } from '@/lib/library/agent-prefs'
 
 export type AgentPhaseWhen = 'now' | 'next' | 'later'
