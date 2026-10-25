@@ -1,4 +1,4 @@
-import { invokeMatchAgentIntents } from '@/lib/db/api'
+import { invokeMatchAgentIntents, invokeMatchDocumentChatIntent } from '@/lib/db/api'
 import { nlpAgentDocumentBrief, nlpPlanAgentGoal } from '@/lib/db/nlp-api'
 import {
   AGENT_MAX_STEPS_HARD,
@@ -70,7 +70,6 @@ import {
   askDocument,
   askLibrary,
   documentChatContext,
-  matchDocumentChatIntent,
   runDocumentChatAction,
   type ChatScope,
   type DocumentChatAction,
@@ -835,7 +834,8 @@ export async function planAgentGoal(
     try {
       intents = await invokeMatchAgentIntents(trimmed)
     } catch {
-      intents = matchAgentIntentsSync(trimmed)
+      // Production uses Rust only; sync mirror remains for vitest without Tauri.
+      intents = []
     }
     planMeta = { source: 'fallback' }
   }
@@ -854,9 +854,13 @@ export async function planAgentGoal(
   }
 
   if (fromIntent.length === 0) {
-    const single = matchDocumentChatIntent(trimmed)
-    if (single && INTENT_TO_TOOL[single]) {
-      fromIntent = [INTENT_TO_TOOL[single]]
+    try {
+      const single = await invokeMatchDocumentChatIntent(trimmed)
+      if (single && INTENT_TO_TOOL[single]) {
+        fromIntent = [INTENT_TO_TOOL[single]]
+      }
+    } catch {
+      /* Rust intent router unavailable */
     }
   }
 

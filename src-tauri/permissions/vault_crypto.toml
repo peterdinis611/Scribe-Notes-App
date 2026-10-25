@@ -1,0 +1,35 @@
+[[permission]]
+identifier = "allow-vault-create-verifier"
+description = "Allow vault_create_verifier"
+commands.allow = ["vault_create_verifier"]
+
+[[permission]]
+identifier = "allow-vault-verify-password"
+description = "Allow vault_verify_password"
+commands.allow = ["vault_verify_password"]
+
+[[permission]]
+identifier = "allow-vault-encrypt-content"
+description = "Allow vault_encrypt_content"
+commands.allow = ["vault_encrypt_content"]
+
+[[permission]]
+identifier = "allow-vault-decrypt-content"
+description = "Allow vault_decrypt_content"
+commands.allow = ["vault_decrypt_content"]
+
+[[permission]]
+identifier = "allow-vault-is-cipher-json"
+description = "Allow vault_is_cipher_json"
+commands.allow = ["vault_is_cipher_json"]
+
+[[set]]
+identifier = "group-vault-crypto"
+description = "Command group: vault_crypto"
+permissions = [
+  "allow-vault-create-verifier",
+  "allow-vault-verify-password",
+  "allow-vault-encrypt-content",
+  "allow-vault-decrypt-content",
+  "allow-vault-is-cipher-json",
+]

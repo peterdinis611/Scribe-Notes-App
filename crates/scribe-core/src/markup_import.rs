@@ -551,6 +551,164 @@ fn strip_simple_html(html: &str) -> String {
         .replace("&quot;", "\"")
 }
 
+fn code_block(language: &str, code: &str) -> Value {
+    json!({
+        "type": "codeBlock",
+        "attrs": { "language": language },
+        "content": [{ "type": "text", "text": code }]
+    })
+}
+
+fn ordered_list(items: &[String]) -> Value {
+    let content: Vec<Value> = items
+        .iter()
+        .filter(|item| !item.trim().is_empty())
+        .map(|item| {
+            json!({
+                "type": "listItem",
+                "content": [paragraph(item)]
+            })
+        })
+        .collect();
+    json!({ "type": "orderedList", "content": content })
+}
+
+fn flush_ordered(nodes: &mut Vec<Value>, items: &mut Vec<String>) {
+    if !items.is_empty() {
+        nodes.push(ordered_list(items));
+        items.clear();
+    }
+}
+
+/// CommonMark-ish → TipTap for file import (lossy). Live editor keeps TipTap Markdown.
+pub fn markdown_to_tiptap(text: &str) -> String {
+    let source = if text.len() > MAX_CHARS {
+        format!("{}\n…", &text[..MAX_CHARS])
+    } else {
+        text.replace("\r\n", "\n").replace('\r', "\n")
+    };
+    let lines: Vec<&str> = source.lines().collect();
+    let mut nodes = Vec::new();
+    let mut bullet: Vec<String> = Vec::new();
+    let mut ordered: Vec<String> = Vec::new();
+    let mut i = 0usize;
+
+    while i < lines.len() {
+        let line = lines[i];
+        let trimmed = line.trim_end();
+
+        if trimmed.starts_with("```") {
+            flush_list(&mut nodes, &mut bullet);
+            flush_ordered(&mut nodes, &mut ordered);
+            let lang = trimmed.trim_start_matches('`').trim().to_string();
+            i += 1;
+            let mut body = String::new();
+            while i < lines.len() && !lines[i].trim_end().starts_with("```") {
+                if !body.is_empty() {
+                    body.push('\n');
+                }
+                body.push_str(lines[i]);
+                i += 1;
+            }
+            nodes.push(code_block(&lang, &body));
+            if i < lines.len() {
+                i += 1; // closing fence
+            }
+            continue;
+        }
+
+        if trimmed.is_empty() {
+            flush_list(&mut nodes, &mut bullet);
+            flush_ordered(&mut nodes, &mut ordered);
+            i += 1;
+            continue;
+        }
+
+        if let Some(rest) = trimmed.strip_prefix('#') {
+            let level = 1 + rest.chars().take_while(|c| *c == '#').count();
+            let title = rest.trim_start_matches('#').trim();
+            if !title.is_empty() && level <= 6 {
+                flush_list(&mut nodes, &mut bullet);
+                flush_ordered(&mut nodes, &mut ordered);
+                nodes.push(heading(level as u8, title));
+                i += 1;
+                continue;
+            }
+        }
+
+        if let Some(item) = trimmed
+            .strip_prefix("- ")
+            .or_else(|| trimmed.strip_prefix("* "))
+            .or_else(|| trimmed.strip_prefix("+ "))
+        {
+            flush_ordered(&mut nodes, &mut ordered);
+            bullet.push(strip_md_inline(item));
+            i += 1;
+            continue;
+        }
+
+        if let Some(item) = ordered_item(trimmed) {
+            flush_list(&mut nodes, &mut bullet);
+            ordered.push(strip_md_inline(item));
+            i += 1;
+            continue;
+        }
+
+        if trimmed.starts_with("> ") || trimmed == ">" {
+            flush_list(&mut nodes, &mut bullet);
+            flush_ordered(&mut nodes, &mut ordered);
+            let quote = trimmed.strip_prefix("> ").unwrap_or("");
+            nodes.push(json!({
+                "type": "blockquote",
+                "content": [paragraph(&strip_md_inline(quote))]
+            }));
+            i += 1;
+            continue;
+        }
+
+        flush_list(&mut nodes, &mut bullet);
+        flush_ordered(&mut nodes, &mut ordered);
+        nodes.push(paragraph(&strip_md_inline(trimmed)));
+        i += 1;
+    }
+
+    flush_list(&mut nodes, &mut bullet);
+    flush_ordered(&mut nodes, &mut ordered);
+    finish(nodes)
+}
+
+fn ordered_item(line: &str) -> Option<&str> {
+    let bytes = line.as_bytes();
+    let mut i = 0;
+    while i < bytes.len() && bytes[i].is_ascii_digit() {
+        i += 1;
+    }
+    if i == 0 || i + 1 >= bytes.len() {
+        return None;
+    }
+    if bytes[i] == b'.' && bytes[i + 1] == b' ' {
+        return Some(line[i + 2..].trim());
+    }
+    None
+}
+
+fn strip_md_inline(text: &str) -> String {
+    let mut out = text.to_string();
+    for marker in ["**", "__", "*", "_", "`"] {
+        out = out.replace(marker, "");
+    }
+    // [label](url) → label
+    while let Some(start) = out.find('[') {
+        let Some(mid) = out[start..].find("](") else { break };
+        let mid = start + mid;
+        let Some(end_rel) = out[mid + 2..].find(')') else { break };
+        let end = mid + 2 + end_rel;
+        let label = out[start + 1..mid].to_string();
+        out.replace_range(start..=end, &label);
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -585,5 +743,18 @@ mod tests {
         assert!(is_markup_extension("ics"));
         assert!(is_markup_extension("eml"));
         assert!(!is_markup_extension("md"));
+    }
+
+    #[test]
+    fn markdown_headings_lists_and_code() {
+        let json = markdown_to_tiptap(
+            "# Title\n\n- one\n- two\n\n1. first\n\n```rs\nfn main() {}\n```\n\nBody **bold**",
+        );
+        assert!(json.contains("\"heading\""));
+        assert!(json.contains("\"bulletList\""));
+        assert!(json.contains("\"orderedList\""));
+        assert!(json.contains("\"codeBlock\""));
+        assert!(json.contains("Title"));
+        assert!(json.contains("Body bold"));
     }
 }

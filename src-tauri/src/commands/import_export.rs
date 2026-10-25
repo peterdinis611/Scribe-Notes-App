@@ -533,6 +533,16 @@ fn import_file_at_path(
                 now,
             )
         }
+        ImportFormat::Markdown => {
+            let text = export::import_text_from_file(&validated)?;
+            let title = import_title_from_path(&validated, "Importovaný dokument");
+            (
+                Uuid::new_v4().to_string(),
+                title,
+                scribe_core::markdown_to_tiptap(&text),
+                now,
+            )
+        }
         ImportFormat::Docx => {
             let bytes = std::fs::read(&validated).map_err(|e| e.to_string())?;
             let title = import_title_from_path(&validated, "Importovaný dokument");
@@ -722,6 +732,7 @@ enum ImportFormat {
     Numbers,
     Keynote,
     Text,
+    Markdown,
     Docx,
     Xlsx,
     Csv,
@@ -814,7 +825,8 @@ fn detect_import_format(path: &Path) -> Result<ImportFormat, String> {
         "opml" => Ok(ImportFormat::Opml),
         // Structured Scribe JSON when shape matches; otherwise code block.
         "json" => Ok(ImportFormat::Json),
-        "md" | "markdown" | "txt" | "doc" => Ok(ImportFormat::Text),
+        "md" | "markdown" => Ok(ImportFormat::Markdown),
+        "txt" | "doc" => Ok(ImportFormat::Text),
         "pdf" => Ok(ImportFormat::Pdf),
         ext if scribe_core::is_markup_extension(ext) => Ok(ImportFormat::Markup),
         ext if scribe_core::is_source_extension(ext) => Ok(ImportFormat::SourceCode),
@@ -858,7 +870,7 @@ mod tests {
         );
         assert_eq!(
             detect_import_format(Path::new("/tmp/readme.md")).unwrap(),
-            ImportFormat::Text
+            ImportFormat::Markdown
         );
         assert_eq!(
             detect_import_format(Path::new("/tmp/notes.docx")).unwrap(),

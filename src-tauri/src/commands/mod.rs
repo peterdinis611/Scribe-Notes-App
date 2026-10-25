@@ -3,6 +3,7 @@ pub mod agent;
 pub mod antivirus;
 pub mod audit;
 pub mod ui;
+pub mod vault_crypto;
 pub mod video;
 pub mod video_library;
 pub mod comments;

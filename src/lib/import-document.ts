@@ -1,16 +1,10 @@
 import { message } from '@tauri-apps/plugin-dialog'
 import { cacheDocument } from '@/lib/cache/document-cache'
 import {
-  createDocument,
   importFile,
   pickAndImportFiles,
-  readTextFileDecoded,
   type Document,
 } from '@/lib/db/api'
-import {
-  parseMarkdownToContentJson,
-  titleFromMarkdown,
-} from '@/lib/editor/markdown-content'
 import {
   importPagesDocumentFromPath,
   isPagesPath,
@@ -23,16 +17,10 @@ import {
   importKeynoteDocumentFromPath,
   isKeynotePath,
 } from '@/lib/import/keynote'
-import {
-  importExcelDocumentFromPath,
-  isExcelPath,
-  isLegacyExcelPath,
-} from '@/lib/import/excel-xlsx'
-import { isWordDocxPath } from '@/lib/import/word-docx'
+import { isLegacyExcelPath } from '@/lib/import/excel-xlsx'
 import { importPdfDocumentFromPath, isPdfPath } from '@/lib/import/pdf-document'
 import { assertImportAllowedByAntivirus } from '@/lib/antivirus/scan-import'
 import { toast } from '@/lib/toast'
-import i18n from '@/i18n'
 
 /** Extensions accepted for document import (picker + window drop). */
 export const IMPORTABLE_DOCUMENT_EXT =
@@ -44,20 +32,6 @@ const IMPORTABLE_BASENAMES = /^(dockerfile|makefile|gnumakefile|cmakelists\.txt)
 export function isImportableSourceBasename(path: string): boolean {
   const name = path.split(/[/\\]/).pop() ?? ''
   return IMPORTABLE_BASENAMES.test(name)
-}
-
-function isMarkdownPath(path: string) {
-  return /\.(md|markdown)$/i.test(path)
-}
-
-function fallbackTitleFromPath(path: string) {
-  const fileName = path.split(/[/\\]/).pop() ?? 'Importovaný dokument'
-  return fileName.replace(/\.(md|markdown)$/i, '').trim() || 'Importovaný dokument'
-}
-
-function isLegacyWordPath(path: string) {
-  // Legacy .doc still goes through Rust textutil; .rtf uses the RTF importer.
-  return /\.doc$/i.test(path) && !isWordDocxPath(path)
 }
 
 export function isImportableDocumentPath(path: string): boolean {
@@ -81,29 +55,21 @@ export function fileNameFromPath(path: string): string {
   return path.split(/[/\\]/).pop() ?? path
 }
 
-/** Import a single document from an absolute filesystem path. */
+/**
+ * Import a single document from an absolute filesystem path.
+ * TipTap Markdown stays for the live editor; file import uses Rust
+ * (`markdown_to_tiptap` / office / markup importers).
+ */
 export async function importDocumentFromPath(path: string): Promise<Document> {
   const selected = path.trim()
   if (!selected) throw new Error('Empty path')
 
   await assertImportAllowedByAntivirus(selected)
 
-  if (isMarkdownPath(selected)) {
-    const decoded = await readTextFileDecoded(selected)
-    if (decoded.converted && decoded.encoding.toLowerCase() !== 'utf-8') {
-      toast.info(i18n.t('import.encodingConverted', { encoding: decoded.encoding }))
-    }
-    const markdown = decoded.text
-    const fallbackTitle = fallbackTitleFromPath(selected)
-    const doc = await createDocument({
-      title: titleFromMarkdown(markdown, fallbackTitle),
-      contentJson: parseMarkdownToContentJson(markdown),
-    })
-    return cacheDocument(doc)
-  }
-
-  if (isLegacyExcelPath(selected) || isExcelPath(selected)) {
-    return await importExcelDocumentFromPath(selected)
+  if (isLegacyExcelPath(selected)) {
+    throw new Error(
+      'Toto je starý formát Excel (.xls). Uložte ho v Exceli ako .xlsx a skúste znova.',
+    )
   }
 
   if (isPagesPath(selected)) {
@@ -121,11 +87,6 @@ export async function importDocumentFromPath(path: string): Promise<Document> {
   // Prefer pdf.js path (richer page text); Rust pdf-extract is used by native picker.
   if (isPdfPath(selected)) {
     return await importPdfDocumentFromPath(selected)
-  }
-
-  // .docx / text / .scribe / markup / ics / eml — Rust import_file.
-  if (isWordDocxPath(selected) || isLegacyWordPath(selected)) {
-    return await importFile(selected)
   }
 
   return await importFile(selected)

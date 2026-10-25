@@ -80,7 +80,8 @@ pub use sidecar::{
 };
 pub use types::{
     normalize_rewrite_mode, NlpAnswer, NlpChunks, NlpCitation, NlpContradictionHint,
-    NlpContradictionHints, NlpDateEvent, NlpDates, NlpDecision, NlpDecisions, NlpDiffSummary,
+    NlpContradictionHints, NlpDateEvent, NlpDates, NlpDecision, NlpDecisions, NlpDiffModifiedSentence,
+    NlpDiffSummary,
     NlpDocumentAnalysis, NlpDuplicatePair, NlpDuplicates, NlpEntities, NlpEntity, NlpExtractedTask,
     NlpKeyword, NlpKeywordsResult, NlpLanguage, NlpLibraryReport, NlpMentionEdge, NlpMentionLink,
     NlpMentions, NlpOrganize, NlpOrganizeSuggestion, NlpOutline, NlpOutlineItem, NlpPiiFinding,

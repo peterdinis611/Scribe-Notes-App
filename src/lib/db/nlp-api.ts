@@ -350,10 +350,17 @@ export type DuplicatePair = {
 export const nlpSuggestTitle = (documentId: string) =>
   invoke<{ title: string; slug: string; source: string }>('nlp_suggest_title', { documentId })
 
+export interface NlpDiffModifiedSentence {
+  old: string
+  new: string
+  similarity: number
+}
+
 export interface NlpDiffSummary {
   summary: string
   addedSentences: string[]
   removedSentences: string[]
+  modifiedSentences?: NlpDiffModifiedSentence[]
   gainedTerms: string[]
   lostTerms: string[]
   changeRatio: number
@@ -390,6 +397,7 @@ export type RevisionAiReport = {
   bullets: RevisionAiBullet[]
   addedSentences: string[]
   removedSentences: string[]
+  modifiedSentences?: NlpDiffModifiedSentence[]
   gainedTerms: string[]
   lostTerms: string[]
   headingChanges: { added: string[]; removed: string[] }

@@ -1,9 +1,7 @@
 import { invoke } from '@/lib/tauri'
 import type { Document } from '@/lib/db/api'
-import { createDocument } from '@/lib/db/api'
+import { createDocument, updateDocument } from '@/lib/db/api'
 import { cacheDocument } from '@/lib/cache/document-cache'
-import { readScopedBinaryFile } from '@/lib/fs/read-scoped-binary'
-import { convertExcelBytesToContentJson, MAX_EXCEL_BYTES } from '@/lib/import/excel-xlsx'
 import { plainTextToContentJson } from '@/lib/import/html-content'
 import { importTitleFromPath, isNumbersPath } from '@/lib/import/import-path'
 
@@ -37,21 +35,18 @@ export async function importNumbersDocumentFromPath(path: string): Promise<Docum
 
   if (prepared.kind === 'xlsx') {
     try {
-      const bytes = await readScopedBinaryFile(prepared.path)
-      if (bytes.length === 0) {
-        throw new Error('Dočasný .xlsx z Numbers je prázdny.')
+      const { readAntivirusPolicy } = await import('@/lib/antivirus/prefs')
+      let doc = await cacheDocument(
+        await invoke<Document>('import_file', {
+          path: prepared.path,
+          antivirusPolicy: readAntivirusPolicy(),
+        }),
+      )
+      const title = importTitleFromPath(path, doc.title)
+      if (title && title !== doc.title) {
+        doc = await updateDocument({ id: doc.id, title })
       }
-      if (bytes.byteLength > MAX_EXCEL_BYTES) {
-        throw new Error(
-          `Numbers export je príliš veľký (max ${Math.floor(MAX_EXCEL_BYTES / (1024 * 1024))} MB).`,
-        )
-      }
-      const contentJson = await convertExcelBytesToContentJson(bytes)
-      const doc = await createDocument({
-        title: importTitleFromPath(path, 'Import z Numbers'),
-        contentJson,
-      })
-      return cacheDocument(doc)
+      return doc
     } finally {
       await cleanupTempImportFile(prepared.path)
     }

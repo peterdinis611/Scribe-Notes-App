@@ -28,6 +28,7 @@ permissions = [
   "group-templates",
   "group-ui",
   "group-ui-host",
+  "group-vault-crypto",
   "group-video",
   "group-video-library",
 ]

@@ -29,6 +29,16 @@ description = "Allow export_document_by_id"
 commands.allow = ["export_document_by_id"]
 
 [[permission]]
+identifier = "allow-export-wiki-pack"
+description = "Allow export_wiki_pack"
+commands.allow = ["export_wiki_pack"]
+
+[[permission]]
+identifier = "allow-publish-wiki-site"
+description = "Allow publish_wiki_site"
+commands.allow = ["publish_wiki_site"]
+
+[[permission]]
 identifier = "allow-highlight-code"
 description = "Allow highlight_code"
 commands.allow = ["highlight_code"]
@@ -63,6 +73,8 @@ permissions = [
   "allow-diff-plain-texts",
   "allow-document-matches-meta-filters",
   "allow-export-document-by-id",
+  "allow-export-wiki-pack",
+  "allow-publish-wiki-site",
   "allow-highlight-code",
   "allow-match-agent-intents",
   "allow-match-document-chat-intent",

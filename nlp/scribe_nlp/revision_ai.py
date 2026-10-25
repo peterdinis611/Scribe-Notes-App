@@ -51,6 +51,11 @@ def analyze_revision_diff(
     change_ratio = float(base.get("changeRatio") or 0.0)
     added_sentences = list(base.get("addedSentences") or [])
     removed_sentences = list(base.get("removedSentences") or [])
+    modified_sentences = [
+        item
+        for item in (base.get("modifiedSentences") or [])
+        if isinstance(item, dict) and (item.get("old") or item.get("new"))
+    ]
     gained_terms = list(base.get("gainedTerms") or [])
     lost_terms = list(base.get("lostTerms") or [])
 
@@ -87,6 +92,7 @@ def analyze_revision_diff(
         change_kind=change_kind,
         added=added_sentences,
         removed=removed_sentences,
+        modified=modified_sentences,
         headings=heading_changes,
         risks=risks,
         gained=gained_terms,
@@ -103,6 +109,7 @@ def analyze_revision_diff(
         "bullets": bullets,
         "addedSentences": added_sentences,
         "removedSentences": removed_sentences,
+        "modifiedSentences": modified_sentences,
         "gainedTerms": gained_terms,
         "lostTerms": lost_terms,
         "headingChanges": heading_changes,
@@ -323,6 +330,7 @@ def _build_bullets(
     change_kind: ChangeKind,
     added: list[str],
     removed: list[str],
+    modified: list[dict[str, object]],
     headings: dict[str, list[str]],
     risks: list[str],
     gained: list[str],
@@ -346,6 +354,15 @@ def _build_bullets(
     for title in headings.get("removed", [])[:2]:
         label = "Odstránený nadpis" if lang.startswith("sk") else "Removed heading"
         push(f"{label}: {title}", "warn", "heading")
+
+    edit_label = "Úprava" if lang.startswith("sk") else "Edited"
+    for pair in modified[:2]:
+        new_sent = str(pair.get("new") or "").strip()
+        old_sent = str(pair.get("old") or "").strip()
+        if new_sent and old_sent and new_sent != old_sent:
+            push(f"{edit_label}: {new_sent}", "info", "modified")
+        elif new_sent:
+            push(new_sent, "info", "modified")
 
     for sentence in added[:3]:
         push(sentence, "info", "added")

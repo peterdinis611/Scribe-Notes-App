@@ -1280,24 +1280,23 @@ export const importFile = async (path: string) => {
     { isPagesPath, importPagesDocumentFromPath },
     { isNumbersPath, importNumbersDocumentFromPath },
     { isKeynotePath, importKeynoteDocumentFromPath },
-    { isExcelPath, isLegacyExcelPath, importExcelDocumentFromPath },
-    { isWordDocxPath },
+    { isLegacyExcelPath },
     { readAntivirusPolicy },
   ] = await Promise.all([
     import('@/lib/import/pages'),
     import('@/lib/import/numbers'),
     import('@/lib/import/keynote'),
     import('@/lib/import/excel-xlsx'),
-    import('@/lib/import/word-docx'),
     import('@/lib/antivirus/prefs'),
   ])
 
   const antivirusPolicy = readAntivirusPolicy()
 
-  // Excel / CSV → TipTap tables via SheetJS (editable). Legacy .xls errors with convert hint.
-  // Native picker also uses Rust `xlsx_bytes_to_tiptap` (same table shape).
-  if (isLegacyExcelPath(path) || isExcelPath(path)) {
-    return importExcelDocumentFromPath(path)
+  // Legacy .xls is unsupported (convert to .xlsx). Modern xlsx/csv go through Rust.
+  if (isLegacyExcelPath(path)) {
+    throw new Error(
+      'Toto je starý formát Excel (.xls). Uložte ho v Exceli ako .xlsx a skúste znova.',
+    )
   }
 
   if (isPagesPath(path)) {
@@ -1312,23 +1311,26 @@ export const importFile = async (path: string) => {
     return importKeynoteDocumentFromPath(path)
   }
 
-  if (isWordDocxPath(path)) {
-    return cacheDocument(
-      await invoke<Document>('import_file', { path, antivirusPolicy }),
-    )
-  }
-
   return cacheDocument(
     await invoke<Document>('import_file', { path, antivirusPolicy }),
   )
 }
 
-const NATIVE_EXPORT_FORMATS = new Set(['md', 'txt', 'html', 'html-zip', 'epub'])
+const NATIVE_EXPORT_FORMATS = new Set([
+  'md',
+  'txt',
+  'html',
+  'html-zip',
+  'epub',
+  'csv',
+  'json',
+  'opml',
+])
 
 /** Export from SQLite by document id — TipTap blob never crosses IPC. */
 export const exportDocumentById = (
   documentId: string,
-  format: 'md' | 'txt' | 'html' | 'html-zip' | 'epub',
+  format: 'md' | 'txt' | 'html' | 'html-zip' | 'epub' | 'csv' | 'json' | 'opml',
 ) =>
   invoke<ExportResult | null>('export_document_by_id', {
     input: { documentId, format },
@@ -1353,6 +1355,7 @@ export const diffDocumentRevisions = (
   oldRevisionId: string,
   newRevisionId: string,
   currentPlainText?: string,
+  options?: { changesOnly?: boolean; contextLines?: number },
 ) =>
   invoke<DiffDocumentRevisionsResult>('diff_document_revisions', {
     input: {
@@ -1360,6 +1363,8 @@ export const diffDocumentRevisions = (
       oldRevisionId,
       newRevisionId,
       currentPlainText: currentPlainText ?? null,
+      changesOnly: options?.changesOnly ?? null,
+      contextLines: options?.contextLines ?? null,
     },
   })
 

@@ -1,4 +1,7 @@
-/** Client-side AES-GCM vault crypto (Web Crypto). Password never leaves the device. */
+/** Vault AES-GCM crypto — prefers Rust IPC; Web Crypto fallback for vitest / non-Tauri. */
+
+import { invoke } from '@/lib/tauri'
+import { isTauriRuntime } from '@/lib/tauri'
 
 const VAULT_MARKER = 'scribe-vault-v1'
 const PBKDF2_ITERATIONS = 210_000
@@ -59,8 +62,7 @@ async function deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey>
   )
 }
 
-/** Create a verifier string stored on the folder (salt + hash of password material). */
-export async function createVaultVerifier(password: string): Promise<string> {
+async function createVaultVerifierWeb(password: string): Promise<string> {
   const salt = crypto.getRandomValues(new Uint8Array(16))
   const key = await deriveKey(password, salt)
   const challenge = new TextEncoder().encode('scribe-vault-verify')
@@ -73,7 +75,7 @@ export async function createVaultVerifier(password: string): Promise<string> {
   })
 }
 
-export async function verifyVaultPassword(password: string, verifierJson: string): Promise<boolean> {
+async function verifyVaultPasswordWeb(password: string, verifierJson: string): Promise<boolean> {
   try {
     const verifier = JSON.parse(verifierJson) as { salt: string; iv: string; proof: string }
     const salt = base64ToBytes(verifier.salt)
@@ -90,7 +92,7 @@ export async function verifyVaultPassword(password: string, verifierJson: string
   }
 }
 
-export async function encryptContentJson(password: string, contentJson: string): Promise<string> {
+async function encryptContentJsonWeb(password: string, contentJson: string): Promise<string> {
   const salt = crypto.getRandomValues(new Uint8Array(16))
   const iv = crypto.getRandomValues(new Uint8Array(12))
   const key = await deriveKey(password, salt)
@@ -108,7 +110,7 @@ export async function encryptContentJson(password: string, contentJson: string):
   return JSON.stringify(payload)
 }
 
-export async function decryptContentJson(password: string, cipherJson: string): Promise<string> {
+async function decryptContentJsonWeb(password: string, cipherJson: string): Promise<string> {
   const payload = JSON.parse(cipherJson) as VaultCipherPayload
   if (payload.type !== VAULT_MARKER) {
     throw new Error('Not a vault payload')
@@ -120,6 +122,51 @@ export async function decryptContentJson(password: string, cipherJson: string): 
     asBufferSource(base64ToBytes(payload.ct)),
   )
   return new TextDecoder().decode(plain)
+}
+
+/** Create a verifier string stored on the folder (salt + sealed challenge). */
+export async function createVaultVerifier(password: string): Promise<string> {
+  if (isTauriRuntime()) {
+    try {
+      return await invoke<string>('vault_create_verifier', { password })
+    } catch {
+      /* fall through to Web Crypto */
+    }
+  }
+  return createVaultVerifierWeb(password)
+}
+
+export async function verifyVaultPassword(password: string, verifierJson: string): Promise<boolean> {
+  if (isTauriRuntime()) {
+    try {
+      return await invoke<boolean>('vault_verify_password', { password, verifierJson })
+    } catch {
+      /* fall through */
+    }
+  }
+  return verifyVaultPasswordWeb(password, verifierJson)
+}
+
+export async function encryptContentJson(password: string, contentJson: string): Promise<string> {
+  if (isTauriRuntime()) {
+    try {
+      return await invoke<string>('vault_encrypt_content', { password, contentJson })
+    } catch {
+      /* fall through */
+    }
+  }
+  return encryptContentJsonWeb(password, contentJson)
+}
+
+export async function decryptContentJson(password: string, cipherJson: string): Promise<string> {
+  if (isTauriRuntime()) {
+    try {
+      return await invoke<string>('vault_decrypt_content', { password, cipherJson })
+    } catch {
+      /* fall through */
+    }
+  }
+  return decryptContentJsonWeb(password, cipherJson)
 }
 
 /** Locked placeholder TipTap doc shown until unlock. */
