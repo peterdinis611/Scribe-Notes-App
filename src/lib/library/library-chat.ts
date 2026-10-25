@@ -173,7 +173,8 @@ export async function askChat(
     try {
       action = (await invokeMatchDocumentChatIntent(question)) as DocumentChatAction | null
     } catch {
-      action = matchDocumentChatIntent(question)
+      // Production uses Rust only; sync mirror remains for vitest without Tauri.
+      action = null
     }
     if (action && documentId) {
       return runDocumentChatAction(documentId, action)

@@ -1,13 +1,127 @@
 //! Inter-agent handoffs — structured inbox messages between specialists.
 
+use regex::Regex;
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
+use std::sync::OnceLock;
 use uuid::Uuid;
 
-use crate::roles::normalize_agent_id;
+use crate::roles::{normalize_agent_id, AGENT_ROLE_IDS, DEFAULT_AGENT_ID};
 
 pub const HANDOFFS_KEEP: usize = 120;
 pub const HANDOFF_SUMMARY_MAX: usize = 600;
+
+/// Default receiver when the goal does not name a target.
+pub fn default_handoff_target(from_agent_id: &str) -> Option<&'static str> {
+    match normalize_agent_id(Some(from_agent_id)).as_str() {
+        "meeting" => Some("organizer"),
+        "study" => Some("librarian"),
+        "proofreader" => Some("general"),
+        "organizer" => Some("meeting"),
+        "librarian" => Some("general"),
+        "developer" => Some("librarian"),
+        "general" => Some("organizer"),
+        _ => None,
+    }
+}
+
+fn map_target_alias(raw: &str) -> Option<String> {
+    let folded = raw.trim().to_ascii_lowercase();
+    let mapped = normalize_agent_id(Some(&folded));
+    // normalize_agent_id falls back to general for unknown — only accept known roles / aliases.
+    if AGENT_ROLE_IDS.contains(&mapped.as_str()) {
+        // Reject unknown tokens that wrongly became general unless explicitly general-like.
+        if mapped == DEFAULT_AGENT_ID {
+            let ok = matches!(
+                folded.as_str(),
+                "general" | "default" | "main"
+            );
+            if !ok && !AGENT_ROLE_IDS.contains(&folded.as_str()) {
+                return None;
+            }
+        }
+        return Some(mapped);
+    }
+    None
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ParsedHandoffGoal {
+    pub to_agent_id: String,
+    pub summary: String,
+}
+
+fn handoff_patterns() -> &'static [Regex] {
+    static PATTERNS: OnceLock<Vec<Regex>> = OnceLock::new();
+    PATTERNS.get_or_init(|| {
+        vec![
+            Regex::new(
+                r"(?iu)^(?:handoff|delegate|pass|send|tell|forward|pošli|posli|odovzdaj|predaj)\s+(?:to\s+|pre\s+)?([a-zA-ZáäčďéíľĺňóôŕšťúýžÁÄČĎÉÍĽĹŇÓÔŔŠŤÚÝŽ_]+)\s*(?:ovi|ovi:|:|\s+)\s*(.+)$",
+            )
+            .expect("handoff pattern"),
+            Regex::new(r"(?u)^@([a-zA-Z_]+)\s+(.+)$").expect("at pattern"),
+            Regex::new(r"(?iu)^(?:to|pre)\s+([a-zA-Z_]+)\s*[:-]\s*(.+)$").expect("to pattern"),
+        ]
+    })
+}
+
+fn strip_sk_suffix(raw: &str) -> String {
+    let lower = raw.to_ascii_lowercase();
+    for suffix in ["ovi", "emu", "u", "a"] {
+        if lower.len() > suffix.len() && lower.ends_with(suffix) {
+            return raw[..raw.len() - suffix.len()].to_string();
+        }
+    }
+    raw.to_string()
+}
+
+/// Extract `@organizer …`, `handoff to meeting: …`, `pošli proofreaderovi …`.
+pub fn parse_handoff_goal(goal: &str, from_agent_id: &str) -> Option<ParsedHandoffGoal> {
+    let trimmed = goal.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    let from = normalize_agent_id(Some(from_agent_id));
+
+    for pattern in handoff_patterns() {
+        let Some(caps) = pattern.captures(trimmed) else {
+            continue;
+        };
+        let mut raw_target = caps.get(1)?.as_str().trim().to_ascii_lowercase();
+        raw_target = strip_sk_suffix(&raw_target);
+        let summary = caps.get(2)?.as_str().trim();
+        let Some(mapped) = map_target_alias(&raw_target) else {
+            continue;
+        };
+        if summary.len() < 2 {
+            continue;
+        }
+        if mapped == from {
+            return None;
+        }
+        return Some(ParsedHandoffGoal {
+            to_agent_id: mapped,
+            summary: summary.chars().take(HANDOFF_SUMMARY_MAX).collect(),
+        });
+    }
+
+    let fallback = default_handoff_target(&from)?;
+    if fallback == from {
+        return None;
+    }
+    let trigger = Regex::new(
+        r"(?i)\b(handoff|delegate|pass|send|tell|forward|pošli|posli|odovzdaj|predaj|inbox)\b",
+    )
+    .ok()?;
+    if !trigger.is_match(trimmed) {
+        return None;
+    }
+    Some(ParsedHandoffGoal {
+        to_agent_id: fallback.into(),
+        summary: trimmed.chars().take(HANDOFF_SUMMARY_MAX).collect(),
+    })
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -213,6 +327,13 @@ mod tests {
         assert_eq!(normalize_handoff_status("ack"), "acknowledged");
         assert_eq!(normalize_handoff_status("ignore"), "dismissed");
         assert_eq!(normalize_handoff_status("pending"), "pending");
+    }
+
+    #[test]
+    fn parses_explicit_handoff() {
+        let parsed = parse_handoff_goal("Handoff to organizer: follow up todos", "meeting").unwrap();
+        assert_eq!(parsed.to_agent_id, "organizer");
+        assert!(parsed.summary.contains("follow up"));
     }
 
     #[test]

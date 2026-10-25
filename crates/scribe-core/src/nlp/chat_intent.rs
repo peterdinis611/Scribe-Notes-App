@@ -20,8 +20,8 @@ fn strip_diacritic(ch: char) -> char {
     }
 }
 
-/// Fold for intent matching: lowercase + strip common SK/CS diacritics.
-fn fold_intent(question: &str) -> String {
+/// Fold for intent / slash matching: lowercase + strip common SK/CS diacritics.
+pub(crate) fn fold_intent(question: &str) -> String {
     question
         .trim()
         .chars()
@@ -410,6 +410,24 @@ fn intent_rules() -> &'static [(&'static str, &'static [&'static str])] {
             ],
         ),
         (
+            "forward_plan",
+            &[
+                "forward plan",
+                "plan ahead",
+                "next steps",
+                "upcoming",
+                "what's next",
+                "what next",
+                "next meeting",
+                "agenda",
+                "plan dopredu",
+                "dalsie kroky",
+                "nasledujuce kroky",
+                "co dalej",
+                "buduce kroky",
+            ],
+        ),
+        (
             "reading_plan",
             &[
                 "reading plan",
@@ -614,5 +632,6 @@ mod tests {
         assert_eq!(match_agent_intents("rank tasks ASAP"), vec!["tasks", "rank_tasks"]);
         assert_eq!(match_agent_intents("please handoff now"), vec!["handoff"]);
         assert_eq!(match_agent_intents("ingest files from sandbox"), vec!["files_ingest"]);
+        assert_eq!(match_agent_intents("plan ahead next steps"), vec!["forward_plan"]);
     }
 }

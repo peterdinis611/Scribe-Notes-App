@@ -81,9 +81,14 @@ import {
   agentMemoryContext,
   runAgentGoal,
   type AgentPlanMeta,
+  type AgentPlanPhase,
   type AgentStep,
   type AgentToolId,
 } from '@/lib/library/agent'
+import {
+  decodePhaseFollowup,
+  isPhaseFollowup,
+} from '@/lib/library/agent-phases'
 import { recordPlanFeedback } from '@/lib/library/agent-plan-feedback'
 import { applySuggestedTagsToDocument } from '@/lib/library/auto-organize'
 import { runFolderDigest } from '@/lib/library/folder-digest'
@@ -98,6 +103,14 @@ import {
   buildAgentToolOptions,
   LIBRARY_AGENT_STARTER_CHIPS,
 } from '@/lib/library/agent-suggestions'
+import {
+  agentSlashQuery,
+  ensureAgentSlashCatalog,
+  filterAgentSlashCommands,
+  isAgentSlashMenuOpen,
+  parseAgentSlashAsync,
+  type AgentSlashCommand,
+} from '@/lib/library/agent-slash'
 import { AGENT_TEACHING_MAX_LEN } from '@/lib/library/agent-prefs'
 import {
   AGENT_TEACH_DRAFT_MAX_LEN,
@@ -130,6 +143,7 @@ type AgentThreadMessage = {
   clarifyOptions?: AgentToolId[]
   clarifyLabels?: string[]
   planMeta?: AgentPlanMeta
+  phases?: AgentPlanPhase[]
   /** User goal that produced this assistant reply (for episodic feedback). */
   feedbackGoal?: string
   createdAt?: number
@@ -177,6 +191,7 @@ const TOOL_LABEL_KEYS: Record<AgentToolId, string> = {
   rank_tasks: 'agent.tools.rank_tasks',
   contradictions: 'agent.tools.contradictions',
   commitments: 'agent.tools.commitments',
+  forward_plan: 'agent.tools.forward_plan',
   reading_plan: 'agent.tools.reading_plan',
   note_pulse: 'agent.tools.note_pulse',
   grammar: 'agent.tools.grammar',
@@ -271,6 +286,7 @@ export function AgentPanel({
     activeDocumentId ? 'document' : 'library',
   )
   const [input, setInput] = useState('')
+  const [slashHighlight, setSlashHighlight] = useState(0)
   const [teachInput, setTeachInput] = useState('')
   const [showTeach, setShowTeach] = useState(false)
   const [teachTopic, setTeachTopic] = useState<'general' | 'grammar'>('general')
@@ -500,6 +516,22 @@ export function AgentPanel({
     [scope, activeDocumentId, roleId],
   )
 
+  const [slashCatalogTick, setSlashCatalogTick] = useState(0)
+
+  useEffect(() => {
+    void ensureAgentSlashCatalog().then(() => setSlashCatalogTick((n) => n + 1))
+  }, [])
+
+  const slashSuggestions = useMemo(() => {
+    void slashCatalogTick
+    if (!isAgentSlashMenuOpen(input)) return [] as AgentSlashCommand[]
+    return filterAgentSlashCommands(agentSlashQuery(input), scope)
+  }, [input, scope, slashCatalogTick])
+
+  useEffect(() => {
+    setSlashHighlight(0)
+  }, [input, scope])
+
   const runGoal = useCallback(
     async (
       goal: string,
@@ -509,8 +541,27 @@ export function AgentPanel({
         compareDocumentId?: string | null
       },
     ) => {
-      const trimmed = goal.trim()
-      if ((!trimmed && !opts?.recipeId && !opts?.forceTools?.length) || loading) return
+      let trimmed = goal.trim()
+      let forceTools = opts?.forceTools
+      let recipeId = opts?.recipeId
+      if (trimmed.startsWith('/') && !forceTools?.length && !recipeId) {
+        const parsed = await parseAgentSlashAsync(trimmed, scope, t)
+        if (parsed && 'unknown' in parsed) {
+          toast.error(
+            t('agent.errorTitle'),
+            parsed.token
+              ? t('agent.slashUnknown', { cmd: parsed.token })
+              : t('agent.slashHint'),
+          )
+          return
+        }
+        if (parsed) {
+          trimmed = parsed.goal
+          forceTools = parsed.forceTools
+          recipeId = parsed.recipeId
+        }
+      }
+      if ((!trimmed && !recipeId && !forceTools?.length) || loading) return
       if (!agentPrefs.enabled) {
         toast.error(t('agent.errorTitle'), t('agent.disabled'))
         return
@@ -521,8 +572,8 @@ export function AgentPanel({
       }
 
       if (
-        opts?.forceTools?.includes('compare_notes') &&
-        !opts.compareDocumentId &&
+        forceTools?.includes('compare_notes') &&
+        !opts?.compareDocumentId &&
         scope === 'document' &&
         activeDocumentId
       ) {
@@ -531,8 +582,8 @@ export function AgentPanel({
         return
       }
 
-      const recipe = opts?.recipeId
-        ? resolveAgentRecipe(opts.recipeId, agentPrefs.customRecipes)
+      const recipe = recipeId
+        ? resolveAgentRecipe(recipeId, agentPrefs.customRecipes)
         : null
       const displayGoal =
         trimmed ||
@@ -589,7 +640,7 @@ export function AgentPanel({
           'files_to_library',
           'cleanup',
         ])
-        const forceLibrary = Boolean(opts?.recipeId && libraryRecipes.has(opts.recipeId))
+        const forceLibrary = Boolean(recipeId && libraryRecipes.has(String(recipeId)))
         const runScope = forceLibrary ? 'library' : scope
         const runDocumentId = forceLibrary ? null : activeDocumentId
         let streamed = ''
@@ -604,6 +655,7 @@ export function AgentPanel({
                 clarifyOptions: undefined as AgentToolId[] | undefined,
                 clarifyLabels: undefined as string[] | undefined,
                 planMeta: undefined as AgentPlanMeta | undefined,
+                phases: undefined as AgentPlanPhase[] | undefined,
                 nextPrefs: null,
               }))
             : await withLlmChunkListener(
@@ -620,7 +672,9 @@ export function AgentPanel({
                     agentMemoryContext(prior),
                     agentPrefs,
                     {
-                      ...opts,
+                      recipeId,
+                      forceTools,
+                      compareDocumentId: opts?.compareDocumentId,
                       roleId,
                       folderId: runScope === 'folder' ? activeDocument?.folderId : null,
                       stream: true,
@@ -664,6 +718,7 @@ export function AgentPanel({
           steps: result.steps,
           followups: result.followups,
           planMeta: result.planMeta,
+          phases: result.phases,
           feedbackGoal: trimmed || displayGoal,
           createdAt: Date.now(),
         }
@@ -706,6 +761,20 @@ export function AgentPanel({
       }
     },
     [loading, agentPrefs, scope, activeDocumentId, activeDocument?.folderId, messages, sessionMessages, persistPair, t, dispatch, refreshRunHistory, refreshHandoffInbox, setMoodBriefly, roleId],
+  )
+
+  const pickSlashCommand = useCallback(
+    (cmd: AgentSlashCommand, mode: 'insert' | 'run' = 'run') => {
+      if (cmd.passArgs && mode === 'insert') {
+        setInput(`/${cmd.name} `)
+        setSlashHighlight(0)
+        return
+      }
+      setInput('')
+      setSlashHighlight(0)
+      void runGoal(`/${cmd.name}`)
+    },
+    [runGoal],
   )
 
   const queueInsertPreview = useCallback(
@@ -1904,9 +1973,68 @@ export function AgentPanel({
                     ) : null}
                   </div>
                 ) : null}
+                {message.role === 'assistant' &&
+                message.phases &&
+                message.phases.some((p) => p.when === 'next' || p.when === 'later') ? (
+                  <div className="library-chat-followups agent-phase-block">
+                    {message.phases
+                      .filter((p) => p.when === 'next' || p.when === 'later')
+                      .map((phase, index) => (
+                        <button
+                          key={`${phase.when}-${phase.goal}-${index}`}
+                          type="button"
+                          className={cn(
+                            'library-chat-followup',
+                            phase.when === 'later' ? 'is-phase-later' : 'is-phase-next',
+                          )}
+                          disabled={loading}
+                          onClick={() =>
+                            void runGoal(phase.goal, { forceTools: phase.tools })
+                          }
+                        >
+                          {phase.when === 'later'
+                            ? t('agent.phaseLater', { goal: phase.goal })
+                            : t('agent.phaseNext', { goal: phase.goal })}
+                        </button>
+                      ))}
+                  </div>
+                ) : null}
                 {message.role === 'assistant' && message.followups && message.followups.length > 0 ? (
                   <div className="library-chat-followups">
                     {message.followups.map((item) => {
+                      if (isPhaseFollowup(item)) {
+                        const phase = decodePhaseFollowup(item)
+                        if (!phase || !phase.tools.length) return null
+                        // Skip when the structured phases block already shows the same chip.
+                        if (
+                          message.phases?.some(
+                            (p) =>
+                              p.when === phase.when &&
+                              p.goal === phase.goal &&
+                              p.tools.join(',') === phase.tools.join(','),
+                          )
+                        ) {
+                          return null
+                        }
+                        return (
+                          <button
+                            key={item}
+                            type="button"
+                            className={cn(
+                              'library-chat-followup',
+                              phase.when === 'later' ? 'is-phase-later' : 'is-phase-next',
+                            )}
+                            disabled={loading}
+                            onClick={() =>
+                              void runGoal(phase.goal, { forceTools: phase.tools })
+                            }
+                          >
+                            {phase.when === 'later'
+                              ? t('agent.phaseLater', { goal: phase.goal })
+                              : t('agent.phaseNext', { goal: phase.goal })}
+                          </button>
+                        )
+                      }
                       if (item.startsWith('recipe:')) {
                         const recipeId = item.slice('recipe:'.length)
                         const recipe = resolveAgentRecipe(recipeId, agentPrefs.customRecipes)
@@ -2129,18 +2257,74 @@ export function AgentPanel({
           className="flex gap-1.5"
           onSubmit={(event) => {
             event.preventDefault()
+            if (slashSuggestions.length) {
+              const cmd = slashSuggestions[Math.min(slashHighlight, slashSuggestions.length - 1)]
+              if (cmd) {
+                pickSlashCommand(cmd, 'run')
+                return
+              }
+            }
             void runGoal(input)
           }}
         >
+          {slashSuggestions.length > 0 ? (
+            <div
+              className="agent-slash-menu"
+              role="listbox"
+              aria-label={t('agent.slashMenuAria')}
+            >
+              <p className="agent-slash-menu__hint">{t('agent.slashHint')}</p>
+              {slashSuggestions.map((cmd, index) => (
+                <button
+                  key={cmd.id}
+                  type="button"
+                  role="option"
+                  aria-selected={index === slashHighlight}
+                  className={cn(
+                    'agent-slash-menu__item',
+                    index === slashHighlight && 'is-active',
+                  )}
+                  disabled={loading || !agentPrefs.enabled}
+                  onMouseEnter={() => setSlashHighlight(index)}
+                  onClick={() => pickSlashCommand(cmd, cmd.passArgs ? 'insert' : 'run')}
+                >
+                  <span className="agent-slash-menu__cmd">/{cmd.name}</span>
+                  <span className="agent-slash-menu__label">{t(cmd.labelKey)}</span>
+                  <span className="agent-slash-menu__hint-row">{t(cmd.hintKey)}</span>
+                </button>
+              ))}
+            </div>
+          ) : null}
           <input
             className="library-chat-input"
             value={input}
             onChange={(event) => setInput(event.target.value)}
+            onKeyDown={(event) => {
+              if (!slashSuggestions.length) return
+              if (event.key === 'ArrowDown') {
+                event.preventDefault()
+                setSlashHighlight((prev) => (prev + 1) % slashSuggestions.length)
+              } else if (event.key === 'ArrowUp') {
+                event.preventDefault()
+                setSlashHighlight(
+                  (prev) => (prev - 1 + slashSuggestions.length) % slashSuggestions.length,
+                )
+              } else if (event.key === 'Escape') {
+                event.preventDefault()
+                setInput('')
+              } else if (event.key === 'Tab') {
+                event.preventDefault()
+                const cmd = slashSuggestions[Math.min(slashHighlight, slashSuggestions.length - 1)]
+                if (cmd) pickSlashCommand(cmd, cmd.passArgs ? 'insert' : 'run')
+              }
+            }}
             placeholder={
               scope === 'document' ? t('agent.placeholderDocument') : t('agent.placeholder')
             }
             disabled={loading || !agentPrefs.enabled}
             aria-label={t('agent.placeholder')}
+            aria-autocomplete="list"
+            aria-expanded={slashSuggestions.length > 0}
           />
           <Button type="submit" size="sm" disabled={loading || !agentPrefs.enabled || !input.trim()}>
             <Send className="h-3.5 w-3.5" />

@@ -18,6 +18,18 @@ pub fn is_pages_path(path: &str) -> bool {
     lower.ends_with(".pages") || lower.ends_with(".pages/")
 }
 
+/// True for `*.numbers` or `*.numbers/` (case-insensitive) paths.
+pub fn is_numbers_path(path: &str) -> bool {
+    let lower = path.to_lowercase();
+    lower.ends_with(".numbers") || lower.ends_with(".numbers/")
+}
+
+/// True for `*.key` or `*.key/` Keynote packages (case-insensitive).
+pub fn is_keynote_path(path: &str) -> bool {
+    let lower = path.to_lowercase();
+    lower.ends_with(".key") || lower.ends_with(".key/")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -39,5 +51,15 @@ mod tests {
         assert!(is_pages_path("/x/Doc.PAGES/"));
         assert!(!is_pages_path("/x/Doc.pages/Index"));
         assert!(!is_pages_path("/x/Doc.md"));
+    }
+
+    #[test]
+    fn numbers_and_keynote_paths() {
+        assert!(is_numbers_path("/x/Budget.numbers"));
+        assert!(is_numbers_path("/x/Budget.NUMBERS/"));
+        assert!(!is_numbers_path("/x/Budget.xlsx"));
+        assert!(is_keynote_path("/x/Talk.key"));
+        assert!(is_keynote_path("/x/Talk.KEY/"));
+        assert!(!is_keynote_path("/x/Talk.pptx"));
     }
 }

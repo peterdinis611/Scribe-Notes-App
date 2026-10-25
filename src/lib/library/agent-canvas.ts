@@ -80,6 +80,7 @@ export async function runAgentCanvasToNote(documentId: string): Promise<LibraryC
   }
 }
 
+/** Canonical: `scribe_ui::pick_canvas_template_id` (Tauri `pick_canvas_template_id_ui`). */
 function pickTemplateId(goal: string): CanvasTemplateId {
   const folded = goal
     .toLocaleLowerCase()

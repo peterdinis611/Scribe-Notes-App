@@ -1293,6 +1293,10 @@ impl NlpSidecar {
         )
     }
 
+    pub fn forward_plan(&self, text: &str, limit: i64) -> Result<Value, String> {
+        self.call_method("forward_plan", json!({ "text": text, "limit": limit }))
+    }
+
     pub fn reading_plan(&self, text: &str, limit: i64) -> Result<Value, String> {
         self.call_method("reading_plan", json!({ "text": text, "limit": limit }))
     }
@@ -1403,7 +1407,7 @@ pub fn rpc_timeout(method: &str) -> Duration {
         | "code_brief" | "inspect_source" | "source_to_tiptap"
         | "files_list" | "files_read_text" | "files_search" | "files_summarize" | "files_answer"
         | "files_index_status" | "files_similar" | "files_index_clear"
-        | "passage_rerank" | "answer_followups" | "extract_commitments" => {
+        | "passage_rerank" | "answer_followups" | "extract_commitments" | "forward_plan" => {
             Duration::from_secs(25)
         }
         "transcribe_video" => Duration::from_secs(600),

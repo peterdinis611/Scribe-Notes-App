@@ -53,7 +53,8 @@ pub fn language_from_extension(ext: &str) -> Option<&'static str> {
         "jsonl" | "ndjson" => "json",
         "toml" => "toml",
         "yml" | "yaml" => "yaml",
-        "xml" | "xsl" | "xsd" | "svg" => "xml",
+        // `.xml`/`.xsd`/`.xsl` use structured `xml_import`; SVG stays a source highlight.
+        "svg" => "xml",
         "sql" | "psql" | "pgsql" => "sql",
         "graphql" | "gql" => "graphql",
         "proto" => "protobuf",
@@ -182,6 +183,8 @@ mod tests {
         assert_eq!(language_from_extension("py"), Some("python"));
         assert_eq!(language_from_extension("json"), Some("json"));
         assert_eq!(language_from_extension("yml"), Some("yaml"));
+        assert_eq!(language_from_extension("svg"), Some("xml"));
+        assert!(language_from_extension("xml").is_none());
         assert!(language_from_extension("png").is_none());
     }
 

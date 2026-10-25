@@ -2,7 +2,8 @@ use serde_json::Value;
 
 use super::types::{
     NlpAnswer, NlpCitation, NlpChunks, NlpContradictionHint, NlpContradictionHints, NlpDateEvent,
-    NlpDates, NlpDecision, NlpDecisions, NlpDiffSummary, NlpDocumentAnalysis, NlpDuplicatePair,
+    NlpDates, NlpDecision, NlpDecisions, NlpDiffModifiedSentence, NlpDiffSummary, NlpDocumentAnalysis,
+    NlpDuplicatePair,
     NlpDuplicates, NlpEntities, NlpEntity, NlpExtractedTask, NlpKeyword, NlpKeywordsResult,
     NlpLanguage, NlpLibraryReport, NlpMentionEdge, NlpMentionLink, NlpMentions, NlpOrganize,
     NlpOrganizeSuggestion, NlpOutline, NlpOutlineItem, NlpPiiFinding, NlpPiiReport, NlpQueryRewrite,
@@ -430,6 +431,7 @@ pub fn parse_diff_summary(result: &Value) -> NlpDiffSummary {
             .to_string(),
         added_sentences: string_list(result.get("addedSentences")),
         removed_sentences: string_list(result.get("removedSentences")),
+        modified_sentences: parse_modified_sentences(result.get("modifiedSentences")),
         gained_terms: string_list(result.get("gainedTerms")),
         lost_terms: string_list(result.get("lostTerms")),
         change_ratio: result
@@ -454,6 +456,28 @@ pub fn parse_diff_summary(result: &Value) -> NlpDiffSummary {
             .and_then(as_str)
             .map(str::to_string),
     }
+}
+
+fn parse_modified_sentences(value: Option<&Value>) -> Vec<NlpDiffModifiedSentence> {
+    let Some(Value::Array(items)) = value else {
+        return Vec::new();
+    };
+    items
+        .iter()
+        .filter_map(|item| {
+            let old = item.get("old").and_then(Value::as_str)?.to_string();
+            let new = item.get("new").and_then(Value::as_str)?.to_string();
+            let similarity = item
+                .get("similarity")
+                .and_then(Value::as_f64)
+                .unwrap_or(0.0);
+            Some(NlpDiffModifiedSentence {
+                old,
+                new,
+                similarity,
+            })
+        })
+        .collect()
 }
 
 pub fn parse_library_answer(result: &Value) -> NlpAnswer {
@@ -1086,6 +1110,11 @@ mod tests {
             "summary": "Added a sentence.",
             "addedSentences": ["New line."],
             "removedSentences": ["Old line."],
+            "modifiedSentences": [{
+                "old": "Revenue grew.",
+                "new": "Revenue and margin grew.",
+                "similarity": 0.72
+            }],
             "gainedTerms": ["new"],
             "lostTerms": ["old"],
             "changeRatio": 0.5,
@@ -1093,6 +1122,8 @@ mod tests {
             "newWordCount": 2
         }));
         assert_eq!(diff.added_sentences, vec!["New line."]);
+        assert_eq!(diff.modified_sentences.len(), 1);
+        assert!((diff.modified_sentences[0].similarity - 0.72).abs() < f64::EPSILON);
 
         let answer = parse_library_answer(&json!({
             "answer": "Based on your notes: Friday.",

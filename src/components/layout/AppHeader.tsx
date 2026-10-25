@@ -216,10 +216,13 @@ function EditorChrome() {
     if (!document) return null
     return {
       title: document.title,
-      plainText: tiptapToPlainText(document.contentJson),
-      markdown: tiptapJsonToMarkdown(document.contentJson, document.title),
+      // Lazy: native md/txt/html/epub export uses documentId (no TipTap over IPC).
+      // FE serializers only for pdf/docx preview.
+      plainText: '',
+      markdown: '',
       pageSetup,
       contentJson: document.contentJson,
+      documentId: document.id,
     }
   }, [document, pageSetup])
 
@@ -264,10 +267,10 @@ function EditorChrome() {
       if (nativeFormats.has(format)) {
         const result = await exportDocument(
           '',
-          plainText,
+          '',
           title,
           format,
-          markdown,
+          undefined,
           exportPageSetup,
           { documentId: document.id },
         )
@@ -284,7 +287,16 @@ function EditorChrome() {
           pageSetup: exportPageSetup,
           forPrint: true,
         }))
-      const result = await exportDocument(html, plainText, title, format, markdown, exportPageSetup)
+      const fallbackPlain = plainText || tiptapToPlainText(contentJson)
+      const fallbackMd = markdown || tiptapJsonToMarkdown(contentJson, title)
+      const result = await exportDocument(
+        html,
+        fallbackPlain,
+        title,
+        format,
+        fallbackMd,
+        exportPageSetup,
+      )
       if (result?.path) {
         toast.success(t('toasts.exportDone'), fileBasename(result.path))
         await revealInFinder(result.path)

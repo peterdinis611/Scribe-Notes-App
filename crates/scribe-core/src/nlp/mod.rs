@@ -1,6 +1,9 @@
+mod agent_phases;
+mod agent_slash;
 mod chat_context;
 mod chat_intent;
 pub mod commitments;
+pub mod forward_plan;
 pub mod continuation;
 pub mod decisions;
 mod document_passages;
@@ -30,8 +33,18 @@ pub use chat_context::{
     followups_from_sidecar, is_chat_memory_citation_title, merge_chat_memory_passages, ChatTurn,
     DOCUMENT_CHAT_CONTEXT_LIMIT, MERGED_PASSAGE_LIMIT,
 };
+pub use agent_phases::{
+    decode_phase_followup, encode_phase_followup, is_phase_followup, is_weak_agent_answer,
+    normalize_plan_phases, now_tools_from_phases, phases_to_followups, AgentPhaseWhen,
+    AgentPlanPhase, PHASE_PREFIX,
+};
+pub use agent_slash::{
+    filter_agent_slash_commands, list_agent_slash_commands, parse_agent_slash, AgentSlashCommandDef,
+    ParsedAgentSlash,
+};
 pub use chat_intent::{match_agent_intents, match_document_chat_intent};
 pub use commitments::{extract_commitments, NlpCommitment, NlpCommitments};
+pub use forward_plan::{forward_plan, NlpForwardItem, NlpForwardPlan};
 pub use decisions::extract_decisions;
 pub use mentions::{extract_mentions, NlpMentionsReport};
 pub use note_pulse::{note_pulse, NlpNotePulse};
@@ -80,7 +93,8 @@ pub use sidecar::{
 };
 pub use types::{
     normalize_rewrite_mode, NlpAnswer, NlpChunks, NlpCitation, NlpContradictionHint,
-    NlpContradictionHints, NlpDateEvent, NlpDates, NlpDecision, NlpDecisions, NlpDiffSummary,
+    NlpContradictionHints, NlpDateEvent, NlpDates, NlpDecision, NlpDecisions, NlpDiffModifiedSentence,
+    NlpDiffSummary,
     NlpDocumentAnalysis, NlpDuplicatePair, NlpDuplicates, NlpEntities, NlpEntity, NlpExtractedTask,
     NlpKeyword, NlpKeywordsResult, NlpLanguage, NlpLibraryReport, NlpMentionEdge, NlpMentionLink,
     NlpMentions, NlpOrganize, NlpOrganizeSuggestion, NlpOutline, NlpOutlineItem, NlpPiiFinding,

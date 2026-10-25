@@ -317,6 +317,12 @@ pub fn run() {
             commands::agent::send_agent_handoff,
             commands::agent::list_agent_handoffs,
             commands::agent::set_agent_handoff_status,
+            commands::agent::parse_handoff_goal,
+            commands::agent::apply_agent_optimize,
+            commands::agent::is_quiet_hour_now,
+            commands::agent::can_run_agent_budget,
+            commands::agent::should_run_digest_now,
+            commands::agent::should_catch_up_digest,
             commands::audit::get_audit_schema_version,
             commands::audit::get_audit_db_path,
             commands::audit::audit_admin_status,
@@ -419,6 +425,8 @@ pub fn run() {
             commands::ui::parse_map_spec_ui,
             commands::ui::import_title_from_path_ui,
             commands::ui::is_pages_path_ui,
+            commands::ui::is_numbers_path_ui,
+            commands::ui::is_keynote_path_ui,
             commands::ui::theme_preset_ids_ui,
             commands::ui::suggest_orphan_links_ui,
             commands::ui::resolve_color_ui,
@@ -449,6 +457,16 @@ pub fn run() {
             commands::ui::format_export_date_ui,
             commands::ui::build_document_ask_questions_ui,
             commands::ui::build_document_ask_actions_ui,
+            commands::ui::list_agent_roles_ui,
+            commands::ui::list_agent_recipes_ui,
+            commands::ui::filter_tools_by_agents_ui,
+            commands::ui::preferred_tools_for_role_ui,
+            commands::ui::suggest_followup_recipes_ui,
+            commands::ui::pick_canvas_template_id_ui,
+            commands::ui::strip_answer_markdown_ui,
+            commands::ui::title_from_markdown_ui,
+            commands::ui::build_agent_goal_chips_ui,
+            commands::ui::build_agent_tool_options_ui,
             commands::ui::build_document_content_css_ui,
             commands::ui::build_watermark_css_ui,
             commands::ui::document_tiptap_css_ui,
@@ -518,6 +536,7 @@ pub fn run() {
             commands::nlp::nlp_rank_tasks,
             commands::nlp::nlp_contradiction_hints,
             commands::nlp::nlp_extract_commitments,
+            commands::nlp::nlp_forward_plan,
             commands::nlp::nlp_reading_plan,
             commands::nlp::nlp_note_pulse,
             commands::nlp::nlp_extract_mentions,
@@ -590,16 +609,33 @@ pub fn run() {
             commands::import_export::pick_and_import_file,
             commands::import_export::import_file,
             commands::import_export::prepare_pages_import,
+            commands::import_export::prepare_numbers_import,
+            commands::import_export::prepare_keynote_import,
             commands::import_export::cleanup_temp_import_file,
             commands::import_export::export_document,
             commands::import_export::export_pdf_bytes,
             commands::native_pipeline::export_document_by_id,
+            commands::native_pipeline::export_wiki_pack,
+            commands::native_pipeline::publish_wiki_site,
             commands::native_pipeline::compile_documents,
             commands::native_pipeline::diff_document_revisions,
+            commands::vault_crypto::vault_create_verifier,
+            commands::vault_crypto::vault_verify_password,
+            commands::vault_crypto::vault_encrypt_content,
+            commands::vault_crypto::vault_decrypt_content,
+            commands::vault_crypto::vault_is_cipher_json,
             commands::native_pipeline::diff_plain_texts,
             commands::native_pipeline::convert_tiptap,
             commands::native_pipeline::match_document_chat_intent,
             commands::native_pipeline::match_agent_intents,
+            commands::native_pipeline::list_agent_slash_commands,
+            commands::native_pipeline::filter_agent_slash_commands,
+            commands::native_pipeline::parse_agent_slash,
+            commands::native_pipeline::encode_phase_followup,
+            commands::native_pipeline::decode_phase_followup,
+            commands::native_pipeline::is_weak_agent_answer,
+            commands::native_pipeline::normalize_plan_phases,
+            commands::native_pipeline::phases_to_followups,
             commands::native_pipeline::parse_meta_tag,
             commands::native_pipeline::document_matches_meta_filters,
             commands::native_pipeline::render_document_html,
@@ -683,7 +719,16 @@ pub fn run() {
                         || lower.ends_with(".toml")
                         || lower.ends_with(".yaml")
                         || lower.ends_with(".yml")
+                        || lower.ends_with(".xml")
+                        || lower.ends_with(".xsd")
+                        || lower.ends_with(".xsl")
+                        || lower.ends_with(".xslt")
+                        || lower.ends_with(".rss")
+                        || lower.ends_with(".atom")
+                        || lower.ends_with(".plist")
                         || lower.ends_with(".pages")
+                        || lower.ends_with(".numbers")
+                        || lower.ends_with(".key")
                         || lower.ends_with(".md")
                         || lower.ends_with(".markdown")
                         || lower.ends_with(".txt")

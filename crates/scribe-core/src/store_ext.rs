@@ -2067,6 +2067,25 @@ impl ScribeStore {
             .map_err(|e| e.to_string())
     }
 
+    pub fn forward_plan(
+        &self,
+        sidecar: &NlpSidecar,
+        document_id: Option<&str>,
+        text: Option<&str>,
+        limit: Option<i64>,
+    ) -> Result<Value, String> {
+        let source = self.nlp_source_text(document_id, text)?;
+        let limit = limit.unwrap_or(12).clamp(1, 40);
+        if is_nlp_enabled(&self.db).unwrap_or(false) {
+            let _ = sync_sidecar_backend(sidecar, &self.db);
+            if let Ok(raw) = sidecar.forward_plan(&source, limit) {
+                return Ok(raw);
+            }
+        }
+        serde_json::to_value(crate::nlp::forward_plan(&source, limit as usize))
+            .map_err(|e| e.to_string())
+    }
+
     pub fn contradiction_hints(
         &self,
         sidecar: &NlpSidecar,

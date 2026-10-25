@@ -53,7 +53,10 @@ export type ParsedHandoffGoal = {
   summary: string
 }
 
-/** Extract `@organizer …`, `handoff to meeting: …`, `pošli proofreaderovi …`. */
+/**
+ * Extract `@organizer …`, `handoff to meeting: …`, `pošli proofreaderovi …`.
+ * Canonical: `scribe_agent::parse_handoff_goal` (Tauri `parse_handoff_goal`).
+ */
 export function parseHandoffGoal(
   goal: string,
   fromAgentId: AgentRoleId,

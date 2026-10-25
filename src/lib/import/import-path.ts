@@ -8,3 +8,11 @@ export function importTitleFromPath(path: string, fallback: string) {
 export function isPagesPath(path: string) {
   return /\.pages$/i.test(path) || /\.pages\/?$/i.test(path)
 }
+
+export function isNumbersPath(path: string) {
+  return /\.numbers$/i.test(path) || /\.numbers\/?$/i.test(path)
+}
+
+export function isKeynotePath(path: string) {
+  return /\.key$/i.test(path) || /\.key\/?$/i.test(path)
+}

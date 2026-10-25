@@ -434,6 +434,108 @@ export const clearAgentMessages = (documentId: string, agentId?: string | null) 
 export const invokeMatchAgentIntents = (question: string) =>
   invoke<string[]>('match_agent_intents', { question })
 
+export type AgentSlashCommandDto = {
+  id: string
+  name: string
+  aliases: string[]
+  labelKey: string
+  hintKey: string
+  scopes: string[]
+  tools?: string[]
+  recipeId?: string | null
+  passArgs?: boolean
+  defaultGoalKey?: string | null
+}
+
+export type ParsedAgentSlashDto =
+  | { kind: 'none' }
+  | { kind: 'unknown'; token: string }
+  | {
+      kind: 'ok'
+      commandId: string
+      name: string
+      args: string
+      forceTools: string[]
+      recipeId?: string | null
+      defaultGoalKey?: string | null
+      passArgs: boolean
+      labelKey: string
+      hintKey: string
+    }
+
+export const listAgentSlashCommands = (scope?: string | null) =>
+  invoke<AgentSlashCommandDto[]>('list_agent_slash_commands', {
+    scope: scope ?? null,
+  })
+
+export const filterAgentSlashCommands = (
+  query: string,
+  scope: string,
+  limit = 10,
+) =>
+  invoke<AgentSlashCommandDto[]>('filter_agent_slash_commands', {
+    query,
+    scope,
+    limit,
+  })
+
+export const parseAgentSlash = (raw: string, scope: string) =>
+  invoke<ParsedAgentSlashDto>('parse_agent_slash', { raw, scope })
+
+export const parseHandoffGoalNative = (goal: string, fromAgentId: string) =>
+  invoke<{ toAgentId: string; summary: string } | null>('parse_handoff_goal', {
+    goal,
+    fromAgentId,
+  })
+
+export const applyAgentOptimizeNative = (
+  tools: string[],
+  prefs: {
+    maxSteps: number
+    preferFast: boolean
+    preferredTools: string[]
+    disabledTools: string[]
+    quietHours: boolean
+    allowedTools?: string[]
+  },
+  hour?: number | null,
+) => invoke<string[]>('apply_agent_optimize', { tools, prefs, hour: hour ?? null })
+
+export const listAgentRolesUi = () => invoke('list_agent_roles_ui')
+export const listAgentRecipesUi = () => invoke('list_agent_recipes_ui')
+export const suggestFollowupRecipesUi = (
+  okTools: string[],
+  scope: string,
+  enabledRoles: string[],
+) =>
+  invoke<string[]>('suggest_followup_recipes_ui', {
+    okTools,
+    scope,
+    enabledRoles,
+  })
+
+export const buildAgentGoalChipsUi = (input: {
+  analysis?: unknown
+  tasks: unknown[]
+  title?: string | null
+  slovak?: boolean
+}) =>
+  invoke<string[]>('build_agent_goal_chips_ui', {
+    analysis: input.analysis ?? null,
+    tasks: input.tasks,
+    title: input.title ?? null,
+    slovak: input.slovak ?? false,
+  })
+
+export const stripAnswerMarkdownUi = (source: string) =>
+  invoke<string>('strip_answer_markdown_ui', { source })
+
+export const titleFromMarkdownUi = (markdown: string, fallback: string) =>
+  invoke<string>('title_from_markdown_ui', { markdown, fallback })
+
+export const pickCanvasTemplateIdUi = (goal: string) =>
+  invoke<string>('pick_canvas_template_id_ui', { goal })
+
 export type AgentBackendDigestSchedule = {
   enabled: boolean
   timeLocal: string
@@ -1278,32 +1380,37 @@ export const pickAndImportFiles = async () => {
 export const importFile = async (path: string) => {
   const [
     { isPagesPath, importPagesDocumentFromPath },
-    { isExcelPath, isLegacyExcelPath, importExcelDocumentFromPath },
-    { isWordDocxPath },
+    { isNumbersPath, importNumbersDocumentFromPath },
+    { isKeynotePath, importKeynoteDocumentFromPath },
+    { isLegacyExcelPath },
     { readAntivirusPolicy },
   ] = await Promise.all([
     import('@/lib/import/pages'),
+    import('@/lib/import/numbers'),
+    import('@/lib/import/keynote'),
     import('@/lib/import/excel-xlsx'),
-    import('@/lib/import/word-docx'),
     import('@/lib/antivirus/prefs'),
   ])
 
   const antivirusPolicy = readAntivirusPolicy()
 
-  // Excel / CSV → TipTap tables via SheetJS (editable). Legacy .xls errors with convert hint.
-  // Native picker also uses Rust `xlsx_bytes_to_tiptap` (same table shape).
-  if (isLegacyExcelPath(path) || isExcelPath(path)) {
-    return importExcelDocumentFromPath(path)
+  // Legacy .xls is unsupported (convert to .xlsx). Modern xlsx/csv go through Rust.
+  if (isLegacyExcelPath(path)) {
+    throw new Error(
+      'Toto je starý formát Excel (.xls). Uložte ho v Exceli ako .xlsx a skúste znova.',
+    )
   }
 
   if (isPagesPath(path)) {
     return importPagesDocumentFromPath(path)
   }
 
-  if (isWordDocxPath(path)) {
-    return cacheDocument(
-      await invoke<Document>('import_file', { path, antivirusPolicy }),
-    )
+  if (isNumbersPath(path)) {
+    return importNumbersDocumentFromPath(path)
+  }
+
+  if (isKeynotePath(path)) {
+    return importKeynoteDocumentFromPath(path)
   }
 
   return cacheDocument(
@@ -1311,12 +1418,21 @@ export const importFile = async (path: string) => {
   )
 }
 
-const NATIVE_EXPORT_FORMATS = new Set(['md', 'txt', 'html', 'html-zip', 'epub'])
+const NATIVE_EXPORT_FORMATS = new Set([
+  'md',
+  'txt',
+  'html',
+  'html-zip',
+  'epub',
+  'csv',
+  'json',
+  'opml',
+])
 
 /** Export from SQLite by document id — TipTap blob never crosses IPC. */
 export const exportDocumentById = (
   documentId: string,
-  format: 'md' | 'txt' | 'html' | 'html-zip' | 'epub',
+  format: 'md' | 'txt' | 'html' | 'html-zip' | 'epub' | 'csv' | 'json' | 'opml',
 ) =>
   invoke<ExportResult | null>('export_document_by_id', {
     input: { documentId, format },
@@ -1341,6 +1457,7 @@ export const diffDocumentRevisions = (
   oldRevisionId: string,
   newRevisionId: string,
   currentPlainText?: string,
+  options?: { changesOnly?: boolean; contextLines?: number },
 ) =>
   invoke<DiffDocumentRevisionsResult>('diff_document_revisions', {
     input: {
@@ -1348,6 +1465,8 @@ export const diffDocumentRevisions = (
       oldRevisionId,
       newRevisionId,
       currentPlainText: currentPlainText ?? null,
+      changesOnly: options?.changesOnly ?? null,
+      contextLines: options?.contextLines ?? null,
     },
   })
 

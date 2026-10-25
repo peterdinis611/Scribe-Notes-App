@@ -9,6 +9,11 @@ description = "Allow convert_tiptap"
 commands.allow = ["convert_tiptap"]
 
 [[permission]]
+identifier = "allow-decode-phase-followup"
+description = "Allow decode_phase_followup"
+commands.allow = ["decode_phase_followup"]
+
+[[permission]]
 identifier = "allow-diff-document-revisions"
 description = "Allow diff_document_revisions"
 commands.allow = ["diff_document_revisions"]
@@ -24,14 +29,39 @@ description = "Allow document_matches_meta_filters"
 commands.allow = ["document_matches_meta_filters"]
 
 [[permission]]
+identifier = "allow-encode-phase-followup"
+description = "Allow encode_phase_followup"
+commands.allow = ["encode_phase_followup"]
+
+[[permission]]
 identifier = "allow-export-document-by-id"
 description = "Allow export_document_by_id"
 commands.allow = ["export_document_by_id"]
 
 [[permission]]
+identifier = "allow-export-wiki-pack"
+description = "Allow export_wiki_pack"
+commands.allow = ["export_wiki_pack"]
+
+[[permission]]
+identifier = "allow-filter-agent-slash-commands"
+description = "Allow filter_agent_slash_commands"
+commands.allow = ["filter_agent_slash_commands"]
+
+[[permission]]
 identifier = "allow-highlight-code"
 description = "Allow highlight_code"
 commands.allow = ["highlight_code"]
+
+[[permission]]
+identifier = "allow-is-weak-agent-answer"
+description = "Allow is_weak_agent_answer"
+commands.allow = ["is_weak_agent_answer"]
+
+[[permission]]
+identifier = "allow-list-agent-slash-commands"
+description = "Allow list_agent_slash_commands"
+commands.allow = ["list_agent_slash_commands"]
 
 [[permission]]
 identifier = "allow-match-agent-intents"
@@ -44,9 +74,29 @@ description = "Allow match_document_chat_intent"
 commands.allow = ["match_document_chat_intent"]
 
 [[permission]]
+identifier = "allow-normalize-plan-phases"
+description = "Allow normalize_plan_phases"
+commands.allow = ["normalize_plan_phases"]
+
+[[permission]]
+identifier = "allow-parse-agent-slash"
+description = "Allow parse_agent_slash"
+commands.allow = ["parse_agent_slash"]
+
+[[permission]]
 identifier = "allow-parse-meta-tag"
 description = "Allow parse_meta_tag"
 commands.allow = ["parse_meta_tag"]
+
+[[permission]]
+identifier = "allow-phases-to-followups"
+description = "Allow phases_to_followups"
+commands.allow = ["phases_to_followups"]
+
+[[permission]]
+identifier = "allow-publish-wiki-site"
+description = "Allow publish_wiki_site"
+commands.allow = ["publish_wiki_site"]
 
 [[permission]]
 identifier = "allow-render-document-html"
@@ -59,13 +109,23 @@ description = "Command group: native_pipeline"
 permissions = [
   "allow-compile-documents",
   "allow-convert-tiptap",
+  "allow-decode-phase-followup",
   "allow-diff-document-revisions",
   "allow-diff-plain-texts",
   "allow-document-matches-meta-filters",
+  "allow-encode-phase-followup",
   "allow-export-document-by-id",
+  "allow-export-wiki-pack",
+  "allow-filter-agent-slash-commands",
   "allow-highlight-code",
+  "allow-is-weak-agent-answer",
+  "allow-list-agent-slash-commands",
   "allow-match-agent-intents",
   "allow-match-document-chat-intent",
+  "allow-normalize-plan-phases",
+  "allow-parse-agent-slash",
   "allow-parse-meta-tag",
+  "allow-phases-to-followups",
+  "allow-publish-wiki-site",
   "allow-render-document-html",
 ]

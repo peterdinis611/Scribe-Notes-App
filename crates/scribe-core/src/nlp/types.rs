@@ -238,12 +238,23 @@ pub struct NlpSummary {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
+pub struct NlpDiffModifiedSentence {
+    pub old: String,
+    pub new: String,
+    #[serde(default)]
+    pub similarity: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct NlpDiffSummary {
     pub summary: String,
     #[serde(default)]
     pub added_sentences: Vec<String>,
     #[serde(default)]
     pub removed_sentences: Vec<String>,
+    #[serde(default)]
+    pub modified_sentences: Vec<NlpDiffModifiedSentence>,
     #[serde(default)]
     pub gained_terms: Vec<String>,
     #[serde(default)]

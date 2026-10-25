@@ -16,6 +16,7 @@ import {
   nlpDetectPii,
   nlpDocumentAnalysis,
   nlpExtractCommitments,
+  nlpForwardPlan,
   nlpExtractDecisions,
   nlpExtractMentions,
   nlpExtractQuotes,
@@ -187,6 +188,50 @@ export async function runAgentCommitments(documentId: string): Promise<LibraryCh
     )}`,
     citations: [
       { documentId, title: 'Commitments', snippet: `${result.count} items · ${result.source}` },
+    ],
+  }
+}
+
+export async function runAgentForwardPlan(documentId: string): Promise<LibraryChatResult> {
+  const result = await nlpForwardPlan({ documentId, limit: 12 })
+  const sections: string[] = []
+  if (result.nextSteps?.length) {
+    sections.push(
+      `**Next steps (${result.counts.nextSteps})**\n\n${bullets(
+        result.nextSteps.map((item) => item.text),
+      )}`,
+    )
+  }
+  if (result.agenda?.length) {
+    sections.push(
+      `**Agenda (${result.counts.agenda})**\n\n${bullets(result.agenda.map((item) => item.text))}`,
+    )
+  }
+  if (result.upcoming?.length) {
+    sections.push(
+      `**Upcoming (${result.counts.upcoming})**\n\n${bullets(
+        result.upcoming.map((item) => {
+          const due = item.dueHint ? ` _(due ${item.dueHint})_` : ''
+          return `${item.text}${due}`
+        }),
+      )}`,
+    )
+  }
+  if (!sections.length) {
+    return { answer: 'No forward plan items detected in this note.', citations: [] }
+  }
+  const total =
+    (result.counts?.nextSteps ?? 0) +
+    (result.counts?.agenda ?? 0) +
+    (result.counts?.upcoming ?? 0)
+  return {
+    answer: sections.join('\n\n'),
+    citations: [
+      {
+        documentId,
+        title: 'Forward plan',
+        snippet: `${total} items · ${result.source}`,
+      },
     ],
   }
 }

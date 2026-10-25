@@ -10,6 +10,8 @@ commands::import_export::read_text_file
 commands::import_export::read_binary_file
 commands::import_export::write_text_file
 commands::import_export::prepare_pages_import
+commands::import_export::prepare_numbers_import
+commands::import_export::prepare_keynote_import
 commands::import_export::cleanup_temp_import_file
 commands::import_export::import_file
 
@@ -36,3 +38,5 @@ commands::images::remove_image_background
 # Basename helpers only (no FS I/O).
 commands::ui::import_title_from_path_ui
 commands::ui::is_pages_path_ui
+commands::ui::is_numbers_path_ui
+commands::ui::is_keynote_path_ui

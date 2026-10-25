@@ -555,3 +555,62 @@ fn truncate(value: &str, max: usize) -> String {
         trimmed.chars().take(max.saturating_sub(1)).collect::<String>() + "…"
     }
 }
+
+#[tauri::command]
+pub fn parse_handoff_goal(
+    goal: String,
+    from_agent_id: String,
+) -> Option<scribe_agent::ParsedHandoffGoal> {
+    scribe_agent::parse_handoff_goal(&goal, &from_agent_id)
+}
+
+#[tauri::command]
+pub fn apply_agent_optimize(
+    tools: Vec<String>,
+    prefs: scribe_agent::OptimizePrefs,
+    hour: Option<u32>,
+) -> Vec<String> {
+    scribe_agent::apply_agent_optimize(&tools, &prefs, hour)
+}
+
+#[tauri::command]
+pub fn is_quiet_hour_now(hour: Option<u32>) -> bool {
+    use chrono::Timelike;
+    let hour = hour.unwrap_or_else(|| chrono::Local::now().hour());
+    scribe_agent::is_quiet_hour_now(hour)
+}
+
+#[tauri::command]
+pub fn can_run_agent_budget(daily_run_budget: i32, runs_today: i32) -> bool {
+    scribe_agent::can_run_agent_budget(daily_run_budget, runs_today)
+}
+
+#[tauri::command]
+pub fn should_run_digest_now(schedule: scribe_agent::AgentDigestSchedule) -> bool {
+    use chrono::{Datelike, Timelike};
+    let now = chrono::Local::now();
+    scribe_agent::should_run_digest_now(
+        &schedule,
+        now.year(),
+        now.month(),
+        now.day(),
+        now.hour(),
+        now.minute(),
+        now.weekday().num_days_from_sunday(),
+    )
+}
+
+#[tauri::command]
+pub fn should_catch_up_digest(schedule: scribe_agent::AgentDigestSchedule) -> bool {
+    use chrono::{Datelike, Timelike};
+    let now = chrono::Local::now();
+    scribe_agent::should_catch_up_digest(
+        &schedule,
+        now.year(),
+        now.month(),
+        now.day(),
+        now.hour(),
+        now.minute(),
+        now.weekday().num_days_from_sunday(),
+    )
+}

@@ -14,6 +14,16 @@ description = "Allow asset_kind_ui"
 commands.allow = ["asset_kind_ui"]
 
 [[permission]]
+identifier = "allow-build-agent-goal-chips-ui"
+description = "Allow build_agent_goal_chips_ui"
+commands.allow = ["build_agent_goal_chips_ui"]
+
+[[permission]]
+identifier = "allow-build-agent-tool-options-ui"
+description = "Allow build_agent_tool_options_ui"
+commands.allow = ["build_agent_tool_options_ui"]
+
+[[permission]]
 identifier = "allow-build-document-ask-actions-ui"
 description = "Allow build_document_ask_actions_ui"
 commands.allow = ["build_document_ask_actions_ui"]
@@ -184,6 +194,11 @@ description = "Allow filter_library_assets_ui"
 commands.allow = ["filter_library_assets_ui"]
 
 [[permission]]
+identifier = "allow-filter-tools-by-agents-ui"
+description = "Allow filter_tools_by_agents_ui"
+commands.allow = ["filter_tools_by_agents_ui"]
+
+[[permission]]
 identifier = "allow-flashcards-to-anki-tsv"
 description = "Allow flashcards_to_anki_tsv"
 commands.allow = ["flashcards_to_anki_tsv"]
@@ -264,6 +279,16 @@ description = "Allow is_dark_color_ui"
 commands.allow = ["is_dark_color_ui"]
 
 [[permission]]
+identifier = "allow-is-keynote-path-ui"
+description = "Allow is_keynote_path_ui"
+commands.allow = ["is_keynote_path_ui"]
+
+[[permission]]
+identifier = "allow-is-numbers-path-ui"
+description = "Allow is_numbers_path_ui"
+commands.allow = ["is_numbers_path_ui"]
+
+[[permission]]
 identifier = "allow-is-orphan-asset-ui"
 description = "Allow is_orphan_asset_ui"
 commands.allow = ["is_orphan_asset_ui"]
@@ -287,6 +312,16 @@ commands.allow = ["is_untitled_orphan_title_ui"]
 identifier = "allow-library-asset-kind-filters-ui"
 description = "Allow library_asset_kind_filters_ui"
 commands.allow = ["library_asset_kind_filters_ui"]
+
+[[permission]]
+identifier = "allow-list-agent-recipes-ui"
+description = "Allow list_agent_recipes_ui"
+commands.allow = ["list_agent_recipes_ui"]
+
+[[permission]]
+identifier = "allow-list-agent-roles-ui"
+description = "Allow list_agent_roles_ui"
+commands.allow = ["list_agent_roles_ui"]
 
 [[permission]]
 identifier = "allow-list-settings-section-ids"
@@ -374,6 +409,11 @@ description = "Allow pdf_highlights_to_content_json_ui"
 commands.allow = ["pdf_highlights_to_content_json_ui"]
 
 [[permission]]
+identifier = "allow-pick-canvas-template-id-ui"
+description = "Allow pick_canvas_template_id_ui"
+commands.allow = ["pick_canvas_template_id_ui"]
+
+[[permission]]
 identifier = "allow-plain-text-to-content-json-ui"
 description = "Allow plain_text_to_content_json_ui"
 commands.allow = ["plain_text_to_content_json_ui"]
@@ -382,6 +422,11 @@ commands.allow = ["plain_text_to_content_json_ui"]
 identifier = "allow-plan-theme-application-ui"
 description = "Allow plan_theme_application_ui"
 commands.allow = ["plan_theme_application_ui"]
+
+[[permission]]
+identifier = "allow-preferred-tools-for-role-ui"
+description = "Allow preferred_tools_for_role_ui"
+commands.allow = ["preferred_tools_for_role_ui"]
 
 [[permission]]
 identifier = "allow-promote-markdown-special-blocks-ui"
@@ -434,6 +479,16 @@ description = "Allow serialize_template_pack_ui"
 commands.allow = ["serialize_template_pack_ui"]
 
 [[permission]]
+identifier = "allow-strip-answer-markdown-ui"
+description = "Allow strip_answer_markdown_ui"
+commands.allow = ["strip_answer_markdown_ui"]
+
+[[permission]]
+identifier = "allow-suggest-followup-recipes-ui"
+description = "Allow suggest_followup_recipes_ui"
+commands.allow = ["suggest_followup_recipes_ui"]
+
+[[permission]]
 identifier = "allow-suggest-orphan-links-ui"
 description = "Allow suggest_orphan_links_ui"
 commands.allow = ["suggest_orphan_links_ui"]
@@ -452,6 +507,11 @@ commands.allow = ["tiptap_json_to_markdown_ui"]
 identifier = "allow-title-from-html-ui"
 description = "Allow title_from_html_ui"
 commands.allow = ["title_from_html_ui"]
+
+[[permission]]
+identifier = "allow-title-from-markdown-ui"
+description = "Allow title_from_markdown_ui"
+commands.allow = ["title_from_markdown_ui"]
 
 [[permission]]
 identifier = "allow-to-global-shortcut-accelerator-ui"
@@ -475,6 +535,8 @@ permissions = [
   "allow-analyze-graph-density-ui",
   "allow-apply-document-style-preset-ui",
   "allow-asset-kind-ui",
+  "allow-build-agent-goal-chips-ui",
+  "allow-build-agent-tool-options-ui",
   "allow-build-document-ask-actions-ui",
   "allow-build-document-ask-questions-ui",
   "allow-build-document-content-css-ui",
@@ -509,6 +571,7 @@ permissions = [
   "allow-filter-diff-lines-ui",
   "allow-filter-documents-by-smart-filter-ui",
   "allow-filter-library-assets-ui",
+  "allow-filter-tools-by-agents-ui",
   "allow-flashcards-to-anki-tsv",
   "allow-flashcards-to-markdown",
   "allow-flatten-folders-for-picker-ui",
@@ -525,11 +588,15 @@ permissions = [
   "allow-hotkey-to-display-keys",
   "allow-import-title-from-path-ui",
   "allow-is-dark-color-ui",
+  "allow-is-keynote-path-ui",
+  "allow-is-numbers-path-ui",
   "allow-is-orphan-asset-ui",
   "allow-is-pages-path-ui",
   "allow-is-ui-skin",
   "allow-is-untitled-orphan-title-ui",
   "allow-library-asset-kind-filters-ui",
+  "allow-list-agent-recipes-ui",
+  "allow-list-agent-roles-ui",
   "allow-list-settings-section-ids",
   "allow-locale-section-groups-ui",
   "allow-map-to-tiptap-highlight-ui",
@@ -547,8 +614,10 @@ permissions = [
   "allow-parse-ui-tag",
   "allow-pdf-capture-css-ui",
   "allow-pdf-highlights-to-content-json-ui",
+  "allow-pick-canvas-template-id-ui",
   "allow-plain-text-to-content-json-ui",
   "allow-plan-theme-application-ui",
+  "allow-preferred-tools-for-role-ui",
   "allow-promote-markdown-special-blocks-ui",
   "allow-resolve-color-ui",
   "allow-resolve-header-footer-template-ui",
@@ -559,10 +628,13 @@ permissions = [
   "allow-sanitize-snippet",
   "allow-serialize-canvas-document-ui",
   "allow-serialize-template-pack-ui",
+  "allow-strip-answer-markdown-ui",
+  "allow-suggest-followup-recipes-ui",
   "allow-suggest-orphan-links-ui",
   "allow-theme-preset-ids-ui",
   "allow-tiptap-json-to-markdown-ui",
   "allow-title-from-html-ui",
+  "allow-title-from-markdown-ui",
   "allow-to-global-shortcut-accelerator-ui",
   "allow-ui-font-presets-ui",
   "allow-validate-snippet-input-ui",

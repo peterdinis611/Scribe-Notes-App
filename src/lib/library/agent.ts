@@ -1,4 +1,4 @@
-import { invokeMatchAgentIntents } from '@/lib/db/api'
+import { invokeMatchAgentIntents, invokeMatchDocumentChatIntent } from '@/lib/db/api'
 import { nlpAgentDocumentBrief, nlpPlanAgentGoal } from '@/lib/db/nlp-api'
 import {
   AGENT_MAX_STEPS_HARD,
@@ -27,6 +27,15 @@ import {
 } from '@/lib/library/agent-handoff'
 import { listSuccessfulPlanTools } from '@/lib/library/agent-plan-feedback'
 import {
+  isWeakAgentAnswer,
+  normalizePlanPhases,
+  nowToolsFromPhases,
+  phasesToFollowups,
+  type AgentPlanPhase,
+} from '@/lib/library/agent-phases'
+
+export type { AgentPlanPhase }
+import {
   filterToolsByAgents,
   isAgentRoleEnabled,
   isRecipeAllowedByAgents,
@@ -38,6 +47,7 @@ import { runAgentFilesIngest } from '@/lib/library/agent-files-ingest'
 import {
   runAgentCitations,
   runAgentCommitments,
+  runAgentForwardPlan,
   runAgentContinuation,
   runAgentContradictions,
   runAgentDatesLibrary,
@@ -70,7 +80,6 @@ import {
   askDocument,
   askLibrary,
   documentChatContext,
-  matchDocumentChatIntent,
   runDocumentChatAction,
   type ChatScope,
   type DocumentChatAction,
@@ -120,6 +129,8 @@ export type AgentPlan = {
   clarifyOptions?: AgentToolId[]
   clarifyLabels?: string[]
   planMeta?: AgentPlanMeta
+  /** Multi-horizon plan: now runs immediately; next/later become chips. */
+  phases?: AgentPlanPhase[]
 }
 
 export type AgentRunResult = {
@@ -131,6 +142,7 @@ export type AgentRunResult = {
   clarifyOptions?: AgentToolId[]
   clarifyLabels?: string[]
   planMeta?: AgentPlanMeta
+  phases?: AgentPlanPhase[]
   /** Updated prefs after budget/episode bookkeeping (caller should persist). */
   nextPrefs?: AgentPrefs
 }
@@ -167,6 +179,7 @@ const DOCUMENT_TOOLS = new Set<AgentToolId>([
   'rank_tasks',
   'contradictions',
   'commitments',
+  'forward_plan',
   'reading_plan',
   'note_pulse',
   'grammar',
@@ -244,6 +257,7 @@ const INTENT_TO_TOOL: Record<string, AgentToolId> = {
   rank_tasks: 'rank_tasks',
   contradictions: 'contradictions',
   commitments: 'commitments',
+  forward_plan: 'forward_plan',
   reading_plan: 'reading_plan',
   note_pulse: 'note_pulse',
   grammar: 'grammar',
@@ -292,368 +306,6 @@ function dedupeTools(tools: AgentToolId[], limit: number = AGENT_MAX_STEPS): Age
   return out
 }
 
-/** Sync multi-intent mirror for vitest without Tauri (ordered, max 3). */
-export function matchAgentIntentsSync(goal: string): AgentToolId[] {
-  const folded = goal
-    .trim()
-    .toLocaleLowerCase()
-    .normalize('NFD')
-    .replace(/\p{M}/gu, '')
-  if (!folded) return []
-
-  const rules: Array<{ tool: AgentToolId; needles: string[] }> = [
-    {
-      tool: 'handoff',
-      needles: [
-        'handoff',
-        'delegate',
-        'pass to',
-        'send to',
-        'tell the',
-        'forward to',
-        'posli',
-        'pošli',
-        'odovzdaj',
-        'predaj',
-        '@organizer',
-        '@meeting',
-        '@librarian',
-        '@proofreader',
-        '@study',
-        '@developer',
-        '@general',
-      ],
-    },
-    {
-      tool: 'save_template',
-      needles: [
-        'save as template',
-        'make a template',
-        'create template',
-        'note to template',
-        'sablonu',
-        'ako sablonu',
-        'uloz ako sablonu',
-        'urob sablonu',
-      ],
-    },
-    {
-      tool: 'wiki_health',
-      needles: [
-        'wiki health',
-        'broken links',
-        'unresolved wiki',
-        'graph hubs',
-        'zdravie wiki',
-        'rozbite odkazy',
-        'nevyriesene odkazy',
-        'orphan notes',
-        'sirotky',
-      ],
-    },
-    {
-      tool: 'keywords',
-      needles: ['keyword', 'key word', 'keyphrase', 'klucove slova', 'klucovych slov', 'tag candidates'],
-    },
-    {
-      tool: 'canvas_summarize',
-      needles: [
-        'summarize canvas',
-        'canvas summary',
-        'board summary',
-        'zhrn canvas',
-        'zhrnutie canvas',
-        'zhrn board',
-      ],
-    },
-    {
-      tool: 'canvas_to_note',
-      needles: [
-        'canvas to note',
-        'board to note',
-        'export canvas',
-        'canvas do poznamky',
-        'board do poznamky',
-        'vloz canvas',
-      ],
-    },
-    {
-      tool: 'canvas_template',
-      needles: [
-        'canvas template',
-        'board template',
-        'brainstorm template',
-        'roadmap template',
-        'sablona canvas',
-        'canvas sablona',
-      ],
-    },
-    {
-      tool: 'brief',
-      needles: [
-        'daily digest',
-        'weekly digest',
-        'denny digest',
-        'tyzdenny digest',
-        'denne zhrnutie',
-        'tyzdenne zhrnutie',
-      ],
-    },
-    { tool: 'summarize', needles: ['summarize', 'summary', 'tlldr', 'digest', 'zhrn', 'zhrnutie', 'strucne'] },
-    { tool: 'outline', needles: ['outline', 'structure', 'heading', 'osnova', 'struktura', 'nadpisy'] },
-    {
-      tool: 'tasks',
-      needles: ['task', 'todo', 'to-do', 'action item', 'checklist', 'ulohy', 'otvorene ulohy'],
-    },
-    {
-      tool: 'dates',
-      needles: ['date', 'deadline', 'due date', 'schedule', 'datumy', 'terminy', 'this week', 'tento tyzden'],
-    },
-    {
-      tool: 'meeting',
-      needles: ['meeting', 'standup', 'retro', 'meeting notes', 'zapis zo stretnut', 'porada', 'rozhodnutia zo stretnut'],
-    },
-    {
-      tool: 'terminology',
-      needles: ['terminology', 'term consistency', 'inconsistent term', 'terminologia', 'konzistencia pojmov', 'nekonzistent'],
-    },
-    { tool: 'wiki', needles: ['wiki link', 'wikilink', 'backlink', 'wiki odkazy', 'prepojen'] },
-    {
-      tool: 'organize',
-      needles: ['organize', 'suggest folder', 'suggest tag', 'zarad', 'priecinok', 'tagy', 'organizuj'],
-    },
-    {
-      tool: 'duplicates',
-      needles: ['duplicate', 'redundant', 'near duplicate', 'duplicit', 'redundantn', 'podobne subory'],
-    },
-    {
-      tool: 'citations',
-      needles: ['citation', 'cite', 'source for', 'citac', 'zdroje', 'podloz'],
-    },
-    {
-      tool: 'quiz',
-      needles: ['outline quiz', 'quiz from outline', 'kviz z osnovy', 'test z osnovy'],
-    },
-    {
-      tool: 'revision',
-      needles: ['revision', 'what changed', 'diff summary', 'co sa zmenilo', 'revizia', 'zmeny medzi'],
-    },
-    {
-      tool: 'rewrite',
-      needles: ['rewrite', 'rephrase', 'prepis', 'preformuluj'],
-    },
-    {
-      tool: 'similar',
-      needles: [
-        'related note',
-        'similar note',
-        'connected note',
-        'how does this note connect',
-        'how does this connect',
-        'suvisiace',
-        'podobne poznamky',
-      ],
-    },
-    { tool: 'flashcards', needles: ['flashcard', 'study card', 'quiz me', 'karticky', 'kartick', 'kviz'] },
-    {
-      tool: 'takeaways',
-      needles: ['takeaway', 'key point', 'executive summary', 'zavery', 'hlavne body', 'zhrnutie rozhodnut'],
-    },
-    {
-      tool: 'style',
-      needles: [
-        'writing coach',
-        'style tip',
-        'clarity',
-        'passive voice',
-        'filler word',
-        'styl',
-        'jasnost',
-        'trpny rod',
-        'vyplnove',
-      ],
-    },
-    {
-      tool: 'explain',
-      needles: ['explain', 'what does this mean', 'vysvetli', 'vysvetlenie', 'co to znamena'],
-    },
-    {
-      tool: 'simplify',
-      needles: ['simplify', 'simpler', 'plain language', 'zjednodus', 'jednoduchsie'],
-    },
-    {
-      tool: 'action_items',
-      needles: ['action items', 'extract actions', 'akcne body', 'ulohy z textu'],
-    },
-    {
-      tool: 'glossary',
-      needles: ['glossary', 'define terms', 'key terms', 'slovnik', 'pojmy', 'definicie'],
-    },
-    {
-      tool: 'compare_notes',
-      needles: ['compare notes', 'diff notes', 'porovnaj poznamky', 'porovnanie poznamok'],
-    },
-    {
-      tool: 'files_answer',
-      needles: [
-        'files answer',
-        'ask files',
-        'sandboxed files',
-        'subory sandbox',
-        'files/',
-        'ask codebase',
-        'search code',
-        'search rust',
-        'search python',
-        'najdi v kode',
-      ],
-    },
-    {
-      tool: 'files_ingest',
-      needles: [
-        'import files',
-        'ingest files',
-        'files to notes',
-        'sandbox to library',
-        'importuj subory',
-        'subory do kniznice',
-        'import source',
-        'import code',
-        'import rust',
-        'import python',
-        'importuj kod',
-      ],
-    },
-    {
-      tool: 'code_brief',
-      needles: [
-        'code brief',
-        'review code',
-        'review rust',
-        'review python',
-        'explain rust',
-        'explain python',
-        'explain this code',
-        'code review',
-        'rust code',
-        'python code',
-        'source code',
-        'this code',
-        'prezri kod',
-        'analyzuj kod',
-        'vysvetli rust',
-        'vysvetli python',
-        'vysvetli kod',
-      ],
-    },
-    {
-      tool: 'spellcheck',
-      needles: [
-        'spellcheck',
-        'spell check',
-        'spelling',
-        'typo',
-        'typos',
-        'pravopis',
-        'preklepy',
-        'preklep',
-        'skontroluj pravopis',
-        'skontroluj preklepy',
-        'oprav preklepy',
-        'oprav pravopis',
-        'check spelling',
-        'fix spelling',
-        'fix typos',
-      ],
-    },
-    {
-      tool: 'section_summaries',
-      needles: ['section summary', 'section summaries', 'summarize sections', 'zhrnutie sekcii', 'zhrn sekcie', 'po kapitolach'],
-    },
-    {
-      tool: 'decisions',
-      needles: ['decision log', 'extract decisions', 'rozhodnutia', 'log rozhodnuti', 'co sme rozhodli'],
-    },
-    {
-      tool: 'quotes',
-      needles: ['extract quotes', 'pull quotes', 'citacie', 'citaty', 'vyber citaty'],
-    },
-    {
-      tool: 'pii',
-      needles: ['detect pii', 'privacy scan', 'personal data', 'citlive udaje', 'pii', 'sken sukromia', 'pred zdielanim'],
-    },
-    {
-      tool: 'rank_tasks',
-      needles: ['rank tasks', 'prioritize tasks', 'prioritize todos', 'zorad ulohy', 'priorita uloh', 'urgent tasks'],
-    },
-    {
-      tool: 'contradictions',
-      needles: ['contradiction', 'conflicting claims', 'rozpory', 'protirecenia', 'nekonzistentne tvrdenia'],
-    },
-    {
-      tool: 'commitments',
-      needles: ['commitment', 'commitments', 'i will', 'follow up', 'zavazky', 'sluby', 'co som slubil'],
-    },
-    {
-      tool: 'reading_plan',
-      needles: ['reading plan', 'study plan', 'study path', 'plan citania', 'studijny plan', 'ako citat'],
-    },
-    {
-      tool: 'note_pulse',
-      needles: ['note pulse', 'note health', 'library pulse', 'stav poznamky', 'zdravie poznamky'],
-    },
-    {
-      tool: 'grammar',
-      needles: ['grammar', 'grammar check', 'gramatika', 'skontroluj gramatiku', 'grammar tips'],
-    },
-    {
-      tool: 'mentions',
-      needles: ['mentions', 'people mentioned', '@mentions', 'spomenute osoby', 'kto je v poznamke', 'attendees'],
-    },
-    {
-      tool: 'open_loops',
-      needles: ['open loops', 'unfinished', 'loose ends', 'otvorene slucky', 'nedokoncene', 'co ostava'],
-    },
-    {
-      tool: 'tone',
-      needles: ['tone', 'readability', 'reading time', 'sentiment', 'citelnost', 'ton textu', 'nalada textu'],
-    },
-    {
-      tool: 'title',
-      needles: ['suggest title', 'rename note', 'better title', 'navrhni nazov', 'premenuj', 'lepsi nazov'],
-    },
-    {
-      tool: 'continuation',
-      needles: ['continue writing', 'keep writing', 'what next sentence', 'pokracuj v pisani', 'dalsia veta'],
-    },
-    {
-      tool: 'template_hints',
-      needles: ['template gaps', 'missing sections', 'template hints', 'chyba sekcia', 'dopln sablonu'],
-    },
-    {
-      tool: 'library_report',
-      needles: ['library report', 'library health', 'report kniznice', 'stav kniznice'],
-    },
-    {
-      tool: 'terminology_library',
-      needles: ['library terminology', 'term variants', 'terminologia kniznice', 'nekonzistentne pojmy'],
-    },
-    {
-      tool: 'brief',
-      needles: ['agent brief', 'document brief', 'full brief', 'kompletny brief', 'brief poznámky'],
-    },
-  ]
-
-  const out: AgentToolId[] = []
-  for (const rule of rules) {
-    if (rule.needles.some((needle) => folded.includes(needle))) {
-      out.push(rule.tool)
-      if (out.length >= AGENT_MAX_STEPS) break
-    }
-  }
-  return out
-}
-
 function scopeTools(
   tools: AgentToolId[],
   scope: ChatScope,
@@ -676,6 +328,7 @@ function defaultAnswerTool(scope: ChatScope): AgentToolId {
   return scope === 'document' ? 'document_answer' : 'library_answer'
 }
 
+/** Canonical: `scribe_ui::suggest_followup_recipes` (Tauri `suggest_followup_recipes_ui`). */
 export function suggestFollowupRecipes(
   steps: AgentStep[],
   scope: ChatScope,
@@ -791,6 +444,7 @@ export async function planAgentGoal(
 
   let intents: string[] = []
   let planMeta: AgentPlanMeta | undefined
+  let nlpPhases: unknown = null
   try {
     const planned = await nlpPlanAgentGoal({
       goal: trimmed,
@@ -802,6 +456,7 @@ export async function planAgentGoal(
       feedbackTools: feedbackTools.length > 0 ? feedbackTools : null,
     })
     intents = planned.tools
+    nlpPhases = planned.phases ?? null
     planMeta = {
       source: planned.source || 'python',
       topLabel: planned.topLabel ?? planned.jepa?.topLabel ?? null,
@@ -829,13 +484,15 @@ export async function planAgentGoal(
         clarifyOptions,
         clarifyLabels: planned.clarifyLabels?.slice(0, clarifyOptions.length),
         planMeta,
+        phases: [],
       }
     }
   } catch {
     try {
       intents = await invokeMatchAgentIntents(trimmed)
     } catch {
-      intents = matchAgentIntentsSync(trimmed)
+      // Rust intent router unavailable (e.g. vitest without Tauri).
+      intents = []
     }
     planMeta = { source: 'fallback' }
   }
@@ -854,9 +511,13 @@ export async function planAgentGoal(
   }
 
   if (fromIntent.length === 0) {
-    const single = matchDocumentChatIntent(trimmed)
-    if (single && INTENT_TO_TOOL[single]) {
-      fromIntent = [INTENT_TO_TOOL[single]]
+    try {
+      const single = await invokeMatchDocumentChatIntent(trimmed)
+      if (single && INTENT_TO_TOOL[single]) {
+        fromIntent = [INTENT_TO_TOOL[single]]
+      }
+    } catch {
+      /* Rust intent router unavailable */
     }
   }
 
@@ -887,13 +548,22 @@ export async function planAgentGoal(
 
   const scoped = scopeTools(fromIntent, scope, documentId)
   const tools = applyAgentOptimize(scoped.length > 0 ? scoped : safeFallback ? [safeFallback] : [fallback], effective)
+  const finalTools = tools.length > 0 ? tools : safeFallback ? [safeFallback] : []
+  const phases = normalizePlanPhases(nlpPhases, finalTools, trimmed).map((phase) => ({
+    ...phase,
+    tools: applyAgentOptimize(scopeTools(phase.tools, scope, documentId), {
+      ...effective,
+      maxSteps: Math.min(effective.maxSteps, Math.max(1, phase.tools.length)) as AgentMaxSteps,
+    }),
+  }))
 
   return {
     goal: trimmed,
     scope,
     documentId,
-    tools: tools.length > 0 ? tools : safeFallback ? [safeFallback] : [],
+    tools: nowToolsFromPhases(phases, finalTools),
     planMeta: planMeta ?? { source: 'python' },
+    phases,
   }
 }
 
@@ -994,6 +664,10 @@ async function runTool(
   if (tool === 'commitments') {
     if (!ctx.documentId) throw new Error('agent.needsDocument')
     return runAgentCommitments(ctx.documentId)
+  }
+  if (tool === 'forward_plan') {
+    if (!ctx.documentId) throw new Error('agent.needsDocument')
+    return runAgentForwardPlan(ctx.documentId)
   }
   if (tool === 'reading_plan') {
     if (!ctx.documentId) throw new Error('agent.needsDocument')
@@ -1357,6 +1031,8 @@ export async function runAgentGoal(
   const citationBuckets: LibraryChatCitation[][] = []
   const followups: string[] = []
   let replanUsed = false
+  let weakLookaheadUsed = false
+  const runQueue = [...plan.tools]
 
   const runOne = async (tool: AgentToolId) => {
     const needsDoc =
@@ -1407,6 +1083,40 @@ export async function runAgentGoal(
       if (result.followups?.length) {
         followups.push(...result.followups)
       }
+      if (
+        !weakLookaheadUsed &&
+        !opts?.recipeId &&
+        !opts?.forceTools?.length &&
+        isWeakAgentAnswer(result.answer)
+      ) {
+        weakLookaheadUsed = true
+        try {
+          const avoidPrefs: AgentPrefs = {
+            ...prefs,
+            disabledTools: [
+              ...prefs.disabledTools,
+              ...steps.map((step) => step.tool),
+            ].filter((item, index, list) => list.indexOf(item) === index),
+          }
+          const rescue = await planAgentGoal(
+            trimmed || 'continue with related tools',
+            scope,
+            documentId,
+            avoidPrefs,
+            {
+              roleId: opts?.roleId,
+              folderId: opts?.folderId,
+            },
+          )
+          const attempted = new Set(steps.map((step) => step.tool))
+          const alt = rescue.tools.find((candidate) => !attempted.has(candidate))
+          if (alt && !runQueue.includes(alt)) {
+            runQueue.push(alt)
+          }
+        } catch {
+          // soft-fail lookahead is best-effort
+        }
+      }
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error)
       steps.push({ tool, status: 'error', detail })
@@ -1434,7 +1144,8 @@ export async function runAgentGoal(
     }
   }
 
-  for (const tool of plan.tools) {
+  for (let i = 0; i < runQueue.length; i += 1) {
+    const tool = runQueue[i]!
     await runOne(tool)
   }
 
@@ -1476,13 +1187,16 @@ export async function runAgentGoal(
   const recipeFollowups = suggestFollowupRecipes(steps, scope, prefs.agents).map(
     (id) => `recipe:${id}`,
   )
+  const phaseFollowups = phasesToFollowups(plan.phases)
+  const upcomingPhases = (plan.phases ?? []).filter((p) => p.when === 'next' || p.when === 'later')
 
   return {
     answer,
     citations: mergeCitations(citationBuckets),
     steps,
-    followups: [...followups, ...recipeFollowups].slice(0, 6),
+    followups: [...phaseFollowups, ...followups, ...recipeFollowups].slice(0, 6),
     planMeta: plan.planMeta,
+    phases: upcomingPhases.length ? upcomingPhases : plan.phases,
     nextPrefs,
   }
 }

@@ -1,6 +1,6 @@
 import type { AgentToolId, CustomAgentRecipe } from '@/lib/library/agent-prefs'
 
-/** Recipe catalog — keep ids/tools in sync with `scribe_ui::agent_catalog`. */
+/** Recipe catalog — canonical in `scribe_ui::agent_catalog` (Tauri `list_agent_recipes_ui`). */
 
 export type AgentRecipeId =
   | 'daily_digest'

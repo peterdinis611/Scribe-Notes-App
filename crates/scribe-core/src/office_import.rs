@@ -213,6 +213,82 @@ pub fn csv_text_to_tiptap(text: &str, delimiter: Option<char>) -> Result<String,
     Ok(doc_json(vec![table, json!({ "type": "paragraph" })]))
 }
 
+/// Extract TipTap tables as row-major string matrices.
+pub fn extract_tables_from_tiptap(content_json: &str) -> Vec<Vec<Vec<String>>> {
+    let Ok(doc) = serde_json::from_str::<Value>(content_json) else {
+        return Vec::new();
+    };
+    let mut tables = Vec::new();
+    walk_tables(&doc, &mut tables);
+    tables
+}
+
+fn walk_tables(node: &Value, tables: &mut Vec<Vec<Vec<String>>>) {
+    if node.get("type").and_then(Value::as_str) == Some("table") {
+        let mut rows = Vec::new();
+        if let Some(children) = node.get("content").and_then(Value::as_array) {
+            for row in children {
+                if row.get("type").and_then(Value::as_str) != Some("tableRow") {
+                    continue;
+                }
+                let mut cells = Vec::new();
+                if let Some(cell_nodes) = row.get("content").and_then(Value::as_array) {
+                    for cell in cell_nodes {
+                        let kind = cell.get("type").and_then(Value::as_str).unwrap_or("");
+                        if kind != "tableCell" && kind != "tableHeader" {
+                            continue;
+                        }
+                        cells.push(cell_plain_text(cell).trim().to_string());
+                    }
+                }
+                if !cells.is_empty() {
+                    rows.push(cells);
+                }
+            }
+        }
+        if !rows.is_empty() {
+            tables.push(rows);
+        }
+        return;
+    }
+    if let Some(children) = node.get("content").and_then(Value::as_array) {
+        for child in children {
+            walk_tables(child, tables);
+        }
+    }
+}
+
+fn cell_plain_text(node: &Value) -> String {
+    if node.get("type").and_then(Value::as_str) == Some("text") {
+        return node
+            .get("text")
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .to_string();
+    }
+    let mut out = String::new();
+    if let Some(children) = node.get("content").and_then(Value::as_array) {
+        for child in children {
+            out.push_str(&cell_plain_text(child));
+        }
+    }
+    out
+}
+
+/// Prefer first TipTap table as CSV; otherwise one column of plain text.
+pub fn tiptap_to_csv(content_json: &str, title: &str) -> String {
+    let tables = extract_tables_from_tiptap(content_json);
+    if let Some(matrix) = tables.first() {
+        return matrix_to_csv(matrix, ',');
+    }
+    let plain = crate::tiptap_to_plain_text(content_json);
+    let mut rows = vec![vec![title.trim().to_string()]];
+    for line in plain.split('\n') {
+        rows.push(vec![line.to_string()]);
+    }
+    matrix_to_csv(&rows, ',')
+}
+
 /// Serialize a row matrix to RFC4180 CSV (comma) or TSV (`\t`).
 pub fn matrix_to_csv(rows: &[Vec<String>], delimiter: char) -> String {
     let mut out = String::new();

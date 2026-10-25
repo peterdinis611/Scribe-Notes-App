@@ -1,3 +1,8 @@
+/**
+ * Agent chips / tool ranking.
+ * Canonical: `crates/scribe-ui/src/agent_suggestions.rs`
+ * (Tauri: build_agent_goal_chips_ui / build_agent_tool_options_ui).
+ */
 import type { DocumentTask, NlpDocumentAnalysis } from '@/lib/db/nlp-api'
 import { buildDocumentAskQuestions } from '@/lib/library/document-ask-suggestions'
 import type { AgentToolId } from '@/lib/library/agent-prefs'
