@@ -445,6 +445,26 @@ pub fn match_agent_intents(question: String) -> Vec<String> {
         .collect()
 }
 
+/// Agent composer slash catalog (optional scope filter: document|library|folder).
+#[tauri::command]
+pub fn list_agent_slash_commands(scope: Option<String>) -> Vec<scribe_core::AgentSlashCommandDef> {
+    scribe_core::list_agent_slash_commands(scope.as_deref())
+}
+
+#[tauri::command]
+pub fn filter_agent_slash_commands(
+    query: String,
+    scope: String,
+    limit: Option<u32>,
+) -> Vec<scribe_core::AgentSlashCommandDef> {
+    scribe_core::filter_agent_slash_commands(&query, &scope, limit.unwrap_or(10) as usize)
+}
+
+#[tauri::command]
+pub fn parse_agent_slash(raw: String, scope: String) -> scribe_core::ParsedAgentSlash {
+    scribe_core::parse_agent_slash(&raw, &scope)
+}
+
 /// Parse convention tags (`status:` / `project:` / `year:`).
 #[tauri::command]
 pub fn parse_meta_tag(raw: String) -> scribe_core::ParsedTag {

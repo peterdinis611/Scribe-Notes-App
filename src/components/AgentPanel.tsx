@@ -105,9 +105,10 @@ import {
 } from '@/lib/library/agent-suggestions'
 import {
   agentSlashQuery,
+  ensureAgentSlashCatalog,
   filterAgentSlashCommands,
   isAgentSlashMenuOpen,
-  parseAgentSlash,
+  parseAgentSlashAsync,
   type AgentSlashCommand,
 } from '@/lib/library/agent-slash'
 import { AGENT_TEACHING_MAX_LEN } from '@/lib/library/agent-prefs'
@@ -515,10 +516,17 @@ export function AgentPanel({
     [scope, activeDocumentId, roleId],
   )
 
+  const [slashCatalogTick, setSlashCatalogTick] = useState(0)
+
+  useEffect(() => {
+    void ensureAgentSlashCatalog().then(() => setSlashCatalogTick((n) => n + 1))
+  }, [])
+
   const slashSuggestions = useMemo(() => {
+    void slashCatalogTick
     if (!isAgentSlashMenuOpen(input)) return [] as AgentSlashCommand[]
     return filterAgentSlashCommands(agentSlashQuery(input), scope)
-  }, [input, scope])
+  }, [input, scope, slashCatalogTick])
 
   useEffect(() => {
     setSlashHighlight(0)
@@ -537,7 +545,7 @@ export function AgentPanel({
       let forceTools = opts?.forceTools
       let recipeId = opts?.recipeId
       if (trimmed.startsWith('/') && !forceTools?.length && !recipeId) {
-        const parsed = parseAgentSlash(trimmed, scope, t)
+        const parsed = await parseAgentSlashAsync(trimmed, scope, t)
         if (parsed && 'unknown' in parsed) {
           toast.error(
             t('agent.errorTitle'),

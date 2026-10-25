@@ -20,8 +20,8 @@ fn strip_diacritic(ch: char) -> char {
     }
 }
 
-/// Fold for intent matching: lowercase + strip common SK/CS diacritics.
-fn fold_intent(question: &str) -> String {
+/// Fold for intent / slash matching: lowercase + strip common SK/CS diacritics.
+pub(crate) fn fold_intent(question: &str) -> String {
     question
         .trim()
         .chars()

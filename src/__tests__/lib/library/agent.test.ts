@@ -1,7 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
-  AGENT_MAX_STEPS,
-  matchAgentIntentsSync,
   planAgentGoal,
   runAgentGoal,
   agentMemoryContext,
@@ -11,11 +9,13 @@ import {
   buildAgentToolOptions,
 } from '@/lib/library/agent-suggestions'
 import type { NlpDocumentAnalysis, DocumentTask } from '@/lib/db/nlp-api'
+import { invokeMatchAgentIntents } from '@/lib/db/api'
 
 vi.mock('@/lib/db/api', () => ({
   invokeMatchAgentIntents: vi.fn(async () => {
     throw new Error('no tauri')
   }),
+  invokeMatchDocumentChatIntent: vi.fn(async () => null),
 }))
 
 vi.mock('@/lib/db/nlp-api', () => ({
@@ -53,21 +53,6 @@ vi.mock('@/lib/library/library-chat', async () => {
   }
 })
 
-describe('matchAgentIntentsSync', () => {
-  it('collects multiple intents up to max', () => {
-    const tools = matchAgentIntentsSync(
-      'Summarize this note and find related notes plus flashcards and tasks',
-    )
-    expect(tools.length).toBeLessThanOrEqual(AGENT_MAX_STEPS)
-    expect(tools[0]).toBe('summarize')
-    expect(tools).toContain('similar')
-  })
-
-  it('returns empty for open questions', () => {
-    expect(matchAgentIntentsSync('What is this note mainly about?')).toEqual([])
-  })
-})
-
 describe('planAgentGoal', () => {
   it('falls back to library_answer when no intents and askWhenUncertain off', async () => {
     const { DEFAULT_AGENT_PREFS } = await import('@/lib/library/agent-prefs')
@@ -87,39 +72,17 @@ describe('planAgentGoal', () => {
     expect(plan.tools).toEqual(['document_answer'])
   })
 
-  it('plans multi-step document tools', async () => {
+  it('plans multi-step document tools via Rust intent fallback', async () => {
+    vi.mocked(invokeMatchAgentIntents).mockResolvedValueOnce(['summarize', 'similar'])
     const { DEFAULT_AGENT_PREFS } = await import('@/lib/library/agent-prefs')
     const plan = await planAgentGoal(
       'Summarize and find related notes',
       'document',
       'doc-1',
-      { ...DEFAULT_AGENT_PREFS, preferFast: false },
+      { ...DEFAULT_AGENT_PREFS, preferFast: false, askWhenUncertain: false },
     )
     expect(plan.tools[0]).toBe('summarize')
     expect(plan.tools).toContain('similar')
-  })
-
-  it('plans dates and meeting intents', async () => {
-    expect(matchAgentIntentsSync('What deadlines this week?')).toContain('dates')
-    expect(matchAgentIntentsSync('Extract meeting notes pack')).toContain('meeting')
-  })
-
-  it('plans save_template and daily digest intents', () => {
-    expect(matchAgentIntentsSync('Urob z tejto poznámky šablónu')).toContain('save_template')
-    expect(matchAgentIntentsSync('daily digest')).toContain('brief')
-  })
-
-  it('plans wiki_health, keywords, and canvas intents', () => {
-    expect(matchAgentIntentsSync('Check wiki health and broken links')).toContain('wiki_health')
-    expect(matchAgentIntentsSync('Extract keywords from this note')).toContain('keywords')
-    expect(matchAgentIntentsSync('Summarize canvas board')).toContain('canvas_summarize')
-    expect(matchAgentIntentsSync('Canvas to note')).toContain('canvas_to_note')
-    expect(matchAgentIntentsSync('Apply brainstorm canvas template')).toContain('canvas_template')
-  })
-
-  it('plans spellcheck intents', () => {
-    expect(matchAgentIntentsSync('Skontroluj pravopis')).toContain('spellcheck')
-    expect(matchAgentIntentsSync('Fix typos in this note')).toContain('spellcheck')
   })
 
   it('recipe soft-cap keeps full meeting_wrap tools', async () => {
@@ -137,13 +100,14 @@ describe('planAgentGoal', () => {
 
 describe('runAgentGoal', () => {
   it('merges soft-fail steps', async () => {
+    vi.mocked(invokeMatchAgentIntents).mockResolvedValueOnce(['summarize', 'similar'])
     const { DEFAULT_AGENT_PREFS } = await import('@/lib/library/agent-prefs')
     const result = await runAgentGoal(
       'Summarize and find related notes',
       'document',
       'doc-1',
       undefined,
-      { ...DEFAULT_AGENT_PREFS, preferFast: false },
+      { ...DEFAULT_AGENT_PREFS, preferFast: false, askWhenUncertain: false },
     )
     expect(result.steps.length).toBeGreaterThanOrEqual(2)
     expect(result.steps.every((step) => step.status === 'ok')).toBe(true)

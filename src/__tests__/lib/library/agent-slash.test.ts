@@ -1,64 +1,85 @@
 import { describe, expect, it } from 'vitest'
 import {
+  agentSlashQuery,
   filterAgentSlashCommands,
   isAgentSlashMenuOpen,
   parseAgentSlash,
-  toolsForSlashCommand,
+  seedAgentSlashCatalogForTests,
+  type AgentSlashCommand,
 } from '@/lib/library/agent-slash'
 
 const t = (key: string) => key
 
-describe('agent-slash', () => {
-  it('parses /talk with a question', () => {
-    const parsed = parseAgentSlash('/talk What is the deadline?', 'document', t)
-    expect(parsed).toMatchObject({
+const FIXTURE: AgentSlashCommand[] = [
+  {
+    id: 'talk',
+    name: 'talk',
+    aliases: ['ask', 'hovor'],
+    labelKey: 'agent.slash.talk.label',
+    hintKey: 'agent.slash.talk.hint',
+    scopes: ['any'],
+    tools: ['document_answer'],
+    passArgs: true,
+    defaultGoalKey: 'agent.slash.talk.defaultGoal',
+  },
+  {
+    id: 'meeting',
+    name: 'meeting',
+    aliases: ['porada'],
+    labelKey: 'agent.slash.meeting.label',
+    hintKey: 'agent.slash.meeting.hint',
+    scopes: ['document', 'any'],
+    tools: ['meeting'],
+    defaultGoalKey: 'agent.tools.meeting',
+  },
+  {
+    id: 'wrap',
+    name: 'wrap',
+    labelKey: 'agent.slash.wrap.label',
+    hintKey: 'agent.slash.wrap.hint',
+    scopes: ['document', 'any'],
+    recipeId: 'meeting_wrap',
+  },
+  {
+    id: 'plan',
+    name: 'plan',
+    aliases: ['planuj'],
+    labelKey: 'agent.slash.plan.label',
+    hintKey: 'agent.slash.plan.hint',
+    scopes: ['document', 'any'],
+    tools: ['forward_plan'],
+    defaultGoalKey: 'agent.tools.forward_plan',
+  },
+]
+
+describe('agent-slash (TS thin layer over cached Rust catalog)', () => {
+  it('parses from seeded catalog', () => {
+    seedAgentSlashCatalogForTests(FIXTURE)
+    expect(parseAgentSlash('/talk What is the deadline?', 'document', t)).toMatchObject({
       goal: 'What is the deadline?',
       forceTools: ['document_answer'],
-      args: 'What is the deadline?',
     })
-  })
-
-  it('maps /talk to library Q&A outside document scope', () => {
-    const parsed = parseAgentSlash('/talk themes?', 'library', t)
-    expect(parsed).toMatchObject({
+    expect(parseAgentSlash('/talk themes?', 'library', t)).toMatchObject({
       forceTools: ['library_answer'],
-      goal: 'themes?',
     })
-  })
-
-  it('parses aliases and recipes', () => {
-    const meeting = parseAgentSlash('/porada', 'document', t)
-    expect(meeting).toMatchObject({ forceTools: ['meeting'] })
-
-    const wrap = parseAgentSlash('/wrap', 'document', t)
-    expect(wrap).toMatchObject({ recipeId: 'meeting_wrap' })
-
-    const plan = parseAgentSlash('/planuj', 'document', t)
-    expect(plan).toMatchObject({ forceTools: ['forward_plan'] })
-  })
-
-  it('returns unknown for bad tokens', () => {
-    expect(parseAgentSlash('/nope', 'document', t)).toEqual({
-      unknown: true,
-      token: 'nope',
+    expect(parseAgentSlash('/porada', 'document', t)).toMatchObject({
+      forceTools: ['meeting'],
     })
-  })
-
-  it('ignores non-slash goals', () => {
+    expect(parseAgentSlash('/wrap', 'document', t)).toMatchObject({
+      recipeId: 'meeting_wrap',
+    })
+    expect(parseAgentSlash('/planuj', 'document', t)).toMatchObject({
+      forceTools: ['forward_plan'],
+    })
+    expect(parseAgentSlash('/nope', 'document', t)).toEqual({ unknown: true, token: 'nope' })
     expect(parseAgentSlash('summarize this', 'document', t)).toBeNull()
   })
 
-  it('filters autocomplete by query and scope', () => {
-    const hits = filterAgentSlashCommands('mee', 'document')
-    expect(hits.some((c) => c.id === 'meeting')).toBe(true)
+  it('filters autocomplete and menu helpers', () => {
+    seedAgentSlashCatalogForTests(FIXTURE)
+    expect(filterAgentSlashCommands('mee', 'document').some((c) => c.id === 'meeting')).toBe(true)
     expect(isAgentSlashMenuOpen('/mee')).toBe(true)
     expect(isAgentSlashMenuOpen('/meeting more')).toBe(false)
-  })
-
-  it('resolves talk tools by scope', () => {
-    expect(toolsForSlashCommand(
-      { id: 'talk', name: 'talk', labelKey: '', hintKey: '', scopes: ['any'], tools: ['document_answer'] },
-      'library',
-    )).toEqual(['library_answer'])
+    expect(agentSlashQuery('/plan ahead')).toBe('plan')
   })
 })

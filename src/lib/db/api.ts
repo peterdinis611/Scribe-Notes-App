@@ -434,6 +434,54 @@ export const clearAgentMessages = (documentId: string, agentId?: string | null) 
 export const invokeMatchAgentIntents = (question: string) =>
   invoke<string[]>('match_agent_intents', { question })
 
+export type AgentSlashCommandDto = {
+  id: string
+  name: string
+  aliases: string[]
+  labelKey: string
+  hintKey: string
+  scopes: string[]
+  tools?: string[]
+  recipeId?: string | null
+  passArgs?: boolean
+  defaultGoalKey?: string | null
+}
+
+export type ParsedAgentSlashDto =
+  | { kind: 'none' }
+  | { kind: 'unknown'; token: string }
+  | {
+      kind: 'ok'
+      commandId: string
+      name: string
+      args: string
+      forceTools: string[]
+      recipeId?: string | null
+      defaultGoalKey?: string | null
+      passArgs: boolean
+      labelKey: string
+      hintKey: string
+    }
+
+export const listAgentSlashCommands = (scope?: string | null) =>
+  invoke<AgentSlashCommandDto[]>('list_agent_slash_commands', {
+    scope: scope ?? null,
+  })
+
+export const filterAgentSlashCommands = (
+  query: string,
+  scope: string,
+  limit = 10,
+) =>
+  invoke<AgentSlashCommandDto[]>('filter_agent_slash_commands', {
+    query,
+    scope,
+    limit,
+  })
+
+export const parseAgentSlash = (raw: string, scope: string) =>
+  invoke<ParsedAgentSlashDto>('parse_agent_slash', { raw, scope })
+
 export type AgentBackendDigestSchedule = {
   enabled: boolean
   timeLocal: string

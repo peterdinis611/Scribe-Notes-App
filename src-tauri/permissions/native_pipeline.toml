@@ -54,6 +54,21 @@ description = "Allow match_document_chat_intent"
 commands.allow = ["match_document_chat_intent"]
 
 [[permission]]
+identifier = "allow-list-agent-slash-commands"
+description = "Allow list_agent_slash_commands"
+commands.allow = ["list_agent_slash_commands"]
+
+[[permission]]
+identifier = "allow-filter-agent-slash-commands"
+description = "Allow filter_agent_slash_commands"
+commands.allow = ["filter_agent_slash_commands"]
+
+[[permission]]
+identifier = "allow-parse-agent-slash"
+description = "Allow parse_agent_slash"
+commands.allow = ["parse_agent_slash"]
+
+[[permission]]
 identifier = "allow-parse-meta-tag"
 description = "Allow parse_meta_tag"
 commands.allow = ["parse_meta_tag"]
@@ -78,6 +93,9 @@ permissions = [
   "allow-highlight-code",
   "allow-match-agent-intents",
   "allow-match-document-chat-intent",
+  "allow-list-agent-slash-commands",
+  "allow-filter-agent-slash-commands",
+  "allow-parse-agent-slash",
   "allow-parse-meta-tag",
   "allow-render-document-html",
 ]
