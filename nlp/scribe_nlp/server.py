@@ -147,6 +147,7 @@ FEATURES = [
     "rankTasks",
     "contradictionHints",
     "extractCommitments",
+    "forwardPlan",
     "readingPlan",
     "notePulse",
     "openLoops",
@@ -1137,6 +1138,12 @@ def _handle_request_inner(
             text = _validate_text(str(params.get("text") or ""))
             limit = max(1, min(int(params.get("limit") or 12), 40))
             result = extract_commitments(text, limit=limit)
+        elif method == "forward_plan":
+            from .forward_plan import forward_plan
+
+            text = _validate_text(str(params.get("text") or ""))
+            limit = max(1, min(int(params.get("limit") or 12), 40))
+            result = forward_plan(text, limit=limit)
         elif method == "reading_plan":
             from .reading_plan import reading_plan
 

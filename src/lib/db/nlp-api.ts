@@ -864,6 +864,20 @@ export const nlpExtractCommitments = (input: {
   limit?: number
 }) => invoke<ExtractCommitmentsResult>('nlp_extract_commitments', { input })
 
+export type ForwardPlanResult = {
+  nextSteps: Array<{ text: string; kind: string; dueHint?: string | null }>
+  agenda: Array<{ text: string; kind: string; dueHint?: string | null }>
+  upcoming: Array<{ text: string; kind: string; dueHint?: string | null }>
+  counts: { nextSteps: number; agenda: number; upcoming: number }
+  source: string
+}
+
+export const nlpForwardPlan = (input: {
+  documentId?: string
+  text?: string
+  limit?: number
+}) => invoke<ForwardPlanResult>('nlp_forward_plan', { input })
+
 export type ReadingPlanResult = {
   steps: Array<{
     order: number
@@ -955,6 +969,12 @@ export type AgentPlanNlpResult = {
   clarifyLabels?: string[]
   source: string
   topLabel?: string | null
+  phases?: Array<{
+    when: 'now' | 'next' | 'later' | string
+    goal: string
+    tools: string[]
+    reason?: string
+  }>
   jepa?: {
     confidence?: number
     margin?: number

@@ -53,6 +53,7 @@ export type AgentToolId =
   | 'rank_tasks'
   | 'contradictions'
   | 'commitments'
+  | 'forward_plan'
   | 'reading_plan'
   | 'note_pulse'
   | 'grammar'
@@ -235,6 +236,7 @@ const ALL_TOOLS: AgentToolId[] = [
   'rank_tasks',
   'contradictions',
   'commitments',
+  'forward_plan',
   'reading_plan',
   'note_pulse',
   'grammar',
@@ -248,6 +250,7 @@ const ALL_TOOLS: AgentToolId[] = [
   'terminology_library',
   'files_answer',
   'files_ingest',
+  'code_brief',
   'save_template',
   'handoff',
   'keywords',

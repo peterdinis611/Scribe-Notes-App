@@ -1,6 +1,7 @@
 mod chat_context;
 mod chat_intent;
 pub mod commitments;
+pub mod forward_plan;
 pub mod continuation;
 pub mod decisions;
 mod document_passages;
@@ -32,6 +33,7 @@ pub use chat_context::{
 };
 pub use chat_intent::{match_agent_intents, match_document_chat_intent};
 pub use commitments::{extract_commitments, NlpCommitment, NlpCommitments};
+pub use forward_plan::{forward_plan, NlpForwardItem, NlpForwardPlan};
 pub use decisions::extract_decisions;
 pub use mentions::{extract_mentions, NlpMentionsReport};
 pub use note_pulse::{note_pulse, NlpNotePulse};

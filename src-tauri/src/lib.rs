@@ -520,6 +520,7 @@ pub fn run() {
             commands::nlp::nlp_rank_tasks,
             commands::nlp::nlp_contradiction_hints,
             commands::nlp::nlp_extract_commitments,
+            commands::nlp::nlp_forward_plan,
             commands::nlp::nlp_reading_plan,
             commands::nlp::nlp_note_pulse,
             commands::nlp::nlp_extract_mentions,

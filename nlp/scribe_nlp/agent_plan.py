@@ -42,7 +42,14 @@ _LIBRARY_TOOLS: frozenset[str] = frozenset(
 # Soft boosts when plan_agent_goal(role=…) is set (mirrors JEPA role bias).
 _ROLE_TOOL_BOOSTS: dict[str, tuple[str, ...]] = {
     "proofreader": ("spellcheck", "grammar", "style", "simplify"),
-    "meeting": ("meeting", "action_items", "decisions", "commitments", "mentions"),
+    "meeting": (
+        "meeting",
+        "action_items",
+        "decisions",
+        "commitments",
+        "forward_plan",
+        "mentions",
+    ),
     "librarian": ("wiki_health", "wiki", "organize", "similar", "duplicates", "citations"),
     "study": ("flashcards", "quiz", "reading_plan", "takeaways", "section_summaries"),
     "organizer": (
@@ -50,6 +57,7 @@ _ROLE_TOOL_BOOSTS: dict[str, tuple[str, ...]] = {
         "rank_tasks",
         "dates",
         "open_loops",
+        "forward_plan",
         "organize",
         "canvas_summarize",
         "wiki_health",
@@ -385,6 +393,29 @@ _INTENT_RULES: list[tuple[str, tuple[str, ...]]] = [
         ),
     ),
     (
+        "forward_plan",
+        (
+            "forward plan",
+            "plan ahead",
+            "next steps",
+            "upcoming",
+            "what's next",
+            "what next",
+            "next meeting",
+            "agenda",
+            "plan dopredu",
+            "plán dopredu",
+            "dalsie kroky",
+            "ďalšie kroky",
+            "nasledujuce kroky",
+            "nasledujúce kroky",
+            "co dalej",
+            "čo ďalej",
+            "buduce kroky",
+            "budúce kroky",
+        ),
+    ),
+    (
         "reading_plan",
         (
             "reading plan",
@@ -494,6 +525,7 @@ _DOCUMENT_TOOLS = {
     "rank_tasks",
     "contradictions",
     "commitments",
+    "forward_plan",
     "reading_plan",
     "note_pulse",
     "grammar",
@@ -509,6 +541,35 @@ _DOCUMENT_TOOLS = {
     "canvas_template",
     "document_answer",
     "code_brief",
+}
+
+_TOOL_PHASE_LABELS: dict[str, str] = {
+    "summarize": "Summarize",
+    "takeaways": "Key takeaways",
+    "tasks": "Open tasks",
+    "rank_tasks": "Prioritize tasks",
+    "dates": "Deadlines",
+    "meeting": "Meeting notes",
+    "commitments": "Commitments",
+    "forward_plan": "Plan ahead",
+    "open_loops": "Open loops",
+    "action_items": "Action items",
+    "decisions": "Decisions",
+    "reading_plan": "Reading plan",
+    "flashcards": "Flashcards",
+    "quiz": "Outline quiz",
+    "similar": "Related notes",
+    "organize": "Organize",
+    "wiki_health": "Wiki health",
+    "spellcheck": "Spellcheck",
+    "style": "Writing coach",
+    "outline": "Outline",
+    "section_summaries": "Section summaries",
+    "brief": "Brief",
+    "library_answer": "Ask library",
+    "document_answer": "Ask note",
+    "files_answer": "Ask files",
+    "code_brief": "Code brief",
 }
 
 
@@ -615,6 +676,125 @@ def _clarify_from_jepa_candidates(jepa: dict[str, Any] | None, scope: str) -> li
     return _default_clarify_options(scope)
 
 
+def _phase_goal_label(tools: list[str], *, fallback: str = "") -> str:
+    labels = [
+        _TOOL_PHASE_LABELS.get(tool, tool.replace("_", " ").strip().title())
+        for tool in tools
+        if tool
+    ]
+    if not labels:
+        return fallback.strip() or "Continue"
+    if len(labels) == 1:
+        return labels[0]
+    if len(labels) == 2:
+        return f"{labels[0]} & {labels[1]}"
+    return f"{labels[0]}, {labels[1]} & more"
+
+
+def _build_phases(
+    *,
+    goal: str,
+    now_tools: list[str],
+    surplus_tools: list[str],
+    jepa: dict[str, Any] | None,
+    llm_phases: list[dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    """Build now / next / later phases. ``now`` mirrors the immediate tool list."""
+    if not now_tools:
+        return []
+
+    phases: list[dict[str, Any]] = [
+        {
+            "when": "now",
+            "goal": goal.strip() or _phase_goal_label(now_tools),
+            "tools": list(now_tools),
+            "reason": "Run immediately",
+        }
+    ]
+
+    if llm_phases:
+        used = set(now_tools)
+        for raw in llm_phases:
+            if not isinstance(raw, dict):
+                continue
+            when = str(raw.get("when") or "").strip().lower()
+            if when not in {"next", "later"}:
+                continue
+            tools_raw = raw.get("tools") or []
+            tools: list[str] = []
+            if isinstance(tools_raw, list):
+                for item in tools_raw:
+                    name = str(item).strip()
+                    if name and name not in used and name in _ALLOWED_PLAN_TOOLS:
+                        tools.append(name)
+                        used.add(name)
+            if not tools:
+                continue
+            label = str(raw.get("goal") or "").strip() or _phase_goal_label(tools)
+            reason = str(raw.get("reason") or "").strip() or (
+                "Suggested next" if when == "next" else "Later"
+            )
+            phases.append(
+                {"when": when, "goal": label, "tools": tools[:3], "reason": reason}
+            )
+            if sum(1 for p in phases if p["when"] == "next") >= 2 and any(
+                p["when"] == "later" for p in phases
+            ):
+                break
+        if any(p["when"] in {"next", "later"} for p in phases):
+            return phases
+
+    used = set(now_tools)
+    pool: list[str] = []
+    for tool in surplus_tools:
+        if tool and tool not in used and tool not in pool:
+            pool.append(tool)
+    for cand in (jepa or {}).get("candidates") or []:
+        if not isinstance(cand, dict):
+            continue
+        for item in cand.get("tools") or []:
+            name = str(item).strip()
+            if name and name not in used and name not in pool:
+                pool.append(name)
+        if cand.get("tool"):
+            name = str(cand.get("tool")).strip()
+            if name and name not in used and name not in pool:
+                pool.append(name)
+
+    next_slots: list[list[str]] = []
+    later_tools: list[str] = []
+    # Up to 2 next phases (1–2 tools each), then 1 later phase.
+    idx = 0
+    while idx < len(pool) and len(next_slots) < 2:
+        chunk = pool[idx : idx + 2]
+        if not chunk:
+            break
+        next_slots.append(chunk)
+        idx += len(chunk)
+    if idx < len(pool):
+        later_tools = pool[idx : idx + 2]
+
+    for chunk in next_slots:
+        phases.append(
+            {
+                "when": "next",
+                "goal": _phase_goal_label(chunk),
+                "tools": chunk,
+                "reason": "Suggested next",
+            }
+        )
+    if later_tools:
+        phases.append(
+            {
+                "when": "later",
+                "goal": _phase_goal_label(later_tools),
+                "tools": later_tools,
+                "reason": "Later",
+            }
+        )
+    return phases
+
+
 def plan_agent_goal(
     goal: str,
     *,
@@ -633,7 +813,8 @@ def plan_agent_goal(
     scope_norm = "library" if str(scope or "").lower().startswith("lib") else "document"
     hard = get_config().agent.tool_limit_hard
     limit = max(1, min(int(max_tools or get_config().agent.tool_limit), hard))
-    scored = match_agent_intents_scored(trimmed, max_tools=max(limit, 6))
+    pool_limit = max(limit + 4, 8)
+    scored = match_agent_intents_scored(trimmed, max_tools=pool_limit)
 
     if scope_norm == "library":
         scored = [(tool, score) for tool, score in scored if tool in _LIBRARY_TOOLS]
@@ -642,14 +823,16 @@ def plan_agent_goal(
         allow = {str(item) for item in allowed_tools}
         scored = [(tool, score) for tool, score in scored if tool in allow]
 
-    scored = _apply_role_boosts(scored, role=role, limit=limit)
-    scored = scored[:limit]
+    scored = _apply_role_boosts(scored, role=role, limit=pool_limit)
+    surplus_tools = [tool for tool, _score in scored]
+    now_scored = scored[:limit]
 
-    tools = [tool for tool, _score in scored]
-    tool_scores = [{"tool": tool, "score": score} for tool, score in scored]
-    confidence = max((score for _tool, score in scored), default=0.0)
+    tools = [tool for tool, _score in now_scored]
+    tool_scores = [{"tool": tool, "score": score} for tool, score in now_scored]
+    confidence = max((score for _tool, score in now_scored), default=0.0)
     source = "python"
     needs = len(tools) == 0 or confidence < 0.48
+    llm_phases: list[dict[str, Any]] | None = None
 
     # JEPA-like latent ranking — prefer when confidence clears the threshold.
     jepa_meta: dict[str, Any] | None = None
@@ -709,6 +892,7 @@ def plan_agent_goal(
             confidence = float(llm_plan.get("confidence") or 0.8)
             needs = len(tools) == 0
             source = "llm"
+            llm_phases = llm_plan.get("phases")
 
     needs_clarify = needs and len(tools) == 0
     clarify_options = (
@@ -719,6 +903,16 @@ def plan_agent_goal(
         for cand in (jepa_full.get("candidates") or [])[:3]:
             if isinstance(cand, dict) and cand.get("label"):
                 clarify_labels.append(str(cand["label"]))
+
+    phases: list[dict[str, Any]] = []
+    if not needs_clarify and tools:
+        phases = _build_phases(
+            goal=trimmed,
+            now_tools=tools,
+            surplus_tools=surplus_tools,
+            jepa=jepa_full,
+            llm_phases=llm_phases,
+        )
 
     result: dict[str, Any] = {
         "goal": trimmed,
@@ -731,6 +925,7 @@ def plan_agent_goal(
         "clarifyLabels": clarify_labels,
         "source": source,
         "topLabel": (jepa_meta or {}).get("topLabel") if source == "jepa" else None,
+        "phases": phases,
     }
     if jepa_meta is not None:
         result["jepa"] = jepa_meta
@@ -769,8 +964,11 @@ def _try_llm_plan(
     )
     system = (
         "You are Scribe's local agent planner. Pick tools for the user's goal. "
-        "Reply with ONLY a JSON object: {\"tools\":[\"tool_id\",...],\"confidence\":0.0-1.0}. "
-        f"Allowed tools: {', '.join(allowed)}. Max {limit} tools. Prefer fewer tools."
+        "Reply with ONLY a JSON object: "
+        '{"tools":["tool_id",...],"confidence":0.0-1.0,'
+        '"phases":[{"when":"next|later","goal":"...","tools":["tool_id"],"reason":"..."}]} . '
+        "phases is optional (0–3 next/later steps after the immediate tools). "
+        f"Allowed tools: {', '.join(allowed)}. Max {limit} immediate tools. Prefer fewer tools."
     )
     prompt = f"Scope: {scope}\nGoal: {goal.strip()}"
     raw = try_complete_from_options(
@@ -778,7 +976,7 @@ def _try_llm_plan(
         prompt=prompt,
         system=system,
         temperature=0.1,
-        max_tokens=200,
+        max_tokens=320,
     )
     if not raw:
         return None
@@ -809,7 +1007,15 @@ def _try_llm_plan(
         conf = float(confidence)
     except (TypeError, ValueError):
         conf = 0.75
-    return {"tools": tools, "confidence": max(0.0, min(conf, 1.0))}
+    phases_raw = parsed.get("phases")
+    phases: list[dict[str, Any]] | None = None
+    if isinstance(phases_raw, list):
+        phases = [item for item in phases_raw if isinstance(item, dict)][:4]
+    return {
+        "tools": tools,
+        "confidence": max(0.0, min(conf, 1.0)),
+        "phases": phases,
+    }
 
 
 def _section(title: str, body: str) -> dict[str, Any]:
@@ -926,7 +1132,42 @@ def _run_brief_tool(tool: str, source: str, limit: int) -> dict[str, Any] | None
                         if item.get("text")
                     )
                 )
+            forward = result.get("forward") or {}
+            next_steps = forward.get("nextSteps") or []
+            upcoming = forward.get("upcoming") or []
+            if next_steps or upcoming:
+                lines = [
+                    f"- {item.get('text')}"
+                    for item in (next_steps + upcoming)[:limit]
+                    if item.get("text")
+                ]
+                if lines:
+                    chunks.append("**Forward**\n" + "\n".join(lines))
             return _section("meeting", "\n\n".join(chunks)) if chunks else None
+        if tool == "forward_plan":
+            from .forward_plan import forward_plan
+
+            result = forward_plan(source, limit=limit)
+            chunks = []
+            for key, title in (
+                ("nextSteps", "Next steps"),
+                ("agenda", "Agenda"),
+                ("upcoming", "Upcoming"),
+            ):
+                items = result.get(key) or []
+                if not items:
+                    continue
+                lines = []
+                for item in items[:limit]:
+                    text_out = item.get("text") if isinstance(item, dict) else str(item)
+                    due = item.get("dueHint") if isinstance(item, dict) else None
+                    if text_out:
+                        lines.append(
+                            f"- {text_out}" + (f" _(due {due})_" if due else "")
+                        )
+                if lines:
+                    chunks.append(f"**{title}**\n" + "\n".join(lines))
+            return _section("forward_plan", "\n\n".join(chunks)) if chunks else None
         if tool == "terminology":
             from .terminology import check_terminology
 

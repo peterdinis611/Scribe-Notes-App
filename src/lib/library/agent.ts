@@ -27,6 +27,15 @@ import {
 } from '@/lib/library/agent-handoff'
 import { listSuccessfulPlanTools } from '@/lib/library/agent-plan-feedback'
 import {
+  isWeakAgentAnswer,
+  normalizePlanPhases,
+  nowToolsFromPhases,
+  phasesToFollowups,
+  type AgentPlanPhase,
+} from '@/lib/library/agent-phases'
+
+export type { AgentPlanPhase }
+import {
   filterToolsByAgents,
   isAgentRoleEnabled,
   isRecipeAllowedByAgents,
@@ -38,6 +47,7 @@ import { runAgentFilesIngest } from '@/lib/library/agent-files-ingest'
 import {
   runAgentCitations,
   runAgentCommitments,
+  runAgentForwardPlan,
   runAgentContinuation,
   runAgentContradictions,
   runAgentDatesLibrary,
@@ -119,6 +129,8 @@ export type AgentPlan = {
   clarifyOptions?: AgentToolId[]
   clarifyLabels?: string[]
   planMeta?: AgentPlanMeta
+  /** Multi-horizon plan: now runs immediately; next/later become chips. */
+  phases?: AgentPlanPhase[]
 }
 
 export type AgentRunResult = {
@@ -130,6 +142,7 @@ export type AgentRunResult = {
   clarifyOptions?: AgentToolId[]
   clarifyLabels?: string[]
   planMeta?: AgentPlanMeta
+  phases?: AgentPlanPhase[]
   /** Updated prefs after budget/episode bookkeeping (caller should persist). */
   nextPrefs?: AgentPrefs
 }
@@ -166,6 +179,7 @@ const DOCUMENT_TOOLS = new Set<AgentToolId>([
   'rank_tasks',
   'contradictions',
   'commitments',
+  'forward_plan',
   'reading_plan',
   'note_pulse',
   'grammar',
@@ -243,6 +257,7 @@ const INTENT_TO_TOOL: Record<string, AgentToolId> = {
   rank_tasks: 'rank_tasks',
   contradictions: 'contradictions',
   commitments: 'commitments',
+  forward_plan: 'forward_plan',
   reading_plan: 'reading_plan',
   note_pulse: 'note_pulse',
   grammar: 'grammar',
@@ -594,6 +609,24 @@ export function matchAgentIntentsSync(goal: string): AgentToolId[] {
       needles: ['commitment', 'commitments', 'i will', 'follow up', 'zavazky', 'sluby', 'co som slubil'],
     },
     {
+      tool: 'forward_plan',
+      needles: [
+        'forward plan',
+        'plan ahead',
+        'next steps',
+        'upcoming',
+        "what's next",
+        'what next',
+        'next meeting',
+        'agenda',
+        'plan dopredu',
+        'dalsie kroky',
+        'nasledujuce kroky',
+        'co dalej',
+        'buduce kroky',
+      ],
+    },
+    {
       tool: 'reading_plan',
       needles: ['reading plan', 'study plan', 'study path', 'plan citania', 'studijny plan', 'ako citat'],
     },
@@ -790,6 +823,7 @@ export async function planAgentGoal(
 
   let intents: string[] = []
   let planMeta: AgentPlanMeta | undefined
+  let nlpPhases: unknown = null
   try {
     const planned = await nlpPlanAgentGoal({
       goal: trimmed,
@@ -801,6 +835,7 @@ export async function planAgentGoal(
       feedbackTools: feedbackTools.length > 0 ? feedbackTools : null,
     })
     intents = planned.tools
+    nlpPhases = planned.phases ?? null
     planMeta = {
       source: planned.source || 'python',
       topLabel: planned.topLabel ?? planned.jepa?.topLabel ?? null,
@@ -828,6 +863,7 @@ export async function planAgentGoal(
         clarifyOptions,
         clarifyLabels: planned.clarifyLabels?.slice(0, clarifyOptions.length),
         planMeta,
+        phases: [],
       }
     }
   } catch {
@@ -891,13 +927,22 @@ export async function planAgentGoal(
 
   const scoped = scopeTools(fromIntent, scope, documentId)
   const tools = applyAgentOptimize(scoped.length > 0 ? scoped : safeFallback ? [safeFallback] : [fallback], effective)
+  const finalTools = tools.length > 0 ? tools : safeFallback ? [safeFallback] : []
+  const phases = normalizePlanPhases(nlpPhases, finalTools, trimmed).map((phase) => ({
+    ...phase,
+    tools: applyAgentOptimize(scopeTools(phase.tools, scope, documentId), {
+      ...effective,
+      maxSteps: Math.min(effective.maxSteps, Math.max(1, phase.tools.length)) as AgentMaxSteps,
+    }),
+  }))
 
   return {
     goal: trimmed,
     scope,
     documentId,
-    tools: tools.length > 0 ? tools : safeFallback ? [safeFallback] : [],
+    tools: nowToolsFromPhases(phases, finalTools),
     planMeta: planMeta ?? { source: 'python' },
+    phases,
   }
 }
 
@@ -998,6 +1043,10 @@ async function runTool(
   if (tool === 'commitments') {
     if (!ctx.documentId) throw new Error('agent.needsDocument')
     return runAgentCommitments(ctx.documentId)
+  }
+  if (tool === 'forward_plan') {
+    if (!ctx.documentId) throw new Error('agent.needsDocument')
+    return runAgentForwardPlan(ctx.documentId)
   }
   if (tool === 'reading_plan') {
     if (!ctx.documentId) throw new Error('agent.needsDocument')
@@ -1361,6 +1410,8 @@ export async function runAgentGoal(
   const citationBuckets: LibraryChatCitation[][] = []
   const followups: string[] = []
   let replanUsed = false
+  let weakLookaheadUsed = false
+  const runQueue = [...plan.tools]
 
   const runOne = async (tool: AgentToolId) => {
     const needsDoc =
@@ -1411,6 +1462,40 @@ export async function runAgentGoal(
       if (result.followups?.length) {
         followups.push(...result.followups)
       }
+      if (
+        !weakLookaheadUsed &&
+        !opts?.recipeId &&
+        !opts?.forceTools?.length &&
+        isWeakAgentAnswer(result.answer)
+      ) {
+        weakLookaheadUsed = true
+        try {
+          const avoidPrefs: AgentPrefs = {
+            ...prefs,
+            disabledTools: [
+              ...prefs.disabledTools,
+              ...steps.map((step) => step.tool),
+            ].filter((item, index, list) => list.indexOf(item) === index),
+          }
+          const rescue = await planAgentGoal(
+            trimmed || 'continue with related tools',
+            scope,
+            documentId,
+            avoidPrefs,
+            {
+              roleId: opts?.roleId,
+              folderId: opts?.folderId,
+            },
+          )
+          const attempted = new Set(steps.map((step) => step.tool))
+          const alt = rescue.tools.find((candidate) => !attempted.has(candidate))
+          if (alt && !runQueue.includes(alt)) {
+            runQueue.push(alt)
+          }
+        } catch {
+          // soft-fail lookahead is best-effort
+        }
+      }
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error)
       steps.push({ tool, status: 'error', detail })
@@ -1438,7 +1523,8 @@ export async function runAgentGoal(
     }
   }
 
-  for (const tool of plan.tools) {
+  for (let i = 0; i < runQueue.length; i += 1) {
+    const tool = runQueue[i]!
     await runOne(tool)
   }
 
@@ -1480,13 +1566,16 @@ export async function runAgentGoal(
   const recipeFollowups = suggestFollowupRecipes(steps, scope, prefs.agents).map(
     (id) => `recipe:${id}`,
   )
+  const phaseFollowups = phasesToFollowups(plan.phases)
+  const upcomingPhases = (plan.phases ?? []).filter((p) => p.when === 'next' || p.when === 'later')
 
   return {
     answer,
     citations: mergeCitations(citationBuckets),
     steps,
-    followups: [...followups, ...recipeFollowups].slice(0, 6),
+    followups: [...phaseFollowups, ...followups, ...recipeFollowups].slice(0, 6),
     planMeta: plan.planMeta,
+    phases: upcomingPhases.length ? upcomingPhases : plan.phases,
     nextPrefs,
   }
 }
