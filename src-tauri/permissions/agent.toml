@@ -14,6 +14,16 @@ description = "Allow append_agent_run"
 commands.allow = ["append_agent_run"]
 
 [[permission]]
+identifier = "allow-apply-agent-optimize"
+description = "Allow apply_agent_optimize"
+commands.allow = ["apply_agent_optimize"]
+
+[[permission]]
+identifier = "allow-can-run-agent-budget"
+description = "Allow can_run_agent_budget"
+commands.allow = ["can_run_agent_budget"]
+
+[[permission]]
 identifier = "allow-clear-agent-messages"
 description = "Allow clear_agent_messages"
 commands.allow = ["clear_agent_messages"]
@@ -37,6 +47,11 @@ commands.allow = ["get_agent_prefs"]
 identifier = "allow-get-agent-schema-version"
 description = "Allow get_agent_schema_version"
 commands.allow = ["get_agent_schema_version"]
+
+[[permission]]
+identifier = "allow-is-quiet-hour-now"
+description = "Allow is_quiet_hour_now"
+commands.allow = ["is_quiet_hour_now"]
 
 [[permission]]
 identifier = "allow-list-agent-handoffs"
@@ -64,6 +79,11 @@ description = "Allow list_agent_teachings"
 commands.allow = ["list_agent_teachings"]
 
 [[permission]]
+identifier = "allow-parse-handoff-goal"
+description = "Allow parse_handoff_goal"
+commands.allow = ["parse_handoff_goal"]
+
+[[permission]]
 identifier = "allow-remove-agent-teaching"
 description = "Allow remove_agent_teaching"
 commands.allow = ["remove_agent_teaching"]
@@ -88,41 +108,15 @@ identifier = "allow-set-agent-role-states"
 description = "Allow set_agent_role_states"
 commands.allow = ["set_agent_role_states"]
 
-
 [[permission]]
-identifier = "allow-parse-handoff-goal"
-description = "Allow parse_handoff_goal"
-commands.allow = ["parse_handoff_goal"]
-
-
-[[permission]]
-identifier = "allow-apply-agent-optimize"
-description = "Allow apply_agent_optimize"
-commands.allow = ["apply_agent_optimize"]
-
-
-[[permission]]
-identifier = "allow-is-quiet-hour-now"
-description = "Allow is_quiet_hour_now"
-commands.allow = ["is_quiet_hour_now"]
-
-
-[[permission]]
-identifier = "allow-can-run-agent-budget"
-description = "Allow can_run_agent_budget"
-commands.allow = ["can_run_agent_budget"]
-
+identifier = "allow-should-catch-up-digest"
+description = "Allow should_catch_up_digest"
+commands.allow = ["should_catch_up_digest"]
 
 [[permission]]
 identifier = "allow-should-run-digest-now"
 description = "Allow should_run_digest_now"
 commands.allow = ["should_run_digest_now"]
-
-
-[[permission]]
-identifier = "allow-should-catch-up-digest"
-description = "Allow should_catch_up_digest"
-commands.allow = ["should_catch_up_digest"]
 
 [[set]]
 identifier = "group-agent"
@@ -131,19 +125,25 @@ permissions = [
   "allow-add-agent-teaching",
   "allow-append-agent-message",
   "allow-append-agent-run",
+  "allow-apply-agent-optimize",
+  "allow-can-run-agent-budget",
   "allow-clear-agent-messages",
   "allow-clear-agent-teachings",
   "allow-get-agent-db-path",
   "allow-get-agent-prefs",
   "allow-get-agent-schema-version",
+  "allow-is-quiet-hour-now",
   "allow-list-agent-handoffs",
   "allow-list-agent-messages",
   "allow-list-agent-role-states",
   "allow-list-agent-runs",
   "allow-list-agent-teachings",
+  "allow-parse-handoff-goal",
   "allow-remove-agent-teaching",
   "allow-send-agent-handoff",
   "allow-set-agent-handoff-status",
   "allow-set-agent-prefs",
   "allow-set-agent-role-states",
+  "allow-should-catch-up-digest",
+  "allow-should-run-digest-now",
 ]

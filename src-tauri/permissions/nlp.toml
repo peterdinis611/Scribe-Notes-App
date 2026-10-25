@@ -89,11 +89,6 @@ description = "Allow nlp_extract_commitments"
 commands.allow = ["nlp_extract_commitments"]
 
 [[permission]]
-identifier = "allow-nlp-forward-plan"
-description = "Allow nlp_forward_plan"
-commands.allow = ["nlp_forward_plan"]
-
-[[permission]]
 identifier = "allow-nlp-extract-decisions"
 description = "Allow nlp_extract_decisions"
 commands.allow = ["nlp_extract_decisions"]
@@ -152,6 +147,11 @@ commands.allow = ["nlp_files_summarize"]
 identifier = "allow-nlp-find-duplicates"
 description = "Allow nlp_find_duplicates"
 commands.allow = ["nlp_find_duplicates"]
+
+[[permission]]
+identifier = "allow-nlp-forward-plan"
+description = "Allow nlp_forward_plan"
+commands.allow = ["nlp_forward_plan"]
 
 [[permission]]
 identifier = "allow-nlp-generate-placeholder"
@@ -395,7 +395,6 @@ permissions = [
   "allow-nlp-document-tasks",
   "allow-nlp-explain-selection",
   "allow-nlp-extract-commitments",
-  "allow-nlp-forward-plan",
   "allow-nlp-extract-decisions",
   "allow-nlp-extract-flashcards",
   "allow-nlp-extract-mentions",
@@ -408,6 +407,7 @@ permissions = [
   "allow-nlp-files-search",
   "allow-nlp-files-summarize",
   "allow-nlp-find-duplicates",
+  "allow-nlp-forward-plan",
   "allow-nlp-generate-placeholder",
   "allow-nlp-glossary",
   "allow-nlp-grammar-check",
