@@ -134,6 +134,8 @@ FEATURES = [
     "inspectCsv",
     "csvToTiptap",
     "matrixToCsv",
+    "inspectXml",
+    "xmlToTiptap",
     "inspectSource",
     "sourceToTiptap",
     "codeBrief",
@@ -1006,6 +1008,28 @@ def _handle_request_inner(
             try:
                 result = matrix_to_csv_rpc(params if isinstance(params, dict) else {})
             except CsvOpsError as exc:
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "error": {"code": -32602, "message": str(exc)},
+                }
+        elif method == "inspect_xml":
+            from .xml_ops import XmlOpsError, inspect_xml
+
+            try:
+                result = inspect_xml(params if isinstance(params, dict) else {})
+            except XmlOpsError as exc:
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "error": {"code": -32602, "message": str(exc)},
+                }
+        elif method == "xml_to_tiptap":
+            from .xml_ops import XmlOpsError, xml_to_tiptap
+
+            try:
+                result = xml_to_tiptap(params if isinstance(params, dict) else {})
+            except XmlOpsError as exc:
                 return {
                     "jsonrpc": "2.0",
                     "id": request_id,

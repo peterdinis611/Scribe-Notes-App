@@ -4,7 +4,7 @@
 //! `.xml`, `.xsd`, `.xsl`/`.xslt`, `.rss`, `.atom`, `.plist`.
 
 use quick_xml::events::Event;
-use quick_xml::Reader;
+use quick_xml::{Reader, XmlVersion};
 use serde_json::{json, Value};
 
 const EMPTY_DOC_JSON: &str = r#"{"type":"doc","content":[{"type":"paragraph"}]}"#;
@@ -80,7 +80,7 @@ fn walk_xml(text: &str) -> Result<Vec<Value>, String> {
         }
         match reader.read_event_into(&mut buf) {
             Ok(Event::Start(tag)) => {
-                let name = local_name(tag.name().as_ref());
+                let name = local_name(tag.name().as_ref()).to_string();
                 if name.is_empty() {
                     buf.clear();
                     continue;
@@ -91,7 +91,7 @@ fn walk_xml(text: &str) -> Result<Vec<Value>, String> {
                 for attr in tag.attributes().flatten() {
                     let key = local_name(attr.key.as_ref());
                     let value = attr
-                        .unescape_value()
+                        .normalized_value(XmlVersion::Implicit1_0)
                         .map(|v| v.into_owned())
                         .unwrap_or_default();
                     if !key.is_empty() {
@@ -106,7 +106,7 @@ fn walk_xml(text: &str) -> Result<Vec<Value>, String> {
                 stack.push(name);
             }
             Ok(Event::Empty(tag)) => {
-                let name = local_name(tag.name().as_ref());
+                let name = local_name(tag.name().as_ref()).to_string();
                 if name.is_empty() {
                     buf.clear();
                     continue;
@@ -115,7 +115,7 @@ fn walk_xml(text: &str) -> Result<Vec<Value>, String> {
                 for attr in tag.attributes().flatten() {
                     let key = local_name(attr.key.as_ref());
                     let value = attr
-                        .unescape_value()
+                        .normalized_value(XmlVersion::Implicit1_0)
                         .map(|v| v.into_owned())
                         .unwrap_or_default();
                     if !key.is_empty() {
@@ -129,10 +129,7 @@ fn walk_xml(text: &str) -> Result<Vec<Value>, String> {
                 stack.pop();
             }
             Ok(Event::Text(chunk)) => {
-                let text = chunk
-                    .unescape()
-                    .map(|v| v.into_owned())
-                    .unwrap_or_default();
+                let text = chunk.xml10_content();
                 let trimmed = text.trim();
                 if !trimmed.is_empty() {
                     nodes.push(paragraph(trimmed));
@@ -140,8 +137,7 @@ fn walk_xml(text: &str) -> Result<Vec<Value>, String> {
                 }
             }
             Ok(Event::CData(chunk)) => {
-                let text = String::from_utf8_lossy(chunk.as_ref());
-                let trimmed = text.trim();
+                let trimmed = chunk.as_ref().trim();
                 if !trimmed.is_empty() {
                     nodes.push(paragraph(trimmed));
                     emitted += 1;
@@ -160,9 +156,11 @@ fn walk_xml(text: &str) -> Result<Vec<Value>, String> {
     Ok(nodes)
 }
 
-fn local_name(raw: &[u8]) -> String {
-    let full = String::from_utf8_lossy(raw);
-    full.rsplit(':').next().unwrap_or(&full).trim().to_string()
+fn local_name(name: &str) -> &str {
+    match name.rfind(':') {
+        Some(index) => &name[index + 1..],
+        None => name,
+    }
 }
 
 fn heading(level: u8, text: &str) -> Value {

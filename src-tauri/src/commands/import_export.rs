@@ -248,6 +248,12 @@ pub fn pick_and_import_file(
                 "yaml",
                 "yml",
                 "xml",
+                "xsd",
+                "xsl",
+                "xslt",
+                "rss",
+                "atom",
+                "plist",
                 "css",
                 "scss",
                 "sh",
@@ -675,6 +681,16 @@ fn import_file_at_path(
                 now,
             )
         }
+        ImportFormat::Xml => {
+            let bytes = std::fs::read(&validated).map_err(|e| e.to_string())?;
+            let title = import_title_from_path(&validated, "Import z XML");
+            (
+                Uuid::new_v4().to_string(),
+                title,
+                scribe_core::xml_bytes_to_tiptap(&bytes)?,
+                now,
+            )
+        }
         ImportFormat::Pdf => {
             let bytes = std::fs::read(&validated).map_err(|e| e.to_string())?;
             let title = import_title_from_path(&validated, "Import z PDF");
@@ -746,6 +762,7 @@ enum ImportFormat {
     Json,
     SourceCode,
     Markup,
+    Xml,
     Pdf,
 }
 
@@ -828,10 +845,11 @@ fn detect_import_format(path: &Path) -> Result<ImportFormat, String> {
         "md" | "markdown" => Ok(ImportFormat::Markdown),
         "txt" | "doc" => Ok(ImportFormat::Text),
         "pdf" => Ok(ImportFormat::Pdf),
+        ext if scribe_core::is_xml_document_extension(ext) => Ok(ImportFormat::Xml),
         ext if scribe_core::is_markup_extension(ext) => Ok(ImportFormat::Markup),
         ext if scribe_core::is_source_extension(ext) => Ok(ImportFormat::SourceCode),
         _ => Err(
-            "Podporované formáty: dokumenty (docx, odt, md, pdf, org, …), tabuľky (xlsx, ods, csv), \
+            "Podporované formáty: dokumenty (docx, odt, md, pdf, org, xml, …), tabuľky (xlsx, ods, csv), \
              EPUB/PPTX/OPML/JSON/ICS/EML a zdrojový kód (rs, ts, py, go, …)"
                 .to_string(),
         ),
@@ -946,6 +964,22 @@ mod tests {
         );
         assert_eq!(
             detect_import_format(Path::new("/tmp/Dockerfile")).unwrap(),
+            ImportFormat::SourceCode
+        );
+        assert_eq!(
+            detect_import_format(Path::new("/tmp/config.xml")).unwrap(),
+            ImportFormat::Xml
+        );
+        assert_eq!(
+            detect_import_format(Path::new("/tmp/feed.rss")).unwrap(),
+            ImportFormat::Xml
+        );
+        assert_eq!(
+            detect_import_format(Path::new("/tmp/Info.plist")).unwrap(),
+            ImportFormat::Xml
+        );
+        assert_eq!(
+            detect_import_format(Path::new("/tmp/icon.svg")).unwrap(),
             ImportFormat::SourceCode
         );
         assert!(detect_import_format(Path::new("/tmp/image.png")).is_err());

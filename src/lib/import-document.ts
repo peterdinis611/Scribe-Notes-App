@@ -24,7 +24,7 @@ import { toast } from '@/lib/toast'
 
 /** Extensions accepted for document import (picker + window drop). */
 export const IMPORTABLE_DOCUMENT_EXT =
-  /\.(scribe\.json|scribe|pages|numbers|key|md|markdown|txt|docx|rtf|doc|xlsx|xlsm|csv|tsv|xls|odt|ods|html|htm|epub|pptx|opml|json|jsonc|jsonl|ndjson|pdf|org|rst|rest|adoc|asciidoc|asc|fountain|spmd|wiki|mediawiki|ics|ical|ifb|eml|rs|py|pyw|pyi|ts|tsx|js|jsx|mjs|cjs|go|java|kt|kts|swift|c|h|hh|hpp|cc|cpp|cxx|cs|fs|rb|php|lua|r|pl|pm|ex|exs|erl|hs|clj|cljs|ml|elm|nim|zig|vue|svelte|css|scss|sass|less|toml|ya?ml|xml|xsl|svg|sql|graphql|gql|proto|sh|bash|zsh|fish|ps1|bat|cmd|tf|hcl|nix|wasm|wat|ini|cfg|conf|env|gradle|groovy|tex|latex|mdx|astro|sol|diff|patch|log)$/i
+  /\.(scribe\.json|scribe|pages|numbers|key|md|markdown|txt|docx|rtf|doc|xlsx|xlsm|csv|tsv|xls|odt|ods|html|htm|epub|pptx|opml|json|jsonc|jsonl|ndjson|pdf|org|rst|rest|adoc|asciidoc|asc|fountain|spmd|wiki|mediawiki|ics|ical|ifb|eml|xml|xsd|xsl|xslt|rss|atom|plist|rs|py|pyw|pyi|ts|tsx|js|jsx|mjs|cjs|go|java|kt|kts|swift|c|h|hh|hpp|cc|cpp|cxx|cs|fs|rb|php|lua|r|pl|pm|ex|exs|erl|hs|clj|cljs|ml|elm|nim|zig|vue|svelte|css|scss|sass|less|toml|ya?ml|svg|sql|graphql|gql|proto|sh|bash|zsh|fish|ps1|bat|cmd|tf|hcl|nix|wasm|wat|ini|cfg|conf|env|gradle|groovy|tex|latex|mdx|astro|sol|diff|patch|log)$/i
 
 /** Extensionless build files accepted on drop / open. */
 const IMPORTABLE_BASENAMES = /^(dockerfile|makefile|gnumakefile|cmakelists\.txt)(\.|$)/i
