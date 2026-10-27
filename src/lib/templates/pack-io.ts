@@ -55,11 +55,19 @@ export async function exportCustomTemplatesPack(args: {
   const path = await saveScopedFile({
     title: args.dialogTitle ?? 'Export template pack',
     defaultPath: sanitizePackFileName(pack.name),
+    filters: PACK_FILTERS,
   })
   if (!path) return null
 
-  await writeTextFile(path, serializeTemplatePack(pack))
-  return path
+  // Ensure the chosen path keeps the pack extension (macOS sometimes strips multi-dot names).
+  const ensured = path.endsWith(`.${TEMPLATE_PACK_EXTENSION}`)
+    ? path
+    : path.endsWith('.json')
+      ? path.replace(/\.json$/i, `.${TEMPLATE_PACK_EXTENSION}`)
+      : `${path}.${TEMPLATE_PACK_EXTENSION}`
+
+  await writeTextFile(ensured, serializeTemplatePack(pack))
+  return ensured
 }
 
 export async function importBundledTemplatePack(

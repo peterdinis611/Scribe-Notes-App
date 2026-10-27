@@ -1,9 +1,7 @@
 import { PanelRightClose } from 'lucide-react'
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { AgentPanel } from '@/components/AgentPanel'
 import { AgentBlobatar, AGENT_BLOBATAR_NAME } from '@/components/agent/AgentBlobatar'
-import { SpellcheckAgentPanel } from '@/components/agent/SpellcheckAgentPanel'
 import { SPELLCHECK_AGENT_BLOBATAR_NAME } from '@/lib/library/spellcheck-agent'
 import {
   enabledAgentRoles,
@@ -15,6 +13,15 @@ import { IconTooltip } from '@/components/ui/tooltip'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { openAgentPanel, setAgentPanelOpen, setAgentPersona } from '@/store/documentsSlice'
 import { cn } from '@/lib/utils'
+
+const AgentPanel = lazy(() =>
+  import('@/components/AgentPanel').then((m) => ({ default: m.AgentPanel })),
+)
+const SpellcheckAgentPanel = lazy(() =>
+  import('@/components/agent/SpellcheckAgentPanel').then((m) => ({
+    default: m.SpellcheckAgentPanel,
+  })),
+)
 
 /** Right-edge workspace for local agents — opens beside the library/editor. */
 export function AgentWorkspaceDock() {
@@ -120,15 +127,17 @@ export function AgentWorkspaceDock() {
           </IconTooltip>
         </div>
       </header>
-      {isSpell ? (
-        <SpellcheckAgentPanel onClose={() => dispatch(setAgentPanelOpen(false))} />
-      ) : (
-        <AgentPanel
-          variant="dock"
-          roleId={activeRoleId}
-          onClose={() => dispatch(setAgentPanelOpen(false))}
-        />
-      )}
+      <Suspense fallback={null}>
+        {isSpell ? (
+          <SpellcheckAgentPanel onClose={() => dispatch(setAgentPanelOpen(false))} />
+        ) : (
+          <AgentPanel
+            variant="dock"
+            roleId={activeRoleId}
+            onClose={() => dispatch(setAgentPanelOpen(false))}
+          />
+        )}
+      </Suspense>
     </aside>
   )
 }

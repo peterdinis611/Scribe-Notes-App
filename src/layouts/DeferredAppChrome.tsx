@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react'
 import { scheduleIdle } from '@/lib/schedule-idle'
 import type { DocumentTemplate } from '@/lib/templates'
+import { useAppSelector } from '@/store/hooks'
 
 const CommandPalette = lazy(() =>
   import('@/components/CommandPalette').then((m) => ({ default: m.CommandPalette })),
@@ -102,6 +103,22 @@ type DeferredAppChromeProps = {
   onWhatsNewClose: () => void
 }
 
+/** Mount heavy chrome only after the user opens it (keeps idle shell lean). */
+function OpenWhen({
+  open,
+  children,
+}: {
+  open: boolean
+  children: ReactNode
+}) {
+  const [mounted, setMounted] = useState(open)
+  useEffect(() => {
+    if (open) setMounted(true)
+  }, [open])
+  if (!mounted) return null
+  return <>{children}</>
+}
+
 /** Heavy overlays/dialogs — deferred so the library shell paints first. */
 export function DeferredAppChrome({
   templatePickerOpen,
@@ -119,13 +136,20 @@ export function DeferredAppChrome({
   whatsNewOpen,
   onWhatsNewClose,
 }: DeferredAppChromeProps) {
+  const commandPaletteOpen = useAppSelector((state) => state.folders.commandPaletteOpen)
+  const agentPanelOpen = useAppSelector((state) => state.documents.agentPanelOpen)
+
   return (
     <Suspense fallback={null}>
       <IdleGate delayMs={1}>
-        <CommandPalette />
+        <OpenWhen open={commandPaletteOpen}>
+          <CommandPalette />
+        </OpenWhen>
         <InputDialogHost />
         <StorageAccessDialogHost />
-        <AgentWorkspaceDock />
+        <OpenWhen open={agentPanelOpen}>
+          <AgentWorkspaceDock />
+        </OpenWhen>
       </IdleGate>
 
       <IdleGate delayMs={400}>

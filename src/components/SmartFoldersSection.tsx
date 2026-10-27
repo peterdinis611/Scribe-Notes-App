@@ -123,7 +123,7 @@ export default function SmartFoldersSection({
         <IconTooltip label={t('smartFolders.add')}>
           <button
             type="button"
-            onClick={() => setIsOpen((value) => !value)}
+            onClick={() => setIsOpen(!isOpen)}
             className="rounded p-0.5 text-[var(--color-muted-foreground)] hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
             aria-label={t('smartFolders.add')}
           >

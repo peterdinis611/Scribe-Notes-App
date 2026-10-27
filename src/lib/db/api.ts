@@ -1228,10 +1228,15 @@ export const pickAndGrantPath = (options?: { title?: string; directory?: boolean
   })
 
 /** Native save dialog that grants the chosen path for a subsequent write. */
-export const pickAndGrantSavePath = (options?: { title?: string; defaultPath?: string }) =>
+export const pickAndGrantSavePath = (options?: {
+  title?: string
+  defaultPath?: string
+  filters?: Array<{ name: string; extensions: string[] }>
+}) =>
   invoke<string | null>('pick_and_grant_save_path', {
     title: options?.title ?? null,
     defaultPath: options?.defaultPath ?? null,
+    filters: options?.filters ?? null,
   })
 
 /** Grant paths after a native window drop (also handled in Rust on_window_event). */

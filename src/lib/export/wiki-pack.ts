@@ -5,7 +5,7 @@ import { getDocument, listOutgoingLinks } from '@/lib/db/api'
 import { tiptapJsonToHtml } from '@/lib/export/html'
 import { tiptapJsonToMarkdown } from '@/lib/export/markdown'
 import { sanitizeFileStem } from '@/lib/filenames'
-import { saveScopedFile } from '@/lib/fs/scoped-dialog'
+import { saveScopedFile, yieldForNativeDialog } from '@/lib/fs/scoped-dialog'
 
 /** Collect note + up to `hops` outbound wiki-link neighbors (BFS). */
 export async function collectWikiNeighborhood(
@@ -43,17 +43,24 @@ export async function exportWikiPack(args: {
   const ids = await collectWikiNeighborhood(args.rootId, hops)
   if (ids.length === 0) return null
 
+  // Caller usually closes Command Palette first — wait a frame so modal focus trap is gone.
+  await yieldForNativeDialog()
+
+  const packStem = `${sanitizeFileStem(args.rootTitle || 'wiki-pack')}-pack`
   const markerPath = await saveScopedFile({
     title: args.dialogTitle ?? 'Export wiki pack',
-    defaultPath: `${sanitizeFileStem(args.rootTitle || 'wiki-pack')}-pack/README.md`,
+    defaultPath: `${packStem}.md`,
   })
   if (!markerPath) return null
 
-  const folder = markerPath.replace(/[/\\][^/\\]+$/, '')
+  // Save panel returns a file path; build a sibling folder for the pack contents.
+  const parent = markerPath.replace(/[/\\][^/\\]+$/, '')
+  const folder = await join(parent, packStem)
   const notesDir = await join(folder, 'notes')
   const pagesDir = await join(folder, 'pages')
   await mkdir(notesDir, { recursive: true })
   await mkdir(pagesDir, { recursive: true })
+  const readmePath = await join(folder, 'README.md')
 
   const indexLines = [
     `# Wiki pack — ${args.rootTitle?.trim() || 'Untitled'}`,
@@ -81,6 +88,15 @@ export async function exportWikiPack(args: {
     indexLines.push(`- [[notes/${stem}]]${mark}`)
   }
 
-  await writeFile(markerPath, new TextEncoder().encode(`${indexLines.join('\n')}\n`))
+  await writeFile(readmePath, new TextEncoder().encode(`${indexLines.join('\n')}\n`))
+  // Drop the placeholder file the save panel created (pack lives in the folder).
+  if (markerPath !== readmePath) {
+    try {
+      const { remove } = await import('@tauri-apps/plugin-fs')
+      await remove(markerPath)
+    } catch {
+      /* best-effort */
+    }
+  }
   return folder
 }

@@ -265,6 +265,8 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
     if (packBusy) return
     setPackBusy(true)
     try {
+      const { yieldForNativeDialog } = await import('@/lib/fs/scoped-dialog')
+      await yieldForNativeDialog()
       const result = await pickAndImportTemplatePack(customCategories, {
         title: t('templates.packs.importDialogTitle'),
       })
@@ -285,6 +287,8 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
     }
     setPackBusy(true)
     try {
+      const { yieldForNativeDialog } = await import('@/lib/fs/scoped-dialog')
+      await yieldForNativeDialog()
       const path = await exportCustomTemplatesPack({
         name: t('templates.packs.defaultExportName'),
         locale: i18n.language,
@@ -315,7 +319,12 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
 
   return (
     <>
-      <Dialog open={open} onOpenChange={(next) => !next && onClose()} modal={!customDialogOpen}>
+      <Dialog
+        open={open}
+        onOpenChange={(next) => !next && onClose()}
+        // Native import/export panels need a non-modal host or they cancel immediately.
+        modal={!customDialogOpen && !packBusy}
+      >
         {open && (
           <DialogContent
             className="flex h-[min(680px,calc(100vh-40px))] max-w-[720px] flex-col gap-0 overflow-hidden p-0"

@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react'
+import {
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type RefObject,
+} from 'react'
 import { useDrop } from 'react-dnd'
 import { useTranslation } from 'react-i18next'
 import { useVirtualizer } from '@tanstack/react-virtual'
@@ -159,8 +167,11 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
     }
   }, [librarySmartFilter, documents.length])
 
+  // Keep the search input snappy; rebuild the tree on the deferred query.
+  const deferredQuery = useDeferredValue(query)
+
   const filteredDocuments = useMemo(() => {
-    const q = query.trim().toLowerCase()
+    const q = deferredQuery.trim().toLowerCase()
     return documents.filter((doc) => {
       if (!isLibraryDocumentVisible(doc)) return false
       if (q && !doc.title.toLowerCase().includes(q)) return false
@@ -183,7 +194,7 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
     })
   }, [
     documents,
-    query,
+    deferredQuery,
     favoritesOnly,
     activeTag,
     metaFilters,

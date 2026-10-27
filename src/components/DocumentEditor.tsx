@@ -1,23 +1,57 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import type { Editor } from '@tiptap/react'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
-import { DocumentOutlinePanel } from '@/components/editor/DocumentOutlinePanel'
 import { DocumentTocRail } from '@/components/editor/DocumentTocRail'
 import { OutlineReturnButton } from '@/components/editor/OutlineReturnButton'
-import { RevisionHistoryPanel } from '@/components/editor/RevisionHistoryPanel'
-import { CommentsPanel } from '@/components/editor/CommentsPanel'
-import { ClipboardHistoryPanel } from '@/components/editor/ClipboardHistoryPanel'
-import { BacklinksPanel } from '@/components/editor/BacklinksPanel'
-import { DocumentInsightsPanel } from '@/components/editor/DocumentInsightsPanel'
 import { WikiLinkHoverCard } from '@/components/editor/WikiLinkHoverCard'
 import {
   UnresolvedWikiLinkPopover,
   type UnresolvedWikiPopoverState,
 } from '@/components/editor/UnresolvedWikiLinkPopover'
-import { StatsPanel } from '@/components/editor/StatsPanel'
-import { FlashcardsPanel } from '@/components/editor/FlashcardsPanel'
+
+const DocumentOutlinePanel = lazy(() =>
+  import('@/components/editor/DocumentOutlinePanel').then((m) => ({
+    default: m.DocumentOutlinePanel,
+  })),
+)
+const RevisionHistoryPanel = lazy(() =>
+  import('@/components/editor/RevisionHistoryPanel').then((m) => ({
+    default: m.RevisionHistoryPanel,
+  })),
+)
+const CommentsPanel = lazy(() =>
+  import('@/components/editor/CommentsPanel').then((m) => ({ default: m.CommentsPanel })),
+)
+const ClipboardHistoryPanel = lazy(() =>
+  import('@/components/editor/ClipboardHistoryPanel').then((m) => ({
+    default: m.ClipboardHistoryPanel,
+  })),
+)
+const BacklinksPanel = lazy(() =>
+  import('@/components/editor/BacklinksPanel').then((m) => ({ default: m.BacklinksPanel })),
+)
+const DocumentInsightsPanel = lazy(() =>
+  import('@/components/editor/DocumentInsightsPanel').then((m) => ({
+    default: m.DocumentInsightsPanel,
+  })),
+)
+const StatsPanel = lazy(() =>
+  import('@/components/editor/StatsPanel').then((m) => ({ default: m.StatsPanel })),
+)
+const FlashcardsPanel = lazy(() =>
+  import('@/components/editor/FlashcardsPanel').then((m) => ({ default: m.FlashcardsPanel })),
+)
 import { FindReplaceBar } from '@/components/editor/FindReplaceBar'
 import { EditorToolbar } from '@/components/editor-toolbar/EditorToolbar'
 import { EditorMenus } from '@/components/editor/EditorMenus'
@@ -871,41 +905,43 @@ export function DocumentEditor() {
         </EditorDropZone>
             </div>
 
-        {editorReady && !readingMode && outlineOpen && (
-          <DocumentOutlinePanel
-            editor={editor}
-            scrollRef={scrollRef}
-            scrollActiveId={activeHeading?.id ?? null}
-            markdownSource={isMarkdown ? markdownDraft : undefined}
-            onMarkdownJump={isMarkdown ? handleMarkdownOutlineJump : undefined}
-            onClose={() => dispatch(setDocumentOutlineOpen(false))}
-          />
-        )}
-        {!isMarkdown && editorReady && !readingMode && historyOpen && (
-          <RevisionHistoryPanel onClose={() => dispatch(setRevisionHistoryOpen(false))} />
-        )}
-        {!isMarkdown && editorReady && !readingMode && commentsOpen && (
-          <CommentsPanel editor={editor} onClose={() => dispatch(setCommentsPanelOpen(false))} />
-        )}
-        {!isMarkdown && editorReady && !readingMode && statsOpen && (
-          <StatsPanel editor={editor} onClose={() => dispatch(setStatsPanelOpen(false))} />
-        )}
-        {!isMarkdown && !readingMode && backlinksOpen && (
-          <BacklinksPanel onClose={() => dispatch(setBacklinksPanelOpen(false))} />
-        )}
-        {!isMarkdown && !readingMode && insightsOpen && (
-          <DocumentInsightsPanel onClose={() => dispatch(setInsightsPanelOpen(false))} />
-        )}
-        {!isMarkdown && !readingMode && flashcardsOpen && (
-          <FlashcardsPanel onClose={() => dispatch(setFlashcardsPanelOpen(false))} />
-        )}
-        {!readingMode && clipboardOpen && (
-          <ClipboardHistoryPanel
-            editor={isMarkdown ? null : editor}
-            onInsertPlain={isMarkdown ? insertClipboardPlain : undefined}
-            onClose={() => dispatch(setClipboardHistoryPanelOpen(false))}
-          />
-        )}
+        <Suspense fallback={null}>
+          {editorReady && !readingMode && outlineOpen && (
+            <DocumentOutlinePanel
+              editor={editor}
+              scrollRef={scrollRef}
+              scrollActiveId={activeHeading?.id ?? null}
+              markdownSource={isMarkdown ? markdownDraft : undefined}
+              onMarkdownJump={isMarkdown ? handleMarkdownOutlineJump : undefined}
+              onClose={() => dispatch(setDocumentOutlineOpen(false))}
+            />
+          )}
+          {!isMarkdown && editorReady && !readingMode && historyOpen && (
+            <RevisionHistoryPanel onClose={() => dispatch(setRevisionHistoryOpen(false))} />
+          )}
+          {!isMarkdown && editorReady && !readingMode && commentsOpen && (
+            <CommentsPanel editor={editor} onClose={() => dispatch(setCommentsPanelOpen(false))} />
+          )}
+          {!isMarkdown && editorReady && !readingMode && statsOpen && (
+            <StatsPanel editor={editor} onClose={() => dispatch(setStatsPanelOpen(false))} />
+          )}
+          {!isMarkdown && !readingMode && backlinksOpen && (
+            <BacklinksPanel onClose={() => dispatch(setBacklinksPanelOpen(false))} />
+          )}
+          {!isMarkdown && !readingMode && insightsOpen && (
+            <DocumentInsightsPanel onClose={() => dispatch(setInsightsPanelOpen(false))} />
+          )}
+          {!isMarkdown && !readingMode && flashcardsOpen && (
+            <FlashcardsPanel onClose={() => dispatch(setFlashcardsPanelOpen(false))} />
+          )}
+          {!readingMode && clipboardOpen && (
+            <ClipboardHistoryPanel
+              editor={isMarkdown ? null : editor}
+              onInsertPlain={isMarkdown ? insertClipboardPlain : undefined}
+              onClose={() => dispatch(setClipboardHistoryPanelOpen(false))}
+            />
+          )}
+        </Suspense>
           </div>
 
           {!isMarkdown && !focusMode && !readingMode && showStatusBar && (

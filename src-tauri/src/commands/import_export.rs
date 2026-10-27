@@ -60,6 +60,13 @@ pub fn pick_and_grant_path(
     Ok(Some(path.to_string_lossy().into_owned()))
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SaveDialogFilter {
+    pub name: String,
+    pub extensions: Vec<String>,
+}
+
 /// Native save dialog; grants the chosen path (and parent) for a subsequent write.
 #[tauri::command]
 pub fn pick_and_grant_save_path(
@@ -67,13 +74,27 @@ pub fn pick_and_grant_save_path(
     gate: State<'_, PathAccessGate>,
     title: Option<String>,
     default_path: Option<String>,
+    filters: Option<Vec<SaveDialogFilter>>,
 ) -> Result<Option<String>, String> {
     let mut dialog = app.dialog().file();
     if let Some(title) = title.as_deref() {
         dialog = dialog.set_title(title);
     }
     if let Some(default_path) = default_path.as_deref() {
-        dialog = dialog.set_file_name(default_path);
+        // Prefer basename — full paths confuse macOS save panels.
+        let name = Path::new(default_path)
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or(default_path);
+        dialog = dialog.set_file_name(name);
+    }
+    if let Some(filters) = filters.as_ref() {
+        for filter in filters {
+            let exts: Vec<&str> = filter.extensions.iter().map(String::as_str).collect();
+            if !exts.is_empty() {
+                dialog = dialog.add_filter(&filter.name, &exts);
+            }
+        }
     }
     let Some(path) = dialog.blocking_save_file() else {
         return Ok(None);

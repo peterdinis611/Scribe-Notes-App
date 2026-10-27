@@ -1,25 +1,55 @@
 import { CalendarDays, FilePlus, FolderKanban, FolderPlus, Lock, Plus, Search, Trash2 } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  lazy,
+  startTransition,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useRouterState } from '@tanstack/react-router'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { FolderTree } from '@/components/FolderTree'
 import SmartFoldersSection from '@/components/SmartFoldersSection'
-import { LibraryFavoritesView } from '@/components/LibraryFavoritesView'
 import { LibraryFilterBanner } from '@/components/LibraryFilterBanner'
 import { LibraryBulkBar } from '@/components/library/LibraryBulkBar'
 import { LibrarySmartFilters } from '@/components/library/LibrarySmartFilters'
-import { LibraryRecentView } from '@/components/LibraryRecentView'
-import { LibraryTagsView } from '@/components/LibraryTagsView'
-import { LibraryJournalView } from '@/components/LibraryJournalView'
-import { LibraryLinkGraphView } from '@/components/LibraryLinkGraphView'
-import { LibraryDuplicatesPanel } from '@/components/LibraryDuplicatesPanel'
-import { LibraryTasksPanel } from '@/components/LibraryTasksPanel'
-import { LibraryDatabaseView } from '@/components/LibraryDatabaseView'
-import { LibraryWikiHealthPanel } from '@/components/LibraryWikiHealthPanel'
-import { LibraryChatPanel } from '@/components/LibraryChatPanel'
 import { LibrarySwitcher } from '@/components/library/LibrarySwitcher'
 import { LibraryViewTabs, type LibraryView } from '@/components/LibraryViewTabs'
+
+const LibraryFavoritesView = lazy(() =>
+  import('@/components/LibraryFavoritesView').then((m) => ({ default: m.LibraryFavoritesView })),
+)
+const LibraryRecentView = lazy(() =>
+  import('@/components/LibraryRecentView').then((m) => ({ default: m.LibraryRecentView })),
+)
+const LibraryTagsView = lazy(() =>
+  import('@/components/LibraryTagsView').then((m) => ({ default: m.LibraryTagsView })),
+)
+const LibraryJournalView = lazy(() =>
+  import('@/components/LibraryJournalView').then((m) => ({ default: m.LibraryJournalView })),
+)
+const LibraryLinkGraphView = lazy(() =>
+  import('@/components/LibraryLinkGraphView').then((m) => ({ default: m.LibraryLinkGraphView })),
+)
+const LibraryDuplicatesPanel = lazy(() =>
+  import('@/components/LibraryDuplicatesPanel').then((m) => ({ default: m.LibraryDuplicatesPanel })),
+)
+const LibraryTasksPanel = lazy(() =>
+  import('@/components/LibraryTasksPanel').then((m) => ({ default: m.LibraryTasksPanel })),
+)
+const LibraryDatabaseView = lazy(() =>
+  import('@/components/LibraryDatabaseView').then((m) => ({ default: m.LibraryDatabaseView })),
+)
+const LibraryWikiHealthPanel = lazy(() =>
+  import('@/components/LibraryWikiHealthPanel').then((m) => ({ default: m.LibraryWikiHealthPanel })),
+)
+const LibraryChatPanel = lazy(() =>
+  import('@/components/LibraryChatPanel').then((m) => ({ default: m.LibraryChatPanel })),
+)
 import { SidebarRail } from '@/components/layout/SidebarRail'
 import { SidebarSearchResults } from '@/components/SidebarSearchResults'
 import { listWikiHealth } from '@/lib/db/api'
@@ -171,25 +201,28 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
         else dispatch(openAgentPanel({ persona: 'general' }))
         return
       }
-      if (view === 'chat') {
-        dispatch(setLibraryView('chat'))
-        return
-      }
-      if (view === 'graph') {
-        dispatch(setLibraryGraphAroundActive(false))
-        dispatch(setLibraryView('graph'))
-        return
-      }
-      if (view === 'storage') {
-        dispatch(setLibraryView('storage'))
-        void navigate(ROUTES.storageMode())
-        onClose?.()
-        return
-      }
-      if (libraryView === 'storage' && pathname === '/storage') {
-        void navigate(ROUTES.home())
-      }
-      dispatch(setLibraryView(view))
+      // Keep the tab chrome responsive while heavy views (graph/chat/…) load.
+      startTransition(() => {
+        if (view === 'chat') {
+          dispatch(setLibraryView('chat'))
+          return
+        }
+        if (view === 'graph') {
+          dispatch(setLibraryGraphAroundActive(false))
+          dispatch(setLibraryView('graph'))
+          return
+        }
+        if (view === 'storage') {
+          dispatch(setLibraryView('storage'))
+          void navigate(ROUTES.storageMode())
+          onClose?.()
+          return
+        }
+        if (libraryView === 'storage' && pathname === '/storage') {
+          void navigate(ROUTES.home())
+        }
+        dispatch(setLibraryView(view))
+      })
     },
     [agentPanelOpen, dispatch, libraryView, navigate, onClose, pathname],
   )
@@ -374,28 +407,39 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
               {contentView !== 'folders' && (
                 <ScrollArea className="library-desk-alt min-h-0 flex-1">
                   <div className="pb-3">
-                    {contentView === 'recent' && (
-                      <div className="px-1 pb-3 pt-1">
-                        <LibraryRecentView onNavigate={onClose} />
-                      </div>
-                    )}
-                    {contentView === 'favorites' && (
-                      <div className="px-1 pb-3 pt-1">
-                        <LibraryFavoritesView onNavigate={onClose} />
-                      </div>
-                    )}
-                    {contentView === 'tags' && (
-                      <div className="px-1 pb-3 pt-1">
-                        <LibraryTagsView onNavigate={onClose} />
-                      </div>
-                    )}
-                    {contentView === 'journal' && <LibraryJournalView onNavigate={onClose} />}
-                    {contentView === 'graph' && (
-                      <LibraryLinkGraphView
-                        initialAroundActive={graphAroundActive}
-                        onAroundActiveConsumed={() => dispatch(setLibraryGraphAroundActive(false))}
-                      />
-                    )}
+                    <Suspense fallback={null}>
+                      {contentView === 'recent' && (
+                        <div className="px-1 pb-3 pt-1">
+                          <LibraryRecentView onNavigate={onClose} />
+                        </div>
+                      )}
+                      {contentView === 'favorites' && (
+                        <div className="px-1 pb-3 pt-1">
+                          <LibraryFavoritesView onNavigate={onClose} />
+                        </div>
+                      )}
+                      {contentView === 'tags' && (
+                        <div className="px-1 pb-3 pt-1">
+                          <LibraryTagsView onNavigate={onClose} />
+                        </div>
+                      )}
+                      {contentView === 'journal' && <LibraryJournalView onNavigate={onClose} />}
+                      {contentView === 'graph' && (
+                        <LibraryLinkGraphView
+                          initialAroundActive={graphAroundActive}
+                          onAroundActiveConsumed={() => dispatch(setLibraryGraphAroundActive(false))}
+                        />
+                      )}
+                      {contentView === 'duplicates' && <LibraryDuplicatesPanel onNavigate={onClose} />}
+                      {contentView === 'tasks' && <LibraryTasksPanel onNavigate={onClose} />}
+                      {contentView === 'database' && <LibraryDatabaseView onNavigate={onClose} />}
+                      {contentView === 'wikiHealth' && <LibraryWikiHealthPanel onNavigate={onClose} />}
+                      {contentView === 'chat' && (
+                        <div className="px-1 pb-3 pt-1">
+                          <LibraryChatPanel />
+                        </div>
+                      )}
+                    </Suspense>
                     {contentView === 'storage' && (
                       <div className="px-3 py-3 text-[12px] leading-relaxed text-[var(--color-muted-foreground)]">
                         <p className="m-0 text-[13px] font-semibold tracking-[-0.01em] text-[var(--color-foreground)]">
@@ -412,15 +456,6 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                         >
                           {t('storageMode.openBrowser')}
                         </button>
-                      </div>
-                    )}
-                    {contentView === 'duplicates' && <LibraryDuplicatesPanel onNavigate={onClose} />}
-                    {contentView === 'tasks' && <LibraryTasksPanel onNavigate={onClose} />}
-                    {contentView === 'database' && <LibraryDatabaseView onNavigate={onClose} />}
-                    {contentView === 'wikiHealth' && <LibraryWikiHealthPanel onNavigate={onClose} />}
-                    {contentView === 'chat' && (
-                      <div className="px-1 pb-3 pt-1">
-                        <LibraryChatPanel />
                       </div>
                     )}
                     {pluginPanels.length > 0 && (

@@ -68,13 +68,15 @@ export async function exportMarkdownVault(args: {
 
   const markerPath = await saveScopedFile({
     title: args.dialogTitle ?? 'Export Markdown vault',
-    defaultPath: 'scribe-vault/README.md',
+    defaultPath: 'scribe-vault.md',
   })
   if (!markerPath) return null
 
-  const folder = markerPath.replace(/[/\\][^/\\]+$/, '')
+  const parent = markerPath.replace(/[/\\][^/\\]+$/, '')
+  const folder = await join(parent, 'scribe-vault')
   const notesDir = await join(folder, 'notes')
   await mkdir(notesDir, { recursive: true })
+  const readmePath = await join(folder, 'README.md')
 
   const indexLines = ['# Scribe Markdown vault', '', 'Notes:', '']
   for (const summary of live) {
@@ -92,7 +94,15 @@ export async function exportMarkdownVault(args: {
     indexLines.push(`- [[notes/${stem}]] — ${doc.title.trim() || 'Untitled'}`)
   }
 
-  await writeFile(markerPath, new TextEncoder().encode(`${indexLines.join('\n')}\n`))
+  await writeFile(readmePath, new TextEncoder().encode(`${indexLines.join('\n')}\n`))
+  if (markerPath !== readmePath) {
+    try {
+      const { remove } = await import('@tauri-apps/plugin-fs')
+      await remove(markerPath)
+    } catch {
+      /* best-effort */
+    }
+  }
   return folder
 }
 
