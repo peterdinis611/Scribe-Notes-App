@@ -12,7 +12,7 @@ npm run mcp           # run via cargo (dev)
 
 Binary: `target/release/scribe-mcp`
 
-## Cursor config
+## Cursor config (stdio — local)
 
 ```json
 {
@@ -33,6 +33,45 @@ Example: [`cursor.mcp.example.json`](cursor.mcp.example.json)
 
 **Shared / team Cursor configs:** never set `SCRIBE_MCP_WRITE=1` or `SCRIBE_MCP_SCOPE=full`. Those belong only in a private local override when you explicitly need write/vault access, then turn them off again.
 
+## HTTP / online endpoints (Streamable HTTP)
+
+stdio stays the default. For remote Cursor / agents / tunnels, run Streamable HTTP:
+
+```bash
+# loopback only (no token required, but recommended)
+SCRIBE_MCP_HTTP_TOKEN='change-me' npm run mcp:http
+
+# or expose on LAN / VPS (token REQUIRED)
+SCRIBE_MCP_HTTP=1 \
+SCRIBE_MCP_HTTP_BIND=0.0.0.0:8788 \
+SCRIBE_MCP_HTTP_TOKEN="$(openssl rand -hex 24)" \
+npm run mcp:http
+```
+
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /health` | Liveness (`ok`) |
+| `POST/GET /mcp` | MCP Streamable HTTP (Bearer token when configured) |
+
+Cursor-style remote server (when your client supports URL MCP):
+
+```json
+{
+  "mcpServers": {
+    "scribe-memory-http": {
+      "url": "http://127.0.0.1:8788/mcp",
+      "headers": {
+        "Authorization": "Bearer change-me"
+      }
+    }
+  }
+}
+```
+
+For true “online” access, keep the process on loopback and put **Cloudflare Tunnel / Tailscale / ngrok** in front — do not publish an unauthenticated `0.0.0.0` bind.
+
+CLI flags: `--http`, `--bind 127.0.0.1:8788` (same as env).
+
 ## Environment
 
 | Variable | Meaning |
@@ -40,6 +79,9 @@ Example: [`cursor.mcp.example.json`](cursor.mcp.example.json)
 | `SCRIBE_DB_PATH` | Path to `scribe.db` (default: `~/Library/Application Support/com.scribe.app/scribe.db`) |
 | `SCRIBE_MCP_WRITE` | Default read-only. Set to `1` to allow write tools (**local only — not in shared configs**) |
 | `SCRIBE_MCP_SCOPE` | Vault access: `no-vault` (default), `meta-only`, or `full` (**never `full` in shared configs**) |
+| `SCRIBE_MCP_HTTP` | `1` → Streamable HTTP instead of stdio |
+| `SCRIBE_MCP_HTTP_BIND` | Bind address (default `127.0.0.1:8788`) |
+| `SCRIBE_MCP_HTTP_TOKEN` | Bearer token for `/mcp` (required when bind is not loopback) |
 | `SCRIBE_NLP_SCRIPT` | Path to Python NLP `__main__.py` for semantic tools |
 | `SCRIBE_NLP_PYTHON` | Python binary (default `python3`) |
 

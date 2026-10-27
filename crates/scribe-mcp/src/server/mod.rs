@@ -14,7 +14,7 @@ mod tools_wiki;
 
 use std::future::ready;
 use std::path::PathBuf;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use rmcp::handler::server::router::prompt::PromptRouter;
 use rmcp::handler::server::router::tool::ToolRouter;
@@ -28,9 +28,11 @@ use scribe_core::nlp::{resolve_script_path, NlpSidecar};
 use scribe_core::store::{open_scribe_store, ScribeStore};
 use scribe_core::vault::McpVaultScope;
 
+/// Shared across stdio (single instance) and Streamable HTTP (cloned per request).
+#[derive(Clone)]
 pub struct ScribeMcp {
-    store: Mutex<ScribeStore>,
-    sidecar: NlpSidecar,
+    store: Arc<Mutex<ScribeStore>>,
+    sidecar: Arc<NlpSidecar>,
     pub db_path: PathBuf,
     pub writable: bool,
     pub vault_scope: McpVaultScope,
@@ -57,15 +59,18 @@ impl ScribeMcp {
             );
         }
         Ok(Self {
-            store: Mutex::new(opened.store),
-            sidecar: NlpSidecar::new(resolve_script_path()),
+            store: Arc::new(Mutex::new(opened.store)),
+            sidecar: Arc::new(NlpSidecar::new(resolve_script_path())),
             db_path: opened.db_path,
             writable: opened.writable,
             vault_scope,
         })
     }
 
-    fn with_store<T, F: FnOnce(&ScribeStore) -> Result<T, String>>(&self, f: F) -> Result<T, String> {
+    pub(crate) fn with_store<T, F: FnOnce(&ScribeStore) -> Result<T, String>>(
+        &self,
+        f: F,
+    ) -> Result<T, String> {
         let guard = self.store.lock().map_err(|e| e.to_string())?;
         f(&guard)
     }
@@ -88,7 +93,7 @@ impl ScribeMcp {
         scribe_audit::AuditStore::from_path(&parent.join(scribe_audit::AUDIT_DB_FILE)).ok()
     }
 
-    fn audit_mcp(
+    pub(crate) fn audit_mcp(
         &self,
         category: &str,
         action: &str,

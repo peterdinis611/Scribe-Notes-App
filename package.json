@@ -40,6 +40,8 @@
     "tauri:build": "tauri build",
     "mcp": "cargo run --release -p scribe-mcp",
     "mcp:debug": "RUST_LOG=debug cargo run -p scribe-mcp",
+    "mcp:http": "cargo run --release -p scribe-mcp -- --http",
+    "mcp:http:debug": "RUST_LOG=debug cargo run -p scribe-mcp -- --http",
     "mcp:build": "cargo build --release -p scribe-mcp",
     "mcp:install": "cargo build --release -p scribe-mcp",
     "nlp:health": "printf '%s\\n' '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"health\",\"params\":{}}' | python3 nlp/scribe_nlp/__main__.py",

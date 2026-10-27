@@ -42,6 +42,42 @@ Overenie (stdio server ostane bežať a čakať — to je OK; ukončíte Ctrl+C)
 npm run mcp
 ```
 
+### HTTP / online (voliteľné)
+
+Streamable HTTP pre tunel alebo vzdialených klientov + malé REST API na priečinky knižnice a Local Files sandbox (`documents/files/…`):
+
+```bash
+SCRIBE_MCP_HTTP_TOKEN='change-me' SCRIBE_MCP_WRITE=1 npm run mcp:http
+# → http://127.0.0.1:8788/mcp     MCP Streamable HTTP
+# → http://127.0.0.1:8788/health  liveness
+# → http://127.0.0.1:8788/v1      REST katalóg
+```
+
+Rovnaký Bearer token ako pri `/mcp` chráni `/v1`. Zápisy (`POST`) vyžadujú aj `SCRIBE_MCP_WRITE=1`.
+
+| Metóda | Cesta | Telo |
+|--------|-------|------|
+| `GET` | `/v1/library/folders` | — |
+| `POST` | `/v1/library/folders` | `{ "name": "…", "parentId?": "…" }` |
+| `GET` | `/v1/fs/list?path=&recursive=` | — |
+| `POST` | `/v1/fs/mkdir` | `{ "path": "notes/inbox" }` |
+| `POST` | `/v1/fs/write-text` | `{ "path": "a.md", "text": "…", "overwrite?": true }` |
+| `POST` | `/v1/fs/write` | `{ "path": "bin.dat", "contentBase64": "…", "overwrite?": true }` |
+| `POST` | `/v1/fs/upload` | `multipart/form-data`: pole `file` + voliteľné `path` (adresár alebo relatívna cesta) |
+
+```bash
+curl -H "Authorization: Bearer change-me" \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Inbox"}' \
+  http://127.0.0.1:8788/v1/library/folders
+
+curl -H "Authorization: Bearer change-me" \
+  -F 'file=@./photo.jpg' -F 'path=inbox/' \
+  http://127.0.0.1:8788/v1/fs/upload
+```
+
+Bind mimo loopback vyžaduje `SCRIBE_MCP_HTTP_TOKEN`. Na internet radšej Tailscale / Cloudflare Tunnel pred loopbackom než otvárať `0.0.0.0` verejne.
+
 ## Pripojenie v Cursor
 
 1. Otvorte nastavenia MCP v Cursor (alebo súbor `.cursor/mcp.json` v projekte / globálne).
