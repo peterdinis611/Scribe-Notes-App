@@ -32,3 +32,6 @@ nlp/.venv*/
 *.njsproj
 *.sln
 *.sw?
+
+.cargo-home/
+crates/vendor/

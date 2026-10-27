@@ -45,12 +45,13 @@ afterEach(() => {
 })
 
 describe('LibrarySwitcher', () => {
-  it('renders a shadcn select trigger instead of a native select', () => {
+  it('renders a dropdown menu trigger instead of a native select', () => {
     renderSwitcher()
 
     expect(document.querySelector('select')).toBeNull()
-    expect(screen.getByRole('combobox', { name: 'Knižnica' })).toBeTruthy()
-    expect(screen.getByRole('combobox')).toHaveTextContent('Archív')
-    expect(screen.getByRole('button', { name: 'Nová' })).toBeTruthy()
+    const trigger = screen.getByRole('button', { name: 'Knižnica' })
+    expect(trigger).toBeTruthy()
+    expect(trigger).toHaveAttribute('aria-haspopup', 'menu')
+    expect(trigger).toHaveTextContent('Archív')
   })
 })

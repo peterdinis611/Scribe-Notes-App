@@ -33,7 +33,23 @@ from .text_utils import split_sentences
 
 from .config import get_config
 
-TEXT_EXTENSIONS = {".md", ".txt", ".json", ".csv", ".markdown", ".mdx"}
+TEXT_EXTENSIONS = {
+    ".md",
+    ".txt",
+    ".json",
+    ".csv",
+    ".markdown",
+    ".mdx",
+    ".org",
+    ".rst",
+    ".adoc",
+    ".asciidoc",
+    ".fountain",
+    ".wiki",
+    ".mediawiki",
+    ".ics",
+    ".eml",
+}
 # Programming / config sources — searchable by files_answer / index.
 CODE_EXTENSIONS = {
     ".rs",
@@ -68,6 +84,12 @@ CODE_EXTENSIONS = {
     ".yaml",
     ".yml",
     ".xml",
+    ".xsd",
+    ".xsl",
+    ".xslt",
+    ".rss",
+    ".atom",
+    ".plist",
     ".css",
     ".scss",
     ".sh",

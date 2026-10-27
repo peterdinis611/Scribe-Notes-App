@@ -49,6 +49,16 @@ description = "Allow pick_and_import_file"
 commands.allow = ["pick_and_import_file"]
 
 [[permission]]
+identifier = "allow-prepare-keynote-import"
+description = "Allow prepare_keynote_import"
+commands.allow = ["prepare_keynote_import"]
+
+[[permission]]
+identifier = "allow-prepare-numbers-import"
+description = "Allow prepare_numbers_import"
+commands.allow = ["prepare_numbers_import"]
+
+[[permission]]
 identifier = "allow-prepare-pages-import"
 description = "Allow prepare_pages_import"
 commands.allow = ["prepare_pages_import"]
@@ -87,6 +97,8 @@ permissions = [
   "allow-pick-and-grant-path",
   "allow-pick-and-grant-save-path",
   "allow-pick-and-import-file",
+  "allow-prepare-keynote-import",
+  "allow-prepare-numbers-import",
   "allow-prepare-pages-import",
   "allow-read-binary-file",
   "allow-read-text-file",

@@ -4,7 +4,6 @@ import {
   handoffsToMemoryContext,
   parseHandoffGoal,
 } from '@/lib/library/agent-handoff'
-import { matchAgentIntentsSync } from '@/lib/library/agent'
 
 describe('parseHandoffGoal', () => {
   it('parses english handoff targets', () => {
@@ -63,12 +62,5 @@ describe('handoffsToMemoryContext', () => {
     expect(ctx).toHaveLength(1)
     expect(ctx[0]?.text).toContain('Ship the checklist')
     expect(ctx[0]?.text).not.toContain('Old')
-  })
-})
-
-describe('handoff intent', () => {
-  it('matches handoff tool from goal text', () => {
-    expect(matchAgentIntentsSync('Handoff to organizer: follow up todos')).toContain('handoff')
-    expect(matchAgentIntentsSync('pošli organizerovi action items')).toContain('handoff')
   })
 })

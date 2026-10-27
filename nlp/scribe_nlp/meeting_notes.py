@@ -83,10 +83,15 @@ def meeting_notes_pack(text: str, *, limit: int = 12) -> dict[str, Any]:
             if len(attendees) >= 8:
                 break
 
+    from .forward_plan import forward_plan
+
+    forward = forward_plan(source, limit=min(limit, 6))
+
     return {
         "decisions": decisions[:limit],
         "actionItems": action_items[:limit],
         "attendees": attendees[:16],
+        "forward": forward,
         "counts": {
             "decisions": min(len(decisions), limit),
             "actionItems": min(len(action_items), limit),

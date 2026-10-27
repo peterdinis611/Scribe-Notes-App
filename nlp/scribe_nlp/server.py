@@ -134,6 +134,8 @@ FEATURES = [
     "inspectCsv",
     "csvToTiptap",
     "matrixToCsv",
+    "inspectXml",
+    "xmlToTiptap",
     "inspectSource",
     "sourceToTiptap",
     "codeBrief",
@@ -145,6 +147,7 @@ FEATURES = [
     "rankTasks",
     "contradictionHints",
     "extractCommitments",
+    "forwardPlan",
     "readingPlan",
     "notePulse",
     "openLoops",
@@ -1011,6 +1014,28 @@ def _handle_request_inner(
                     "id": request_id,
                     "error": {"code": -32602, "message": str(exc)},
                 }
+        elif method == "inspect_xml":
+            from .xml_ops import XmlOpsError, inspect_xml
+
+            try:
+                result = inspect_xml(params if isinstance(params, dict) else {})
+            except XmlOpsError as exc:
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "error": {"code": -32602, "message": str(exc)},
+                }
+        elif method == "xml_to_tiptap":
+            from .xml_ops import XmlOpsError, xml_to_tiptap
+
+            try:
+                result = xml_to_tiptap(params if isinstance(params, dict) else {})
+            except XmlOpsError as exc:
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "error": {"code": -32602, "message": str(exc)},
+                }
         elif method == "inspect_source":
             from .code_ops import CodeOpsError, inspect_source
 
@@ -1113,6 +1138,12 @@ def _handle_request_inner(
             text = _validate_text(str(params.get("text") or ""))
             limit = max(1, min(int(params.get("limit") or 12), 40))
             result = extract_commitments(text, limit=limit)
+        elif method == "forward_plan":
+            from .forward_plan import forward_plan
+
+            text = _validate_text(str(params.get("text") or ""))
+            limit = max(1, min(int(params.get("limit") or 12), 40))
+            result = forward_plan(text, limit=limit)
         elif method == "reading_plan":
             from .reading_plan import reading_plan
 

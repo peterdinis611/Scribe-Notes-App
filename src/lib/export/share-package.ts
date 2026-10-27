@@ -64,6 +64,20 @@ export async function shareDocumentPackage(args: {
     })
   }
 
+  if (
+    (args.format === 'csv' || args.format === 'json' || args.format === 'opml') &&
+    args.documentId
+  ) {
+    try {
+      const { exportDocumentById } = await import('@/lib/db/api')
+      const result = await exportDocumentById(args.documentId, args.format)
+      if (result?.path) await revealInFinder(result.path)
+      return result
+    } catch {
+      // Vault / missing row — fall through to FE serializers.
+    }
+  }
+
   if (args.format === 'csv') {
     return exportDocumentAsCsv({
       contentJson: args.contentJson,
@@ -168,6 +182,17 @@ export async function shareDocumentAsMarkdownFile(args: {
   title: string
   documentId?: string
 }): Promise<ExportResult | null> {
+  if (args.documentId) {
+    try {
+      const result = await exportDocument('', '', args.title, 'md', undefined, undefined, {
+        documentId: args.documentId,
+      })
+      if (result?.path) await revealInFinder(result.path)
+      return result
+    } catch {
+      /* fall through */
+    }
+  }
   const markdown = tiptapJsonToMarkdown(args.contentJson, args.title)
   const plainText = tiptapToPlainText(args.contentJson)
   const result = await exportDocument(
@@ -192,6 +217,17 @@ export async function shareDocumentAsPlainTextFile(args: {
   title: string
   documentId?: string
 }): Promise<ExportResult | null> {
+  if (args.documentId) {
+    try {
+      const result = await exportDocument('', '', args.title, 'txt', undefined, undefined, {
+        documentId: args.documentId,
+      })
+      if (result?.path) await revealInFinder(result.path)
+      return result
+    } catch {
+      /* fall through */
+    }
+  }
   const plainText = tiptapToPlainText(args.contentJson)
   const result = await exportDocument(
     '',

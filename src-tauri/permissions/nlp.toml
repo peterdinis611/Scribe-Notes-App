@@ -149,6 +149,11 @@ description = "Allow nlp_find_duplicates"
 commands.allow = ["nlp_find_duplicates"]
 
 [[permission]]
+identifier = "allow-nlp-forward-plan"
+description = "Allow nlp_forward_plan"
+commands.allow = ["nlp_forward_plan"]
+
+[[permission]]
 identifier = "allow-nlp-generate-placeholder"
 description = "Allow nlp_generate_placeholder"
 commands.allow = ["nlp_generate_placeholder"]
@@ -402,6 +407,7 @@ permissions = [
   "allow-nlp-files-search",
   "allow-nlp-files-summarize",
   "allow-nlp-find-duplicates",
+  "allow-nlp-forward-plan",
   "allow-nlp-generate-placeholder",
   "allow-nlp-glossary",
   "allow-nlp-grammar-check",

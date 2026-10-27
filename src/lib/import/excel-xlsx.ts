@@ -1,28 +1,10 @@
-import {
-  isOleWordDoc,
-  isZipArchive,
-  readScopedBinaryFile,
-} from '@/lib/fs/read-scoped-binary'
 import { importTitleFromPath } from '@/lib/import/import-path'
 
 const EXCEL_EXTENSION = /\.(xlsx|xlsm|csv|tsv)$/i
 const LEGACY_EXCEL_EXTENSION = /\.xls$/i
 
-/** Reject oversized workbooks before SheetJS parses (CVE blast radius). */
+/** Reject oversized workbooks (aligned with Rust importer). */
 export const MAX_EXCEL_BYTES = 12 * 1024 * 1024
-
-const MAX_SHEETS = 15
-const MAX_ROWS = 400
-const MAX_COLS = 40
-
-const EMPTY_DOC_JSON = JSON.stringify({ type: 'doc', content: [{ type: 'paragraph' }] })
-
-type TipTapNode = {
-  type: string
-  attrs?: Record<string, unknown>
-  content?: TipTapNode[]
-  text?: string
-}
 
 export function isExcelPath(path: string) {
   return EXCEL_EXTENSION.test(path)
@@ -32,128 +14,10 @@ export function isLegacyExcelPath(path: string) {
   return LEGACY_EXCEL_EXTENSION.test(path) && !/\.xlsx$/i.test(path) && !/\.xlsm$/i.test(path)
 }
 
-function cellText(value: unknown): string {
-  if (value == null) return ''
-  if (typeof value === 'string') return value
-  if (typeof value === 'number' || typeof value === 'boolean') return String(value)
-  if (value instanceof Date) return value.toISOString().slice(0, 10)
-  return String(value)
-}
-
-function paragraphNode(text: string): TipTapNode {
-  const trimmed = text.replace(/\r\n/g, '\n')
-  if (!trimmed) {
-    return { type: 'paragraph' }
-  }
-  return {
-    type: 'paragraph',
-    content: [{ type: 'text', text: trimmed }],
-  }
-}
-
-function tableCellNode(text: string, header: boolean): TipTapNode {
-  return {
-    type: header ? 'tableHeader' : 'tableCell',
-    attrs: { colspan: 1, rowspan: 1, colwidth: null },
-    content: [paragraphNode(text)],
-  }
-}
-
-function sheetToTable(rows: unknown[][]): TipTapNode | null {
-  if (rows.length === 0) return null
-
-  const width = Math.min(
-    MAX_COLS,
-    rows.reduce((max, row) => Math.max(max, Array.isArray(row) ? row.length : 0), 0),
-  )
-  if (width === 0) return null
-
-  const limitedRows = rows.slice(0, MAX_ROWS)
-  const tableRows: TipTapNode[] = limitedRows.map((row, rowIndex) => {
-    const cells: TipTapNode[] = []
-    for (let col = 0; col < width; col += 1) {
-      const raw = Array.isArray(row) ? row[col] : undefined
-      cells.push(tableCellNode(cellText(raw), rowIndex === 0))
-    }
-    return { type: 'tableRow', content: cells }
-  })
-
-  return { type: 'table', content: tableRows }
-}
-
-function normalizeDocJson(json: TipTapNode): string {
-  if (json.type !== 'doc' || !Array.isArray(json.content) || json.content.length === 0) {
-    return EMPTY_DOC_JSON
-  }
-  return JSON.stringify(json)
-}
-
-export async function convertExcelBytesToContentJson(bytes: Uint8Array): Promise<string> {
-  if (bytes.byteLength > MAX_EXCEL_BYTES) {
-    throw new Error(
-      `Excel súbor je príliš veľký (max ${Math.floor(MAX_EXCEL_BYTES / (1024 * 1024))} MB).`,
-    )
-  }
-
-  // Dynamic import keeps SheetJS off the main bundle path until parse time.
-  const XLSX = await import('xlsx')
-
-  let workbook: ReturnType<typeof XLSX.read>
-  try {
-    workbook = XLSX.read(bytes, {
-      type: 'array',
-      cellDates: true,
-      sheetRows: MAX_ROWS,
-      dense: true,
-    })
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    throw new Error(`Nepodarilo sa načítať Excel súbor: ${message}`, {
-      cause: error,
-    })
-  }
-
-  const sheetNames = (workbook.SheetNames ?? []).slice(0, MAX_SHEETS)
-  if (sheetNames.length === 0) {
-    return EMPTY_DOC_JSON
-  }
-
-  const content: TipTapNode[] = []
-  const multipleSheets = sheetNames.length > 1
-
-  for (const sheetName of sheetNames) {
-    const sheet = workbook.Sheets[sheetName]
-    if (!sheet) continue
-
-    const rows = XLSX.utils.sheet_to_json(sheet, {
-      header: 1,
-      raw: false,
-      defval: '',
-      blankrows: false,
-    }) as unknown[][]
-
-    const table = sheetToTable(rows)
-    if (!table) continue
-
-    if (multipleSheets) {
-      content.push({
-        type: 'heading',
-        attrs: { level: 2 },
-        content: [{ type: 'text', text: sheetName || 'Sheet' }],
-      })
-    }
-
-    content.push(table)
-    content.push({ type: 'paragraph' })
-  }
-
-  if (content.length === 0) {
-    return EMPTY_DOC_JSON
-  }
-
-  return normalizeDocJson({ type: 'doc', content })
-}
-
+/**
+ * Import spreadsheet via Rust (`xlsx_bytes_to_tiptap` / `csv_bytes_to_tiptap`).
+ * SheetJS is no longer used on the import path.
+ */
 export async function importExcelDocumentFromPath(path: string) {
   if (isLegacyExcelPath(path)) {
     throw new Error(
@@ -164,44 +28,12 @@ export async function importExcelDocumentFromPath(path: string) {
   const { assertImportAllowedByAntivirus } = await import('@/lib/antivirus/scan-import')
   await assertImportAllowedByAntivirus(path)
 
-  const bytes = await readScopedBinaryFile(path)
-
-  if (bytes.length === 0) {
-    throw new Error('Súbor sa nepodarilo prečítať alebo je prázdny.')
-  }
-
-  if (bytes.byteLength > MAX_EXCEL_BYTES) {
-    throw new Error(
-      `Excel súbor je príliš veľký (max ${Math.floor(MAX_EXCEL_BYTES / (1024 * 1024))} MB).`,
-    )
-  }
-
-  const isCsv = /\.(csv|tsv)$/i.test(path)
-  if (!isCsv) {
-    if (isOleWordDoc(bytes)) {
-      throw new Error(
-        'Toto je starý formát Excel (.xls). Uložte ho v Exceli ako .xlsx a skúste znova.',
-      )
-    }
-    if (!isZipArchive(bytes)) {
-      throw new Error(
-        'Súbor nie je platný Excel (.xlsx). Otvorte ho v Exceli a uložte ako .xlsx.',
-      )
-    }
-  }
-
-  const [{ createDocument }, { cacheDocument }] = await Promise.all([
+  const [{ importFile }, { cacheDocument }] = await Promise.all([
     import('@/lib/db/api'),
     import('@/lib/cache/document-cache'),
   ])
 
-  const fallbackTitle = importTitleFromPath(path, 'Import z Excelu')
-  const contentJson = await convertExcelBytesToContentJson(bytes)
-
-  const created = await createDocument({
-    title: fallbackTitle,
-    contentJson,
-  })
-
-  return cacheDocument(created)
+  // Title from path is applied by Rust import_file; keep stem helper for callers.
+  void importTitleFromPath(path, 'Import z Excelu')
+  return cacheDocument(await importFile(path))
 }

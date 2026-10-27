@@ -2510,6 +2510,23 @@ pub fn nlp_extract_commitments(
 }
 
 #[tauri::command]
+pub fn nlp_forward_plan(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpDocumentTextInput,
+) -> Result<serde_json::Value, String> {
+    let text = resolve_text_offline_ok(&state, &input)?;
+    let limit = input.limit.unwrap_or(12).clamp(1, 40);
+    if nlp_is_enabled(&state) {
+        if let Ok(raw) = sidecar.forward_plan(&text, limit) {
+            return Ok(raw);
+        }
+    }
+    serde_json::to_value(scribe_core::nlp::forward_plan(&text, limit as usize))
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 pub fn nlp_reading_plan(
     state: State<'_, DbState>,
     sidecar: State<'_, NlpSidecar>,

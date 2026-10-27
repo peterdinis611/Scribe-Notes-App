@@ -104,6 +104,24 @@ class DiffTests(unittest.TestCase):
         result = summarize_diff(old, new)
         self.assertGreaterEqual(len(result["addedSentences"]), 1)
 
+    def test_summarize_diff_detects_modified_not_churn(self) -> None:
+        old = "The quarterly report covers revenue growth. Next steps remain open."
+        new = "The quarterly report covers revenue and margin growth. Next steps remain open."
+        result = summarize_diff(old, new)
+        self.assertGreaterEqual(len(result["modifiedSentences"]), 1)
+        self.assertEqual(result["addedSentences"], [])
+        self.assertEqual(result["removedSentences"], [])
+        pair = result["modifiedSentences"][0]
+        self.assertIn("margin", pair["new"])
+        self.assertLess(result["changeRatio"], 0.55)
+
+    def test_summarize_diff_ranks_gained_terms(self) -> None:
+        old = "Alpha beta gamma. Alpha stays."
+        new = "Alpha beta gamma. Alpha stays. Omega omega omega arrives now."
+        result = summarize_diff(old, new)
+        self.assertIn("omega", result["gainedTerms"])
+        self.assertEqual(result["gainedTerms"][0], "omega")
+
 
 class TemplateTests(unittest.TestCase):
     def test_missing_sections(self) -> None:

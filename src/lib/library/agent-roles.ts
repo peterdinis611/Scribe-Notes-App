@@ -1,3 +1,8 @@
+/**
+ * Agent role catalog + gating.
+ * Canonical role/recipe tool lists: `crates/scribe-ui/src/agent_catalog.rs`
+ * (Tauri: list_agent_roles_ui / filter_tools_by_agents_ui / …).
+ */
 import type { AgentToolId } from '@/lib/library/agent-prefs'
 import type { AgentRecipeId } from '@/lib/library/agent-recipes'
 
@@ -149,6 +154,7 @@ export const AGENT_ROLES: AgentRoleDefinition[] = [
       'action_items',
       'decisions',
       'commitments',
+      'forward_plan',
       'quotes',
       'mentions',
       'takeaways',
@@ -208,6 +214,7 @@ export const AGENT_ROLES: AgentRoleDefinition[] = [
       'title',
       'template_hints',
       'open_loops',
+      'forward_plan',
       'canvas_summarize',
       'canvas_to_note',
       'canvas_template',

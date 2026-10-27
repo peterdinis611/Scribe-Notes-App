@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
   applyAgentOptimize,
   createTeaching,
@@ -7,12 +7,13 @@ import {
   DEFAULT_AGENT_PREFS,
 } from '@/lib/library/agent-prefs'
 import { planAgentGoal, runAgentGoal } from '@/lib/library/agent'
-import { vi } from 'vitest'
+import { invokeMatchAgentIntents } from '@/lib/db/api'
 
 vi.mock('@/lib/db/api', () => ({
   invokeMatchAgentIntents: vi.fn(async () => {
     throw new Error('no tauri')
   }),
+  invokeMatchDocumentChatIntent: vi.fn(async () => null),
 }))
 
 vi.mock('@/lib/db/nlp-api', () => ({
@@ -133,13 +134,19 @@ describe('agent runtime prefs', () => {
   })
 
   it('respects maxSteps=1', async () => {
+    vi.mocked(invokeMatchAgentIntents).mockResolvedValueOnce([
+      'summarize',
+      'similar',
+      'flashcards',
+    ])
     const plan = await planAgentGoal(
       'Summarize and find related notes plus flashcards',
       'document',
       'doc-1',
-      { ...DEFAULT_AGENT_PREFS, maxSteps: 1 },
+      { ...DEFAULT_AGENT_PREFS, maxSteps: 1, askWhenUncertain: false, preferFast: false },
     )
     expect(plan.tools).toHaveLength(1)
+    expect(plan.tools[0]).toBe('summarize')
   })
 
   it('asks when uncertain instead of guessing', async () => {

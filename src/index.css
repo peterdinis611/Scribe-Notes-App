@@ -5900,6 +5900,7 @@ html:not([data-ui-skin]) .agent-persona-tab.is-active {
   gap: 6px;
   min-width: 0;
   flex-shrink: 0;
+  position: relative;
 }
 
 .library-chat-composer form .library-chat-input {
@@ -5909,6 +5910,76 @@ html:not([data-ui-skin]) .agent-persona-tab.is-active {
 
 .library-chat-composer form button {
   flex-shrink: 0;
+}
+
+.agent-slash-menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  display: flex;
+  max-height: min(42vh, 280px);
+  flex-direction: column;
+  gap: 2px;
+  overflow: auto;
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, var(--color-foreground) 12%);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-sidebar-solid) 92%, var(--color-surface));
+  box-shadow:
+    0 12px 28px color-mix(in srgb, var(--color-foreground) 12%, transparent),
+    0 1px 0 color-mix(in srgb, var(--color-foreground) 6%, transparent);
+  padding: 6px;
+}
+
+.agent-slash-menu__hint {
+  margin: 0 4px 4px;
+  color: var(--color-muted-foreground);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.agent-slash-menu__item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 8px;
+  row-gap: 1px;
+  align-items: baseline;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  padding: 6px 8px;
+  text-align: left;
+  color: var(--color-foreground);
+  cursor: pointer;
+}
+
+.agent-slash-menu__item:hover,
+.agent-slash-menu__item.is-active {
+  background: color-mix(in srgb, var(--color-accent) 14%, var(--color-surface));
+}
+
+.agent-slash-menu__cmd {
+  grid-row: 1 / span 2;
+  align-self: center;
+  color: var(--color-accent);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.agent-slash-menu__label {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.agent-slash-menu__hint-row {
+  color: var(--color-muted-foreground);
+  font-size: 11px;
+  line-height: 1.25;
 }
 
 .library-chat-sources {

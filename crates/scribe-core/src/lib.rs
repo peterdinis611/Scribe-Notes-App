@@ -13,6 +13,9 @@ pub mod journal;
 pub mod manuscripts;
 pub mod nlp;
 pub mod office_import;
+pub mod markup_import;
+pub mod pdf_import;
+pub mod xml_import;
 pub mod rich_import;
 pub mod source_code;
 pub mod path;
@@ -25,6 +28,7 @@ pub mod tags;
 pub mod tasks;
 pub mod tasks_agenda;
 pub mod vault;
+pub mod vault_crypto;
 pub mod wiki;
 
 pub use compile::merge_chapters;
@@ -55,7 +59,17 @@ pub use syntax_highlight::{highlight_code_html, list_syntax_names, supports_lang
 pub use html_paste::{looks_like_dirty_html, normalize_clipboard_html, HtmlPasteResult};
 pub use journal::{JournalNote, JournalSlot, JournalSummary, JournalSummaryInput};
 pub use office_import::{
-    csv_bytes_to_tiptap, csv_text_to_tiptap, docx_bytes_to_tiptap, matrix_to_csv, xlsx_bytes_to_tiptap,
+    csv_bytes_to_tiptap, csv_text_to_tiptap, docx_bytes_to_tiptap, extract_tables_from_tiptap,
+    matrix_to_csv, tiptap_to_csv, xlsx_bytes_to_tiptap,
+};
+pub use markup_import::{
+    adoc_text_to_tiptap, eml_text_to_tiptap, fountain_text_to_tiptap, ics_text_to_tiptap,
+    is_markup_extension, markdown_to_tiptap, markup_bytes_to_tiptap, org_text_to_tiptap,
+    rst_text_to_tiptap, wiki_text_to_tiptap,
+};
+pub use pdf_import::{pdf_bytes_to_tiptap, pdf_text_to_tiptap};
+pub use xml_import::{
+    is_xml_document_extension, xml_bytes_to_tiptap, xml_text_to_tiptap,
 };
 pub use rich_import::{
     epub_bytes_to_tiptap, html_bytes_to_tiptap, html_text_to_tiptap, json_bytes_to_tiptap,
@@ -73,6 +87,10 @@ pub use tasks_agenda::{
     AgendaBucket, AgendaBucketId,
 };
 pub use plain_text::{tiptap_to_markdown, tiptap_to_plain_text};
+pub use vault_crypto::{
+    create_vault_verifier, decrypt_content_json, encrypt_content_json, is_vault_cipher_json,
+    verify_vault_password, VAULT_MARKER as VAULT_CRYPTO_MARKER,
+};
 pub use store::{search_library, sync_sidecar_backend};
 pub use tags::{
     add_document_tag, document_matches_meta_filters, make_meta_tag, parse_meta_tag,
@@ -101,4 +119,10 @@ pub use vault::{
     content_is_vault_cipher, document_is_vault, require_document_not_vault, vault_document_ids_among,
     McpVaultScope, ERR_VAULT_DENIED, ERR_VAULT_NLP, VAULT_CONTENT_MARKER,
 };
-pub use nlp::{match_agent_intents, match_document_chat_intent};
+pub use nlp::{
+    decode_phase_followup, encode_phase_followup, filter_agent_slash_commands,
+    is_phase_followup, is_weak_agent_answer, list_agent_slash_commands, match_agent_intents,
+    match_document_chat_intent, normalize_plan_phases, now_tools_from_phases, parse_agent_slash,
+    phases_to_followups, AgentPhaseWhen, AgentPlanPhase, AgentSlashCommandDef, ParsedAgentSlash,
+    PHASE_PREFIX,
+};

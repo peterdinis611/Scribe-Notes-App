@@ -53,6 +53,7 @@ export type AgentToolId =
   | 'rank_tasks'
   | 'contradictions'
   | 'commitments'
+  | 'forward_plan'
   | 'reading_plan'
   | 'note_pulse'
   | 'grammar'
@@ -235,6 +236,7 @@ const ALL_TOOLS: AgentToolId[] = [
   'rank_tasks',
   'contradictions',
   'commitments',
+  'forward_plan',
   'reading_plan',
   'note_pulse',
   'grammar',
@@ -248,6 +250,7 @@ const ALL_TOOLS: AgentToolId[] = [
   'terminology_library',
   'files_answer',
   'files_ingest',
+  'code_brief',
   'save_template',
   'handoff',
   'keywords',
@@ -612,6 +615,7 @@ export function teachingsToMemoryContext(
 /**
  * Reorder / filter a planned tool list using optimization prefs.
  * Preferred tools first, disabled removed, heavy tools dropped when preferFast or quiet hours.
+ * Canonical: `scribe_agent::apply_agent_optimize` (Tauri `apply_agent_optimize`).
  */
 export function applyAgentOptimize(
   tools: AgentToolId[],
