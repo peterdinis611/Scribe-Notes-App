@@ -2710,6 +2710,7 @@
     "resize": "Resize library",
     "resizeHint": "Drag to resize. Double-click to reset.",
     "allDocuments": "All documents",
+    "moreActions": "New & more",
     "expandFolder": "Expand folder",
     "collapseFolder": "Collapse folder",
     "documentCount_one": "{{count}} document",
@@ -2717,6 +2718,7 @@
     "searchPlaceholder": "Search documents…",
     "tabs": {
       "ariaLabel": "Library view",
+      "more": "More",
       "folders": "Folders",
       "recent": "Recent",
       "favorites": "Favorites",
@@ -5245,6 +5247,7 @@
     "add": "Add smart folder",
     "remove": "Remove smart folder",
     "empty": "No smart folders yet. Add one with a rule like tag:work.",
+    "emptyShort": "none yet",
     "namePlaceholder": "Name (e.g. Work)",
     "rulePlaceholder": "Rule (tag:work, folder:…, or search)",
     "ruleHint": "tag:name · folder:id · or any search phrase",

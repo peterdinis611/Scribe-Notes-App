@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Check, ListFilter } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { setLibrarySmartFilter } from '@/store/documentsSlice'
@@ -8,6 +9,13 @@ import { knownCanvasDocumentIds } from '@/lib/canvas/known'
 import { isLibraryDocumentVisible } from '@/lib/db/library-sync'
 import { scheduleIdle } from '@/lib/schedule-idle'
 import { cn } from '@/lib/utils'
+import { IconTooltip } from '@/components/ui/tooltip'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 const FILTERS: LibrarySmartFilter[] = [...LIBRARY_SMART_FILTER_IDS]
 
@@ -30,7 +38,6 @@ export function LibrarySmartFilters() {
         try {
           const { listLinkGraph, listWikiHealth, listLibraryAssets } = await import('@/lib/db/api')
           const { nlpListOpenTasks } = await import('@/lib/db/nlp-api')
-          // Stagger: graph first (cheap-ish), then heavier wiki/NLP/assets.
           const graph = await listLinkGraph().catch(() => null)
           if (cancelled) return
           setOrphanIds(new Set(graph?.orphans.map((item) => item.id) ?? []))
@@ -110,22 +117,42 @@ export function LibrarySmartFilters() {
     [t],
   )
 
+  const isFiltered = active !== 'none'
+  const tip = isFiltered
+    ? `${t('library.smartFilters.label')}: ${labels[active]} (${counts[active]})`
+    : t('library.smartFilters.label')
+
   return (
     <div className="library-smart-filters titlebar-no-drag" data-tour="library-filters">
-      <span className="library-smart-filters-label">{t('library.smartFilters.label')}</span>
-      <div className="library-smart-filters-row">
-        {FILTERS.map((filter) => (
-          <button
-            key={filter}
-            type="button"
-            className={cn('library-smart-filter-chip', active === filter && 'is-active')}
-            onClick={() => dispatch(setLibrarySmartFilter(filter))}
-          >
-            {labels[filter]}
-            <span className="library-smart-filter-count">{counts[filter]}</span>
-          </button>
-        ))}
-      </div>
+      <DropdownMenu>
+        <IconTooltip label={tip}>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className={cn('library-view-icon', isFiltered && 'is-active')}
+              aria-label={tip}
+            >
+              <ListFilter className="h-4 w-4" />
+              {isFiltered && <span className="library-view-badge">{counts[active]}</span>}
+            </button>
+          </DropdownMenuTrigger>
+        </IconTooltip>
+        <DropdownMenuContent align="end" className="min-w-[12rem]">
+          {FILTERS.map((filter) => (
+            <DropdownMenuItem
+              key={filter}
+              className={cn(active === filter && 'bg-[var(--color-hover)]')}
+              onSelect={() => dispatch(setLibrarySmartFilter(filter))}
+            >
+              <span className="flex-1">{labels[filter]}</span>
+              <span className="font-[family-name:var(--font-mono)] text-[10px] text-[var(--color-muted-foreground)]">
+                {counts[filter]}
+              </span>
+              {active === filter && <Check className="h-3.5 w-3.5 text-[var(--color-accent)]" />}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   )
 }

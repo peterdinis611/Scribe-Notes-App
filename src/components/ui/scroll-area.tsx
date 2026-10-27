@@ -12,18 +12,18 @@ export function ScrollArea({
 }) {
   return (
     <ScrollAreaPrimitive.Root
-      className={cn('relative flex min-h-0 flex-col overflow-hidden', className)}
+      className={cn('relative min-h-0 overflow-hidden', className)}
       {...props}
     >
       <ScrollAreaPrimitive.Viewport
         ref={viewportRef}
-        className="min-h-0 w-full flex-1 rounded-[inherit] [&>div]:!block [&>div]:min-h-full"
+        className="h-full w-full rounded-[inherit] outline-none [&>div]:!block [&>div]:min-h-[100%]"
       >
         {children}
       </ScrollAreaPrimitive.Viewport>
       <ScrollAreaPrimitive.Scrollbar
         orientation="vertical"
-        className="flex touch-none select-none p-0.5 transition-colors"
+        className="flex touch-none select-none p-0.5 transition-colors data-[orientation=vertical]:w-2"
       >
         <ScrollAreaPrimitive.Thumb className="relative flex-1 rounded-full bg-[var(--color-border)]" />
       </ScrollAreaPrimitive.Scrollbar>

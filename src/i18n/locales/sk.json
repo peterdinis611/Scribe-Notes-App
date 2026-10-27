@@ -2710,6 +2710,7 @@
     "resize": "Zmeniť šírku knižnice",
     "resizeHint": "Ťahaním zmeníte šírku. Dvojklik vráti predvolenú šírku.",
     "allDocuments": "Všetky dokumenty",
+    "moreActions": "Nové a ďalšie",
     "expandFolder": "Rozbaliť priečinok",
     "collapseFolder": "Zbaliť priečinok",
     "documentCount_one": "{{count}} dokument",
@@ -2719,6 +2720,7 @@
     "searchPlaceholder": "Hľadať v dokumentoch…",
     "tabs": {
       "ariaLabel": "Zobrazenie knižnice",
+      "more": "Viac",
       "folders": "Priečinky",
       "recent": "Nedávne",
       "favorites": "Obľúbené",
@@ -5261,6 +5263,7 @@
     "add": "Pridať inteligentný priečinok",
     "remove": "Odstrániť inteligentný priečinok",
     "empty": "Zatiaľ žiadne inteligentné priečinky. Pridajte pravidlo napr. tag:praca.",
+    "emptyShort": "zatiaľ žiadne",
     "namePlaceholder": "Názov (napr. Práca)",
     "rulePlaceholder": "Pravidlo (tag:praca, folder:…, alebo hľadanie)",
     "ruleHint": "tag:názov · folder:id · alebo ľubovoľný výraz",
