@@ -29,13 +29,15 @@ export function VideoBlock({ node, updateAttributes, selected, editor, deleteNod
   const dispatch = useAppDispatch()
   const rawSrc = String(node.attrs.src ?? '').trim()
   const libraryVideoId = String(node.attrs.libraryVideoId ?? '').trim() || null
-  const playSrc = resolveVideoSrc(rawSrc)
+  const fallbackPlaySrc = resolveVideoSrc(rawSrc)
   const editable = editor.isEditable
   const [failed, setFailed] = useState(false)
   const [draft, setDraft] = useState(rawSrc)
   const [captionDraft, setCaptionDraft] = useState(String(node.attrs.caption ?? ''))
   const [busy, setBusy] = useState(false)
   const [transcribeOpen, setTranscribeOpen] = useState(false)
+  /** Live path for library videos (survives backup restore / moved documents dir). */
+  const [libraryPlaySrc, setLibraryPlaySrc] = useState<string | null>(null)
 
   useEffect(() => {
     setDraft(rawSrc)
@@ -46,10 +48,36 @@ export function VideoBlock({ node, updateAttributes, selected, editor, deleteNod
     setCaptionDraft(String(node.attrs.caption ?? ''))
   }, [node.attrs.caption])
 
+  useEffect(() => {
+    if (!libraryVideoId) {
+      setLibraryPlaySrc(null)
+      return
+    }
+    let cancelled = false
+    void (async () => {
+      try {
+        const { libraryVideoPlaybackPathNative } = await import('@/lib/db/api')
+        const path = await libraryVideoPlaybackPathNative(libraryVideoId)
+        if (!cancelled) {
+          setLibraryPlaySrc(resolveVideoSrc(path))
+          setFailed(false)
+        }
+      } catch {
+        if (!cancelled) setLibraryPlaySrc(null)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [libraryVideoId])
+
+  const playSrc = libraryPlaySrc || fallbackPlaySrc
   const canPlay =
     playSrc.length > 0 &&
-    ((ReactPlayer.canPlay?.(playSrc) ?? isVideoUrl(playSrc)) || isLocalVideoPath(rawSrc))
-  const isEmpty = !rawSrc
+    ((ReactPlayer.canPlay?.(playSrc) ?? isVideoUrl(playSrc)) ||
+      isLocalVideoPath(rawSrc) ||
+      Boolean(libraryVideoId && libraryPlaySrc))
+  const isEmpty = !rawSrc && !libraryVideoId
   const showChrome = (selected || isEmpty) && editable
 
   function applySrc(next: string) {

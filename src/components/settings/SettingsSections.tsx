@@ -528,7 +528,19 @@ export function StorageSection() {
       const result = await importLibraryArchive(password)
       if (!result) return
       await reloadLibraryFromBackend(dispatch)
-      toast.success(t('settings.storage.backupImportDone'), result.message)
+      const videosRemapped = result.videosRemapped ?? 0
+      const detail =
+        videosRemapped > 0
+          ? t('settings.storage.backupImportDoneDetailWithVideos', {
+              files: result.documentsImported,
+              videos: videosRemapped,
+              version: result.message,
+            })
+          : t('settings.storage.backupImportDoneDetail', {
+              files: result.documentsImported,
+              version: result.message,
+            })
+      toast.success(t('settings.storage.backupImportDone'), detail)
       await navigate(ROUTES.home())
     } catch (error) {
       toast.error(t('settings.storage.backupImportError'), String(error))

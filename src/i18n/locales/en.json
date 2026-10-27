@@ -1345,8 +1345,8 @@
       "clearConfirmOk": "Delete everything",
       "folderChanged": "Documents folder changed",
       "backupTitle": "Library backup",
-      "backupDescription": "Export or import the full archive (.scribe-backup.zip) including SQLite and on-disk files.",
-      "backupDescriptionShort": "Export / import the full archive (.scribe-backup.zip). Optional AES-256 password.",
+      "backupDescription": "Export or import the full archive (.scribe-backup.zip) including SQLite, notes, attachments, and local library videos. After import, copied videos are re-linked automatically.",
+      "backupDescriptionShort": "Export / import the full archive (.scribe-backup.zip), including local videos. Optional AES-256 password.",
       "backupExport": "Export",
       "backupExporting": "Exporting…",
       "backupExportDone": "Backup exported",
@@ -1357,9 +1357,11 @@
       "backupImport": "Import",
       "backupImporting": "Importing…",
       "backupImportDone": "Backup restored",
+      "backupImportDoneDetail": "{{files}} files restored · {{version}}",
+      "backupImportDoneDetailWithVideos": "{{files}} files restored, {{videos}} videos re-linked · {{version}}",
       "backupImportError": "Backup import failed",
       "backupImportConfirmTitle": "Restore backup?",
-      "backupImportConfirm": "The current library will be replaced by the archive contents. The existing database is backed up to a .bak file.",
+      "backupImportConfirm": "The current library will be replaced by the archive contents (notes, attachments, and local videos). The existing database is backed up to a .bak file.",
       "backupImportConfirmOk": "Import",
       "backupImportPasswordTitle": "Backup password",
       "backupImportPasswordDescription": "Enter the archive password if it was encrypted. Leave empty for unencrypted archives.",
@@ -2413,7 +2415,7 @@
           "title": "Backup and restore",
           "summary": "Full library archives",
           "paragraphs": [
-            "Settings → Storage can export or import a full library archive (.scribe-backup.zip), including the database and on-disk files."
+            "Settings → Storage can export or import a full library archive (.scribe-backup.zip), including the database, attachments, and local library videos. Copied videos are re-linked automatically after import."
           ],
           "points": [
             "Import replaces the current library; the previous database is kept as a .bak file",

@@ -1708,6 +1708,8 @@ export interface BackupExportResult {
 
 export interface BackupImportResult {
   documentsImported: number
+  /** Copy-mode library videos whose absolute paths were rewritten after restore. */
+  videosRemapped?: number
   message: string
 }
 

@@ -1345,8 +1345,8 @@
       "clearConfirmOk": "Vymazať všetko",
       "folderChanged": "Priečinok dokumentov zmenený",
       "backupTitle": "Záloha knižnice",
-      "backupDescription": "Export alebo import celého archívu (.scribe-backup.zip) vrátane SQLite a súborov na disku.",
-      "backupDescriptionShort": "Export / import celého archívu (.scribe-backup.zip). Voliteľné AES-256 heslo.",
+      "backupDescription": "Export alebo import celého archívu (.scribe-backup.zip) vrátane SQLite, poznámok, príloh a lokálnych videí. Po importe sa skopírované videá automaticky znova napoja.",
+      "backupDescriptionShort": "Export / import celého archívu (.scribe-backup.zip) vrátane lokálnych videí. Voliteľné AES-256 heslo.",
       "backupExport": "Exportovať",
       "backupExporting": "Exportujem…",
       "backupExportDone": "Záloha exportovaná",
@@ -1357,9 +1357,11 @@
       "backupImport": "Importovať",
       "backupImporting": "Importujem…",
       "backupImportDone": "Záloha obnovená",
+      "backupImportDoneDetail": "{{files}} súborov obnovených · {{version}}",
+      "backupImportDoneDetailWithVideos": "{{files}} súborov obnovených, {{videos}} videí znova napojených · {{version}}",
       "backupImportError": "Import zálohy zlyhal",
       "backupImportConfirmTitle": "Obnoviť zálohu?",
-      "backupImportConfirm": "Aktuálna knižnica bude nahradená obsahom archívu. Existujúca databáza sa zálohuje do .bak súboru.",
+      "backupImportConfirm": "Aktuálna knižnica bude nahradená obsahom archívu (poznámky, prílohy a lokálne videá). Existujúca databáza sa zálohuje do .bak súboru.",
       "backupImportConfirmOk": "Importovať",
       "backupImportPasswordTitle": "Heslo zálohy",
       "backupImportPasswordDescription": "Zadajte heslo archívu, ak bol šifrovaný. Prázdne pre nešifrované archívy.",
@@ -2417,7 +2419,7 @@
           "title": "Záloha a obnovenie",
           "summary": "Celý archív knižnice",
           "paragraphs": [
-            "Nastavenia → Úložisko dokáže exportovať alebo importovať celý archív knižnice (.scribe-backup.zip) vrátane databázy a súborov na disku."
+            "Nastavenia → Úložisko dokáže exportovať alebo importovať celý archív knižnice (.scribe-backup.zip) vrátane databázy, príloh a lokálnych videí. Skopírované videá sa po importe automaticky znova napoja."
           ],
           "points": [
             "Import nahradí aktuálnu knižnicu; predchádzajúca databáza sa uloží ako .bak",
