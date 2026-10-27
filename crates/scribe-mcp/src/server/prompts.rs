@@ -242,4 +242,19 @@ impl ScribeMcp {
         )])
         .with_description("Switch library then search")
     }
+
+    #[prompt(description = "Review local audit log for errors, denials, and security events.")]
+    fn audit_security_review(&self) -> GetPromptResult {
+        GetPromptResult::new(vec![PromptMessage::new_text(
+            Role::User,
+            "Review my local Scribe audit log.\n\
+             1. Call audit_status, then get_audit_stats.\n\
+             2. Call list_audit_events with outcome=error (limit 40).\n\
+             3. Call list_audit_events with outcome=denied (limit 40).\n\
+             4. Call list_audit_events with category=security (limit 40).\n\
+             5. Optionally export_audit_events_jsonl for the same filters if I ask for a dump.\n\
+             Summarize clusters by action/actor. Quote event ids. Do not invent events.",
+        )])
+        .with_description("Audit errors, denials, security")
+    }
 }

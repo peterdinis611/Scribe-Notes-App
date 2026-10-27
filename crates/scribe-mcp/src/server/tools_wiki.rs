@@ -303,6 +303,69 @@ impl ScribeMcp {
     }
 
     #[tool(
+        description = "Get one library video by id (source path, status, duration, transcript paths)."
+    )]
+    fn get_library_video(
+        &self,
+        Parameters(params): Parameters<tools::LibraryVideoIdParams>,
+    ) -> Result<String, String> {
+        let id = params.id.trim();
+        if id.is_empty() {
+            return Err("id is required".into());
+        }
+        self.with_store(|store| {
+            let video = store
+                .get_library_video(id)?
+                .ok_or_else(|| format!("Library video not found: {id}"))?;
+            Ok(tools::json(&video))
+        })
+    }
+
+    #[tool(
+        description = "Delete a library video row (and copied sandbox files when present). Requires writable DB. Does not delete linked transcript documents."
+    )]
+    fn delete_library_video(
+        &self,
+        Parameters(params): Parameters<tools::LibraryVideoIdParams>,
+    ) -> Result<String, String> {
+        if !self.writable {
+            return Err("MCP is read-only (set SCRIBE_MCP_WRITE=1 to enable writes)".to_string());
+        }
+        let id = params.id.trim();
+        if id.is_empty() {
+            return Err("id is required".into());
+        }
+        let result = self.with_store(|store| {
+            let Some(video) = store.get_library_video(id)? else {
+                return Err(format!("Library video not found: {id}"));
+            };
+            // Best-effort remove copy-mode sandbox tree under documents/files.
+            if let Some(rel) = video.rel_path.as_deref() {
+                if let Ok(docs) = store.documents_dir() {
+                    let abs = docs.join("files").join(rel);
+                    if let Some(parent) = abs.parent() {
+                        let _ = std::fs::remove_dir_all(parent);
+                    }
+                }
+            }
+            let deleted = store.delete_library_video(id)?;
+            Ok(tools::json(&serde_json::json!({
+                "deleted": deleted,
+                "id": id,
+                "title": video.title,
+            })))
+        })?;
+        self.audit_mcp(
+            "mcp_tool",
+            "delete_library_video",
+            &format!("MCP delete_library_video {id}"),
+            Some(serde_json::json!({ "id": id })),
+            "ok",
+        );
+        Ok(result)
+    }
+
+    #[tool(
         description = "Append a short outline scaffold to a stub note (heading + seed paragraph + 3 bullets). Requires writable DB."
     )]
     fn expand_stub_document(

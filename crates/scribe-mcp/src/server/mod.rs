@@ -4,6 +4,7 @@ mod agent_exec;
 mod prompts;
 mod resources;
 mod tools_agent;
+mod tools_audit;
 mod tools_documents;
 mod tools_journal;
 mod tools_library;
@@ -136,6 +137,7 @@ impl ScribeMcp {
             + Self::router_study_files()
             + Self::router_wiki()
             + Self::router_ui()
+            + Self::router_audit()
     }
 
     /// Combined prompt router for `#[prompt_handler]`.
@@ -179,7 +181,9 @@ impl ServerHandler for ScribeMcp {
              suggest_wiki_resolutions / resolve_wiki_link / create_and_link_wiki_note / auto_resolve_wiki_links / \
              expand_stub_document / list_graph_hubs. \
              Smart filters: filter_library_smart (unlinked|untagged|unread|stubs|tasks|media|…). \
-             Videos: list_library_videos. \
+             Videos: list_library_videos / get_library_video / delete_library_video. \
+             Templates: list_templates / create_note_from_template / parse_template_pack. \
+             Audit: audit_status / list_audit_events / get_audit_event / get_audit_stats / export_audit_events_jsonl. \
              Smart folders: list_smart_folders / upsert_smart_folder / delete_smart_folder / evaluate_smart_folder. \
              Resources: scribe://doc/{id}, scribe://artifact/{id}, scribe://revision/{docId}/{revId}. \
              For Q&A over the library use library_answer. \

@@ -2652,6 +2652,17 @@ impl ScribeStore {
     pub fn list_library_videos(&self) -> Result<Vec<scribe_video::LibraryVideo>, String> {
         crate::db::list_library_videos(&self.db)
     }
+
+    pub fn get_library_video(
+        &self,
+        id: &str,
+    ) -> Result<Option<scribe_video::LibraryVideo>, String> {
+        crate::db::get_library_video(&self.db, id)
+    }
+
+    pub fn delete_library_video(&self, id: &str) -> Result<bool, String> {
+        crate::db::delete_library_video(&self.db, id)
+    }
 }
 
 pub(crate) fn require_nlp(conn: &Connection) -> Result<(), String> {
