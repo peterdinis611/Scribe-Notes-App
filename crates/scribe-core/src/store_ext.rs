@@ -9,12 +9,13 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use uuid::Uuid;
 use zip::write::SimpleFileOptions;
-use zip::ZipWriter;
+use zip::{ZipArchive, ZipWriter};
 
 use crate::db::{
     active_library_id, document_index_text, extract_search_text, is_nlp_enabled, rank_document_chunks,
-    set_answer_backend, set_embed_backend, set_nlp_enabled, sync_document_fts, sync_document_links,
-    SearchMode, DEFAULT_LIBRARY_ID, META_ACTIVE_LIBRARY,
+    remap_library_video_paths, require_library_id, set_active_library_id, set_answer_backend,
+    set_embed_backend, set_nlp_enabled, sync_document_fts, sync_document_links, SearchMode,
+    DEFAULT_LIBRARY_ID,
 };
 use crate::db::delete_revision;
 use crate::nlp::{
@@ -92,6 +93,28 @@ pub struct BackupInfo {
 pub struct BackupExportResult {
     pub path: String,
     pub documents_included: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BackupManifest {
+    pub version: String,
+    #[serde(default)]
+    pub schema_version: i32,
+    #[serde(default)]
+    pub created_at: i64,
+    #[serde(default)]
+    pub documents_dir: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BackupImportResult {
+    pub documents_imported: u32,
+    pub videos_remapped: u32,
+    pub db_path: String,
+    pub documents_dir: String,
+    pub message: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -1199,6 +1222,33 @@ impl ScribeStore {
         let result = write_library_archive(&out_path, db_path, &documents_dir, schema_version)?;
         let _ = prune_old_auto_backups(&dir, AUTO_BACKUP_KEEP);
         Ok(result)
+    }
+
+    /// Restore an unencrypted `scribe-backup-*.zip` produced by [`Self::create_backup`].
+    ///
+    /// Replaces `scribe.db` under `app_dir` and the documents tree, then remaps copy-mode
+    /// library video absolute paths. Encrypted archives stay in the Tauri backup path.
+    pub fn import_backup_archive(
+        archive_path: &Path,
+        app_dir: &Path,
+        documents_dir_hint: &Path,
+    ) -> Result<BackupImportResult, String> {
+        let (manifest, db_path, documents_dir, documents_imported) =
+            extract_plain_library_archive(archive_path, app_dir, documents_dir_hint)?;
+        let videos_remapped = {
+            let conn = Connection::open(&db_path).map_err(|e| e.to_string())?;
+            remap_library_video_paths(&conn, &documents_dir)?
+        };
+        Ok(BackupImportResult {
+            documents_imported,
+            videos_remapped,
+            db_path: db_path.to_string_lossy().into_owned(),
+            documents_dir: documents_dir.to_string_lossy().into_owned(),
+            message: format!(
+                "Scribe {} (schema v{})",
+                manifest.version, manifest.schema_version
+            ),
+        })
     }
 
     pub fn rewrite_selection(
@@ -2342,6 +2392,7 @@ impl ScribeStore {
             return Err("id is required".to_string());
         }
         self.run_writable(|db| {
+            let id = require_library_id(db, id)?;
             let now = chrono::Utc::now().timestamp();
             db.execute(
                 "UPDATE libraries SET last_opened_at = ?1 WHERE id = ?2",
@@ -2352,7 +2403,7 @@ impl ScribeStore {
                 .query_row(
                     "SELECT id, name, root_path, created_at, last_opened_at, sort_order \
                      FROM libraries WHERE id = ?1",
-                    [id],
+                    [&id],
                     |row| {
                         Ok(LibraryRecord {
                             id: row.get(0)?,
@@ -2365,9 +2416,7 @@ impl ScribeStore {
                         })
                     },
                 )
-                .optional()
-                .map_err(|e| e.to_string())?
-                .ok_or_else(|| format!("Library not found: {id}"))?;
+                .map_err(|e| e.to_string())?;
 
             if !library.root_path.is_empty() {
                 db.execute(
@@ -2376,11 +2425,7 @@ impl ScribeStore {
                 )
                 .map_err(|e| e.to_string())?;
             }
-            db.execute(
-                "INSERT OR REPLACE INTO meta (key, value) VALUES (?1, ?2)",
-                params![META_ACTIVE_LIBRARY, library.id],
-            )
-            .map_err(|e| e.to_string())?;
+            set_active_library_id(db, &library.id)?;
             library.last_opened_at = now;
             Ok(library)
         })
@@ -3120,63 +3165,63 @@ fn evaluate_query_rule(
     limit: i64,
 ) -> Result<Vec<SmartFolderMatch>, String> {
     let rule = rule.trim();
+    let library_id = active_library_id(conn);
+    let limit = limit.clamp(1, 500);
+
+    // Support simple AND of tokens: `status:draft favorite:true` etc.
+    let tokens: Vec<&str> = rule
+        .split_whitespace()
+        .filter(|t| !t.is_empty())
+        .collect();
+    if tokens.len() > 1
+        && tokens.iter().all(|t| {
+            t.contains(':')
+                || t.eq_ignore_ascii_case("favorite")
+                || t.eq_ignore_ascii_case("pinned")
+                || t.eq_ignore_ascii_case("favorites")
+        })
+    {
+        return evaluate_compound_rule(conn, &library_id, &tokens, limit);
+    }
+
     if let Some(tag) = rule.strip_prefix("tag:") {
-        let tag = tag.trim().to_lowercase();
-        let library_id = active_library_id(conn);
-        let mut stmt = conn
-            .prepare(
-                "SELECT id, title, tags FROM documents \
-                 WHERE deleted_at IS NULL AND COALESCE(library_id, 'default') = ?1 \
-                 ORDER BY updated_at DESC LIMIT 200",
-            )
-            .map_err(|e| e.to_string())?;
-        let rows = stmt
-            .query_map([library_id], |row| {
-                Ok((
-                    row.get::<_, String>(0)?,
-                    row.get::<_, String>(1)?,
-                    row.get::<_, Option<String>>(2)?,
-                ))
-            })
-            .map_err(|e| e.to_string())?;
-        let mut matches = Vec::new();
-        for row in rows {
-            let (id, title, tags_raw) = row.map_err(|e| e.to_string())?;
-            let tags = crate::tags::parse_tags(tags_raw);
-            if tags.iter().any(|existing| existing.eq_ignore_ascii_case(&tag)) {
-                matches.push(SmartFolderMatch {
-                    document_id: id,
-                    title,
-                });
-                if matches.len() as i64 >= limit {
-                    break;
-                }
-            }
-        }
-        return Ok(matches);
+        return match_by_tag(conn, &library_id, tag.trim(), limit);
+    }
+    if let Some(status) = rule.strip_prefix("status:") {
+        let status = status.trim();
+        let needle = if status.contains(':') {
+            status.to_string()
+        } else {
+            crate::tags::make_meta_tag(crate::tags::TagKind::Status, status)
+        };
+        return match_by_tag(conn, &library_id, &needle, limit);
+    }
+    if let Some(project) = rule.strip_prefix("project:") {
+        let needle = crate::tags::make_meta_tag(crate::tags::TagKind::Project, project.trim());
+        return match_by_tag(conn, &library_id, &needle, limit);
+    }
+    if let Some(year) = rule.strip_prefix("year:") {
+        let needle = crate::tags::make_meta_tag(crate::tags::TagKind::Year, year.trim());
+        return match_by_tag(conn, &library_id, &needle, limit);
     }
     if let Some(folder) = rule.strip_prefix("folder:") {
-        let folder = folder.trim();
-        let library_id = active_library_id(conn);
-        let mut stmt = conn
-            .prepare(
-                "SELECT id, title FROM documents \
-                 WHERE deleted_at IS NULL AND COALESCE(library_id, 'default') = ?1 AND folder_id = ?2 \
-                 ORDER BY updated_at DESC LIMIT ?3",
-            )
-            .map_err(|e| e.to_string())?;
-        let rows = stmt
-            .query_map(params![library_id, folder, limit], |row| {
-                Ok(SmartFolderMatch {
-                    document_id: row.get(0)?,
-                    title: row.get(1)?,
-                })
-            })
-            .map_err(|e| e.to_string())?;
-        return rows
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|e| e.to_string());
+        return match_by_folder(conn, &library_id, folder.trim(), limit);
     }
+    if let Some(flag) = parse_bool_flag_rule(rule, "favorite")
+        .or_else(|| parse_bool_flag_rule(rule, "favorites"))
+    {
+        return match_by_flag(conn, &library_id, "is_favorite", flag, limit);
+    }
+    if let Some(flag) = parse_bool_flag_rule(rule, "pinned") {
+        return match_by_flag(conn, &library_id, "is_pinned", flag, limit);
+    }
+    if let Some(days) = rule.strip_prefix("updated:") {
+        return match_by_updated_window(conn, &library_id, days.trim(), limit);
+    }
+    if let Some(days) = rule.strip_prefix("created:") {
+        return match_by_created_window(conn, &library_id, days.trim(), limit);
+    }
+
     let hits = crate::store::search_library(conn, sidecar, rule, limit, SearchMode::Fts)?;
     Ok(hits
         .into_iter()
@@ -3185,6 +3230,264 @@ fn evaluate_query_rule(
             title: hit.title,
         })
         .collect())
+}
+
+fn parse_bool_flag_rule(rule: &str, key: &str) -> Option<bool> {
+    let rule = rule.trim();
+    if rule.eq_ignore_ascii_case(key) {
+        return Some(true);
+    }
+    let prefix = format!("{key}:");
+    rule.strip_prefix(&prefix).map(|v| {
+        matches!(
+            v.trim().to_ascii_lowercase().as_str(),
+            "1" | "true" | "yes" | "on" | ""
+        )
+    })
+}
+
+fn match_by_tag(
+    conn: &Connection,
+    library_id: &str,
+    tag: &str,
+    limit: i64,
+) -> Result<Vec<SmartFolderMatch>, String> {
+    let tag = tag.trim().to_lowercase();
+    if tag.is_empty() {
+        return Ok(Vec::new());
+    }
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, title, tags FROM documents \
+             WHERE deleted_at IS NULL AND COALESCE(library_id, 'default') = ?1 \
+             ORDER BY updated_at DESC LIMIT 500",
+        )
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map([library_id], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, Option<String>>(2)?,
+            ))
+        })
+        .map_err(|e| e.to_string())?;
+    let mut matches = Vec::new();
+    for row in rows {
+        let (id, title, tags_raw) = row.map_err(|e| e.to_string())?;
+        let tags = crate::tags::parse_tags(tags_raw);
+        if tags
+            .iter()
+            .any(|existing| existing.eq_ignore_ascii_case(&tag))
+        {
+            matches.push(SmartFolderMatch {
+                document_id: id,
+                title,
+            });
+            if matches.len() as i64 >= limit {
+                break;
+            }
+        }
+    }
+    Ok(matches)
+}
+
+fn match_by_folder(
+    conn: &Connection,
+    library_id: &str,
+    folder: &str,
+    limit: i64,
+) -> Result<Vec<SmartFolderMatch>, String> {
+    let folder = folder.trim();
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, title FROM documents \
+             WHERE deleted_at IS NULL AND COALESCE(library_id, 'default') = ?1 AND folder_id = ?2 \
+             ORDER BY updated_at DESC LIMIT ?3",
+        )
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map(params![library_id, folder, limit], |row| {
+            Ok(SmartFolderMatch {
+                document_id: row.get(0)?,
+                title: row.get(1)?,
+            })
+        })
+        .map_err(|e| e.to_string())?;
+    rows.collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())
+}
+
+fn match_by_flag(
+    conn: &Connection,
+    library_id: &str,
+    column: &str,
+    value: bool,
+    limit: i64,
+) -> Result<Vec<SmartFolderMatch>, String> {
+    let sql = format!(
+        "SELECT id, title FROM documents \
+         WHERE deleted_at IS NULL AND COALESCE(library_id, 'default') = ?1 AND COALESCE({column}, 0) = ?2 \
+         ORDER BY updated_at DESC LIMIT ?3"
+    );
+    let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map(params![library_id, value as i64, limit], |row| {
+            Ok(SmartFolderMatch {
+                document_id: row.get(0)?,
+                title: row.get(1)?,
+            })
+        })
+        .map_err(|e| e.to_string())?;
+    rows.collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())
+}
+
+fn parse_day_window(raw: &str) -> Result<i64, String> {
+    let raw = raw.trim().trim_start_matches('-');
+    let digits: String = raw.chars().take_while(|c| c.is_ascii_digit()).collect();
+    let days: i64 = digits
+        .parse()
+        .map_err(|_| format!("Invalid day window: {raw}"))?;
+    if !(1..=3650).contains(&days) {
+        return Err(format!("Day window out of range: {days}"));
+    }
+    Ok(days)
+}
+
+fn match_by_updated_window(
+    conn: &Connection,
+    library_id: &str,
+    raw: &str,
+    limit: i64,
+) -> Result<Vec<SmartFolderMatch>, String> {
+    let days = parse_day_window(raw)?;
+    let cutoff = chrono::Utc::now().timestamp_millis() - days * 86_400_000;
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, title FROM documents \
+             WHERE deleted_at IS NULL AND COALESCE(library_id, 'default') = ?1 AND updated_at >= ?2 \
+             ORDER BY updated_at DESC LIMIT ?3",
+        )
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map(params![library_id, cutoff, limit], |row| {
+            Ok(SmartFolderMatch {
+                document_id: row.get(0)?,
+                title: row.get(1)?,
+            })
+        })
+        .map_err(|e| e.to_string())?;
+    rows.collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())
+}
+
+fn match_by_created_window(
+    conn: &Connection,
+    library_id: &str,
+    raw: &str,
+    limit: i64,
+) -> Result<Vec<SmartFolderMatch>, String> {
+    let days = parse_day_window(raw)?;
+    let cutoff = chrono::Utc::now().timestamp_millis() - days * 86_400_000;
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, title FROM documents \
+             WHERE deleted_at IS NULL AND COALESCE(library_id, 'default') = ?1 AND created_at >= ?2 \
+             ORDER BY created_at DESC LIMIT ?3",
+        )
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map(params![library_id, cutoff, limit], |row| {
+            Ok(SmartFolderMatch {
+                document_id: row.get(0)?,
+                title: row.get(1)?,
+            })
+        })
+        .map_err(|e| e.to_string())?;
+    rows.collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())
+}
+
+fn evaluate_compound_rule(
+    conn: &Connection,
+    library_id: &str,
+    tokens: &[&str],
+    limit: i64,
+) -> Result<Vec<SmartFolderMatch>, String> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, title, tags, COALESCE(is_favorite, 0), COALESCE(is_pinned, 0), folder_id \
+             FROM documents \
+             WHERE deleted_at IS NULL AND COALESCE(library_id, 'default') = ?1 \
+             ORDER BY updated_at DESC LIMIT 800",
+        )
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map([library_id], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, Option<String>>(2)?,
+                row.get::<_, i64>(3)? != 0,
+                row.get::<_, i64>(4)? != 0,
+                row.get::<_, Option<String>>(5)?,
+            ))
+        })
+        .map_err(|e| e.to_string())?;
+
+    let mut matches = Vec::new();
+    for row in rows {
+        let (id, title, tags_raw, favorite, pinned, folder_id) =
+            row.map_err(|e| e.to_string())?;
+        let tags = crate::tags::parse_tags(tags_raw);
+        let ok = tokens.iter().all(|token| {
+            if let Some(tag) = token.strip_prefix("tag:") {
+                return tags
+                    .iter()
+                    .any(|t| t.eq_ignore_ascii_case(tag.trim()));
+            }
+            if let Some(status) = token.strip_prefix("status:") {
+                let needle = if status.contains(':') {
+                    status.trim().to_string()
+                } else {
+                    crate::tags::make_meta_tag(crate::tags::TagKind::Status, status.trim())
+                };
+                return tags
+                    .iter()
+                    .any(|t| t.eq_ignore_ascii_case(&needle));
+            }
+            if let Some(project) = token.strip_prefix("project:") {
+                let needle =
+                    crate::tags::make_meta_tag(crate::tags::TagKind::Project, project.trim());
+                return tags
+                    .iter()
+                    .any(|t| t.eq_ignore_ascii_case(&needle));
+            }
+            if let Some(folder) = token.strip_prefix("folder:") {
+                return folder_id.as_deref() == Some(folder.trim());
+            }
+            if let Some(flag) = parse_bool_flag_rule(token, "favorite")
+                .or_else(|| parse_bool_flag_rule(token, "favorites"))
+            {
+                return favorite == flag;
+            }
+            if let Some(flag) = parse_bool_flag_rule(token, "pinned") {
+                return pinned == flag;
+            }
+            false
+        });
+        if ok {
+            matches.push(SmartFolderMatch {
+                document_id: id,
+                title,
+            });
+            if matches.len() as i64 >= limit {
+                break;
+            }
+        }
+    }
+    Ok(matches)
 }
 
 fn count_occurrences(haystack: &str, needle: &str, match_case: bool) -> i64 {
@@ -3320,7 +3623,141 @@ fn prune_old_auto_backups(dir: &Path, keep: usize) -> Result<u32, String> {
     Ok(removed)
 }
 
-fn write_library_archive(
+const BACKUP_MANIFEST_NAME: &str = "manifest.json";
+const BACKUP_DB_NAME: &str = "scribe.db";
+const BACKUP_DOCUMENTS_PREFIX: &str = "documents/";
+
+/// Unencrypted archive extract used by [`ScribeStore::import_backup_archive`].
+pub fn extract_plain_library_archive(
+    archive_path: &Path,
+    app_dir: &Path,
+    documents_dir_hint: &Path,
+) -> Result<(BackupManifest, PathBuf, PathBuf, u32), String> {
+    let file = File::open(archive_path).map_err(|e| e.to_string())?;
+    let mut archive = ZipArchive::new(file).map_err(|e| e.to_string())?;
+
+    fs::create_dir_all(app_dir).map_err(|e| e.to_string())?;
+    let db_path = app_dir.join(BACKUP_DB_NAME);
+    let stamp = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
+    let db_staging = app_dir.join(format!("scribe.db.import-{stamp}"));
+    let staging_docs = app_dir.join(format!("documents-import-{stamp}"));
+    fs::create_dir_all(&staging_docs).map_err(|e| e.to_string())?;
+
+    let mut manifest: Option<BackupManifest> = None;
+    let mut saw_db = false;
+    let mut documents_imported = 0u32;
+
+    for i in 0..archive.len() {
+        let mut entry = archive.by_index(i).map_err(|e| {
+            if format!("{e}").to_lowercase().contains("encrypt") {
+                "Archive is encrypted — use the app import dialog with a password.".to_string()
+            } else {
+                e.to_string()
+            }
+        })?;
+        let name = entry.name().map_err(|e| e.to_string())?.into_owned();
+
+        if name == BACKUP_MANIFEST_NAME {
+            let mut buffer = Vec::with_capacity(entry.size() as usize);
+            entry.read_to_end(&mut buffer).map_err(|e| e.to_string())?;
+            // Accept both camelCase (Tauri) and the pretty JSON from create_backup.
+            #[derive(Deserialize)]
+            #[serde(rename_all = "camelCase")]
+            struct ManifestLoose {
+                version: String,
+                #[serde(default)]
+                schema_version: i32,
+                #[serde(default)]
+                created_at: i64,
+                #[serde(default)]
+                documents_dir: String,
+            }
+            let loose: ManifestLoose =
+                serde_json::from_slice(&buffer).map_err(|e| e.to_string())?;
+            manifest = Some(BackupManifest {
+                version: loose.version,
+                schema_version: loose.schema_version,
+                created_at: loose.created_at,
+                documents_dir: loose.documents_dir,
+            });
+            continue;
+        }
+
+        if name == BACKUP_DB_NAME {
+            let mut out = File::create(&db_staging).map_err(|e| e.to_string())?;
+            std::io::copy(&mut entry, &mut out).map_err(|e| e.to_string())?;
+            saw_db = true;
+            continue;
+        }
+
+        if name.starts_with(BACKUP_DOCUMENTS_PREFIX) && !name.ends_with('/') {
+            let rel = name.strip_prefix(BACKUP_DOCUMENTS_PREFIX).unwrap_or(&name);
+            let target = crate::storage_fs::safe_join_under(&staging_docs, rel)?;
+            if let Some(parent) = target.parent() {
+                fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+            }
+            let mut out = File::create(&target).map_err(|e| e.to_string())?;
+            std::io::copy(&mut entry, &mut out).map_err(|e| e.to_string())?;
+            documents_imported += 1;
+        }
+    }
+
+    let manifest = manifest.ok_or_else(|| "Archive is missing manifest.json".to_string())?;
+    if !saw_db {
+        let _ = fs::remove_file(&db_staging);
+        let _ = fs::remove_dir_all(&staging_docs);
+        return Err("Archive is missing scribe.db".to_string());
+    }
+
+    if db_path.exists() {
+        let backup = app_dir.join(format!(
+            "scribe.db.bak-{}",
+            chrono::Utc::now().timestamp()
+        ));
+        fs::rename(&db_path, &backup).map_err(|e| e.to_string())?;
+    }
+    fs::rename(&db_staging, &db_path).map_err(|e| e.to_string())?;
+
+    let documents_dir = {
+        let conn = Connection::open(&db_path).map_err(|e| e.to_string())?;
+        let stored: Option<String> = conn
+            .query_row(
+                "SELECT value FROM meta WHERE key = ?1",
+                [META_DOCUMENTS_DIR],
+                |row| row.get(0),
+            )
+            .ok();
+        stored
+            .filter(|v| !v.trim().is_empty())
+            .map(PathBuf::from)
+            .unwrap_or_else(|| documents_dir_hint.to_path_buf())
+    };
+
+    if documents_dir.exists() {
+        let backup_dir = documents_dir.with_extension(format!(
+            "bak-{}",
+            chrono::Utc::now().timestamp()
+        ));
+        let _ = fs::rename(&documents_dir, &backup_dir);
+    }
+    if let Some(parent) = documents_dir.parent() {
+        fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+    fs::rename(&staging_docs, &documents_dir).map_err(|e| e.to_string())?;
+
+    {
+        let conn = Connection::open(&db_path).map_err(|e| e.to_string())?;
+        conn.execute(
+            "INSERT OR REPLACE INTO meta (key, value) VALUES (?1, ?2)",
+            params![META_DOCUMENTS_DIR, documents_dir.to_string_lossy().as_ref()],
+        )
+        .map_err(|e| e.to_string())?;
+    }
+
+    Ok((manifest, db_path, documents_dir, documents_imported))
+}
+
+pub fn write_library_archive(
     out_path: &Path,
     db_path: &Path,
     documents_dir: &Path,
@@ -3334,26 +3771,27 @@ fn write_library_archive(
     let mut zip = ZipWriter::new(file);
     let options = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
 
-    let manifest = json!({
-        "version": env!("CARGO_PKG_VERSION"),
-        "schemaVersion": schema_version,
-        "createdAt": chrono::Utc::now().timestamp(),
-        "documentsDir": documents_dir.to_string_lossy(),
-    });
+    let manifest = BackupManifest {
+        version: env!("CARGO_PKG_VERSION").to_string(),
+        schema_version,
+        created_at: chrono::Utc::now().timestamp(),
+        documents_dir: documents_dir.to_string_lossy().into_owned(),
+    };
     let manifest_json = serde_json::to_string_pretty(&manifest).map_err(|e| e.to_string())?;
-    zip.start_file("manifest.json", options)
+    zip.start_file(BACKUP_MANIFEST_NAME, options)
         .map_err(|e| e.to_string())?;
     zip.write_all(manifest_json.as_bytes())
         .map_err(|e| e.to_string())?;
 
-    zip.start_file("scribe.db", options)
+    zip.start_file(BACKUP_DB_NAME, options)
         .map_err(|e| e.to_string())?;
     let mut db_file = File::open(db_path).map_err(|e| e.to_string())?;
     let mut db_bytes = Vec::new();
     db_file.read_to_end(&mut db_bytes).map_err(|e| e.to_string())?;
     zip.write_all(&db_bytes).map_err(|e| e.to_string())?;
 
-    let documents_included = add_dir_to_zip(&mut zip, documents_dir, "documents/", options)?;
+    let documents_included =
+        add_dir_to_zip(&mut zip, documents_dir, BACKUP_DOCUMENTS_PREFIX, options)?;
     zip.finish().map_err(|e| e.to_string())?;
 
     Ok(BackupExportResult {
@@ -3706,6 +4144,34 @@ mod tests {
             .unwrap();
         assert_eq!(eval.matches.len(), 1);
         assert_eq!(eval.matches[0].document_id, note.id);
+    }
+
+    #[test]
+    fn smart_folder_status_and_favorite_rules() {
+        let store = ScribeStore::from_memory();
+        let draft = store.create_note("Draft note", Some("body"), None).unwrap();
+        store
+            .add_document_tag(&draft.id, "status:draft")
+            .unwrap();
+        store.set_document_favorite(&draft.id, true).unwrap();
+        let _other = store.create_note("Other", Some("body"), None).unwrap();
+
+        let by_status = store
+            .evaluate_smart_folder(&dummy_sidecar(), None, Some("status:draft"), Some(10))
+            .unwrap();
+        assert_eq!(by_status.matches.len(), 1);
+        assert_eq!(by_status.matches[0].document_id, draft.id);
+
+        let compound = store
+            .evaluate_smart_folder(
+                &dummy_sidecar(),
+                None,
+                Some("status:draft favorite:true"),
+                Some(10),
+            )
+            .unwrap();
+        assert_eq!(compound.matches.len(), 1);
+        assert_eq!(compound.matches[0].document_id, draft.id);
     }
 
     #[test]

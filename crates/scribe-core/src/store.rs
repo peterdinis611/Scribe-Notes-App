@@ -10,8 +10,8 @@ use uuid::Uuid;
 
 use crate::db::migrations;
 use crate::db::{
-    active_library_id, filter_search_hits, fuse_search_hits, search_documents_for_library, SearchHit,
-    SearchMode,
+    active_library_id, folder_belongs_to_library, filter_search_hits, fuse_search_hits,
+    require_folder_in_active_library, search_documents_for_library, SearchHit, SearchMode,
 };
 use crate::db::{
     count_embeddings, count_stale_embeddings, dominant_embedding_model, extract_search_text,
@@ -37,6 +37,7 @@ use crate::vault::{
     vault_document_ids_among, McpVaultScope,
 };
 use crate::wiki::{
+    collect_wiki_neighborhood as collect_wiki_neighborhood_in_conn,
     list_graph_hubs as list_graph_hubs_in_conn, list_link_graph as list_link_graph_in_conn,
     list_stub_documents as list_stub_documents_in_conn,
     list_unresolved_wiki_links as list_unresolved_wiki_links_in_conn,
@@ -45,6 +46,7 @@ use crate::wiki::{
 
 pub use crate::wiki::{
     GraphHub, LinkEdge, LinkGraph, OrphanDocument, StubDocument, UnresolvedWikiLink, WikiHealth,
+    WikiNeighborhood,
 };
 
 use crate::journal::{
@@ -161,8 +163,15 @@ pub struct FolderRow {
     pub id: String,
     pub name: String,
     pub parent_id: Option<String>,
+    pub library_id: String,
     pub is_pinned: bool,
     pub is_vault: bool,
+    pub color: Option<String>,
+    pub icon: Option<String>,
+    pub sort_order: i64,
+    pub is_archived: bool,
+    pub created_at: i64,
+    pub updated_at: i64,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -171,7 +180,13 @@ pub struct FolderDetail {
     pub id: String,
     pub name: String,
     pub parent_id: Option<String>,
+    pub library_id: String,
     pub is_pinned: bool,
+    pub is_vault: bool,
+    pub color: Option<String>,
+    pub icon: Option<String>,
+    pub sort_order: i64,
+    pub is_archived: bool,
     pub created_at: i64,
     pub updated_at: i64,
 }
@@ -257,6 +272,8 @@ pub struct EmptyTrashResult {
 pub struct DeleteFolderResult {
     pub id: String,
     pub trashed_document_ids: Vec<String>,
+    #[serde(default)]
+    pub deleted_folder_ids: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -717,24 +734,33 @@ impl ScribeStore {
     }
 
     pub fn list_folders(&self) -> Result<Vec<FolderRow>, String> {
+        self.list_folders_filtered(false)
+    }
+
+    pub fn list_folders_filtered(
+        &self,
+        include_archived: bool,
+    ) -> Result<Vec<FolderRow>, String> {
+        let library_id = active_library_id(&self.db);
         let mut stmt = self
             .db
             .prepare(
-                "SELECT id, name, parent_id, is_pinned, COALESCE(is_vault, 0)
-                 FROM folders ORDER BY name COLLATE NOCASE",
+                "SELECT id, name, parent_id, COALESCE(library_id, 'default'),
+                        COALESCE(is_pinned, 0), COALESCE(is_vault, 0),
+                        color, icon, COALESCE(sort_order, 0), COALESCE(is_archived, 0),
+                        created_at, updated_at
+                 FROM folders
+                 WHERE COALESCE(library_id, 'default') = ?1
+                   AND (?2 = 1 OR COALESCE(is_archived, 0) = 0)
+                 ORDER BY COALESCE(sort_order, 0) ASC, name COLLATE NOCASE ASC",
             )
             .map_err(|e| e.to_string())?;
 
         let rows = stmt
-            .query_map([], |row| {
-                Ok(FolderRow {
-                    id: row.get(0)?,
-                    name: row.get(1)?,
-                    parent_id: row.get(2)?,
-                    is_pinned: row.get::<_, i64>(3)? != 0,
-                    is_vault: row.get::<_, i64>(4)? != 0,
-                })
-            })
+            .query_map(
+                params![library_id, if include_archived { 1 } else { 0 }],
+                map_folder_row,
+            )
             .map_err(|e| e.to_string())?;
 
         rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
@@ -975,38 +1001,34 @@ impl ScribeStore {
         }
 
         self.run_writable(|db| {
+            let library_id = active_library_id(db);
             if let Some(parent_id) = parent_id {
-                let parent: Option<String> = db
-                    .query_row(
-                        "SELECT id FROM folders WHERE id = ?1",
-                        params![parent_id],
-                        |row| row.get(0),
-                    )
-                    .optional()
-                    .map_err(|e| e.to_string())?;
-                if parent.is_none() {
+                if !folder_belongs_to_library(db, parent_id, &library_id)? {
                     return Err(format!("Parent folder not found: {parent_id}"));
                 }
             }
+
+            let next_order: i64 = db
+                .query_row(
+                    "SELECT COALESCE(MAX(sort_order), -1) + 1 FROM folders \
+                     WHERE COALESCE(library_id, 'default') = ?1 AND parent_id IS ?2",
+                    params![library_id, parent_id],
+                    |row| row.get(0),
+                )
+                .map_err(|e| e.to_string())?;
 
             let id = Uuid::new_v4().to_string();
             let now = Self::now_ms();
             let parent_id = parent_id.map(str::to_string);
             db.execute(
-                "INSERT INTO folders (id, name, parent_id, created_at, updated_at)
-                 VALUES (?1, ?2, ?3, ?4, ?4)",
-                params![id, name, parent_id, now],
+                "INSERT INTO folders \
+                 (id, name, parent_id, created_at, updated_at, library_id, sort_order) \
+                 VALUES (?1, ?2, ?3, ?4, ?4, ?5, ?6)",
+                params![id, name, parent_id, now, library_id, next_order],
             )
             .map_err(|e| e.to_string())?;
 
-            Ok(FolderDetail {
-                id,
-                name: name.to_string(),
-                parent_id,
-                is_pinned: false,
-                created_at: now,
-                updated_at: now,
-            })
+            load_folder_detail(db, &id)
         })
     }
 
@@ -1017,6 +1039,7 @@ impl ScribeStore {
         }
 
         self.run_writable(|db| {
+            require_folder_in_active_library(db, id)?;
             let now = Self::now_ms();
             let updated = db
                 .execute(
@@ -1027,22 +1050,7 @@ impl ScribeStore {
             if updated == 0 {
                 return Err(format!("Folder not found: {id}"));
             }
-
-            db.query_row(
-                "SELECT id, name, parent_id, created_at, updated_at, is_pinned FROM folders WHERE id = ?1",
-                params![id],
-                |row| {
-                    Ok(FolderDetail {
-                        id: row.get(0)?,
-                        name: row.get(1)?,
-                        parent_id: row.get(2)?,
-                        created_at: row.get(3)?,
-                        updated_at: row.get(4)?,
-                        is_pinned: row.get::<_, i64>(5)? != 0,
-                    })
-                },
-            )
-            .map_err(|e| e.to_string())
+            load_folder_detail(db, id)
         })
     }
 
@@ -2191,19 +2199,38 @@ impl ScribeStore {
         if id.is_empty() {
             return Err("id is required".to_string());
         }
+        let docs_dir = self.documents_dir().ok();
 
         self.run_writable(|db| {
-            let row: Option<(String, String, Option<String>, Option<String>, Option<i64>)> = db
+            let row: Option<(
+                String,
+                String,
+                Option<String>,
+                Option<String>,
+                Option<i64>,
+                String,
+            )> = db
                 .query_row(
-                    "SELECT title, content_json, folder_id, tags, deleted_at
+                    "SELECT title, content_json, folder_id, tags, deleted_at,
+                            COALESCE(library_id, 'default')
                      FROM documents WHERE id = ?1",
                     params![id],
-                    |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?)),
+                    |row| {
+                        Ok((
+                            row.get(0)?,
+                            row.get(1)?,
+                            row.get(2)?,
+                            row.get(3)?,
+                            row.get(4)?,
+                            row.get(5)?,
+                        ))
+                    },
                 )
                 .optional()
                 .map_err(|e| e.to_string())?;
 
-            let Some((source_title, content_json, folder_id, tags, deleted_at)) = row else {
+            let Some((source_title, content_json, folder_id, tags, deleted_at, library_id)) = row
+            else {
                 return Err(format!("Document not found: {id}"));
             };
             if deleted_at.is_some() {
@@ -2217,10 +2244,16 @@ impl ScribeStore {
                 .unwrap_or_else(|| format!("{source_title} (copy)"));
             let new_id = Uuid::new_v4().to_string();
             let now = Self::now_ms();
+            let content_json = if let Some(ref docs) = docs_dir {
+                crate::document_assets::duplicate_document_assets(docs, id, &new_id, &content_json)?
+            } else {
+                crate::document_assets::remap_document_asset_paths(&content_json, id, &new_id)
+            };
             db.execute(
-                "INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at, tags)
-                 VALUES (?1, ?2, ?3, ?4, NULL, ?5, ?5, ?6)",
-                params![new_id, title, content_json, folder_id, now, tags],
+                "INSERT INTO documents \
+                 (id, title, content_json, folder_id, file_path, created_at, updated_at, tags, library_id)
+                 VALUES (?1, ?2, ?3, ?4, NULL, ?5, ?5, ?6, ?7)",
+                params![new_id, title, content_json, folder_id, now, tags, library_id],
             )
             .map_err(|e| e.to_string())?;
             sync_document_fts(db, &new_id, &title, &content_json)?;
@@ -2262,6 +2295,7 @@ impl ScribeStore {
         }
 
         self.run_writable(|db| {
+            require_folder_in_active_library(db, id)?;
             let folder_ids = collect_folder_subtree_ids(db, id)?;
             if folder_ids.is_empty() {
                 return Err(format!("Folder not found: {id}"));
@@ -2280,12 +2314,20 @@ impl ScribeStore {
                 trashed_document_ids.push(document_id);
             }
 
-            db.execute("DELETE FROM folders WHERE id = ?1", params![id])
-                .map_err(|e| e.to_string())?;
+            let placeholders = std::iter::repeat("?")
+                .take(folder_ids.len())
+                .collect::<Vec<_>>()
+                .join(", ");
+            db.execute(
+                &format!("DELETE FROM folders WHERE id IN ({placeholders})"),
+                rusqlite::params_from_iter(folder_ids.iter()),
+            )
+            .map_err(|e| e.to_string())?;
 
             Ok(DeleteFolderResult {
                 id: id.to_string(),
                 trashed_document_ids,
+                deleted_folder_ids: folder_ids,
             })
         })
     }
@@ -2300,26 +2342,11 @@ impl ScribeStore {
         }
 
         self.run_writable(|db| {
-            let exists: Option<String> = db
-                .query_row("SELECT id FROM folders WHERE id = ?1", params![id], |row| {
-                    row.get(0)
-                })
-                .optional()
-                .map_err(|e| e.to_string())?;
-            if exists.is_none() {
-                return Err(format!("Folder not found: {id}"));
-            }
+            let library_id = active_library_id(db);
+            require_folder_in_active_library(db, id)?;
 
             if let Some(parent_id) = parent_id {
-                let parent: Option<String> = db
-                    .query_row(
-                        "SELECT id FROM folders WHERE id = ?1",
-                        params![parent_id],
-                        |row| row.get(0),
-                    )
-                    .optional()
-                    .map_err(|e| e.to_string())?;
-                if parent.is_none() {
+                if !folder_belongs_to_library(db, parent_id, &library_id)? {
                     return Err(format!("Parent folder not found: {parent_id}"));
                 }
                 let subtree = collect_folder_subtree_ids(db, id)?;
@@ -2346,6 +2373,7 @@ impl ScribeStore {
         }
 
         self.run_writable(|db| {
+            require_folder_in_active_library(db, id)?;
             let now = Self::now_ms();
             let updated = db
                 .execute(
@@ -2661,7 +2689,33 @@ impl ScribeStore {
     }
 
     pub fn delete_library_video(&self, id: &str) -> Result<bool, String> {
-        crate::db::delete_library_video(&self.db, id)
+        self.delete_library_video_ex(id, true)
+    }
+
+    pub fn delete_library_video_ex(&self, id: &str, remove_files: bool) -> Result<bool, String> {
+        let docs = self.documents_dir().ok();
+        self.run_writable(|db| {
+            crate::db::delete_library_video_with_files(db, docs.as_deref(), id, remove_files)
+        })
+    }
+
+    pub fn remap_library_video_paths(&self) -> Result<u32, String> {
+        let docs = self.documents_dir()?;
+        crate::db::remap_library_video_paths(&self.db, &docs)
+    }
+
+    pub fn collect_wiki_neighborhood(
+        &self,
+        root_id: &str,
+        hops: Option<u32>,
+        max_notes: Option<usize>,
+    ) -> Result<WikiNeighborhood, String> {
+        collect_wiki_neighborhood_in_conn(
+            &self.db,
+            root_id,
+            hops.unwrap_or(2),
+            max_notes.unwrap_or(80),
+        )
     }
 }
 
@@ -2702,18 +2756,46 @@ fn map_nlp_artifact_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<NlpArtifact
     })
 }
 
+fn map_folder_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<FolderRow> {
+    Ok(FolderRow {
+        id: row.get(0)?,
+        name: row.get(1)?,
+        parent_id: row.get(2)?,
+        library_id: row.get(3)?,
+        is_pinned: row.get::<_, i64>(4).unwrap_or(0) != 0,
+        is_vault: row.get::<_, i64>(5).unwrap_or(0) != 0,
+        color: row.get(6)?,
+        icon: row.get(7)?,
+        sort_order: row.get::<_, i64>(8).unwrap_or(0),
+        is_archived: row.get::<_, i64>(9).unwrap_or(0) != 0,
+        created_at: row.get(10)?,
+        updated_at: row.get(11)?,
+    })
+}
+
 fn load_folder_detail(db: &Connection, id: &str) -> Result<FolderDetail, String> {
     db.query_row(
-        "SELECT id, name, parent_id, created_at, updated_at, is_pinned FROM folders WHERE id = ?1",
+        "SELECT id, name, parent_id, COALESCE(library_id, 'default'),
+                COALESCE(is_pinned, 0), COALESCE(is_vault, 0),
+                color, icon, COALESCE(sort_order, 0), COALESCE(is_archived, 0),
+                created_at, updated_at
+         FROM folders WHERE id = ?1",
         params![id],
         |row| {
+            let mapped = map_folder_row(row)?;
             Ok(FolderDetail {
-                id: row.get(0)?,
-                name: row.get(1)?,
-                parent_id: row.get(2)?,
-                created_at: row.get(3)?,
-                updated_at: row.get(4)?,
-                is_pinned: row.get::<_, i64>(5)? != 0,
+                id: mapped.id,
+                name: mapped.name,
+                parent_id: mapped.parent_id,
+                library_id: mapped.library_id,
+                is_pinned: mapped.is_pinned,
+                is_vault: mapped.is_vault,
+                color: mapped.color,
+                icon: mapped.icon,
+                sort_order: mapped.sort_order,
+                is_archived: mapped.is_archived,
+                created_at: mapped.created_at,
+                updated_at: mapped.updated_at,
             })
         },
     )
@@ -3199,6 +3281,7 @@ mod tests {
     fn folder_pin_move_and_delete_trash_documents() {
         let store = ScribeStore::from_memory();
         let parent = store.create_folder("Work", None).unwrap();
+        assert_eq!(parent.library_id, "default");
         let child = store.create_folder("Nested", Some(&parent.id)).unwrap();
         let note = store
             .create_note("Inside", Some("secret"), Some(&child.id))
@@ -3209,8 +3292,66 @@ mod tests {
         assert!(moved.parent_id.is_none());
         let deleted = store.delete_folder(&child.id).unwrap();
         assert!(deleted.trashed_document_ids.contains(&note.id));
+        assert!(deleted.deleted_folder_ids.contains(&child.id));
         let trashed = store.list_trashed_documents(10).unwrap();
         assert_eq!(trashed.len(), 1);
+    }
+
+    #[test]
+    fn list_folders_scopes_to_active_library() {
+        let store = ScribeStore::from_memory();
+        store.create_folder("Default lib folder", None).unwrap();
+        store
+            .db
+            .execute(
+                "INSERT INTO libraries (id, name, root_path, created_at, last_opened_at, sort_order) \
+                 VALUES ('work', 'Work', '', 1, 1, 1)",
+                [],
+            )
+            .unwrap();
+        store
+            .db
+            .execute(
+                "INSERT INTO folders (id, name, parent_id, created_at, updated_at, library_id) \
+                 VALUES ('other-f', 'Other', NULL, 1, 1, 'work')",
+                [],
+            )
+            .unwrap();
+        let folders = store.list_folders().unwrap();
+        assert!(folders.iter().all(|f| f.library_id == "default"));
+        assert!(folders.iter().all(|f| f.id != "other-f"));
+    }
+
+    #[test]
+    fn wiki_neighborhood_bfs_collects_outbound_hops() {
+        let store = ScribeStore::from_memory();
+        let root = store.create_note("Root", Some("r"), None).unwrap();
+        let a = store.create_note("A", Some("a"), None).unwrap();
+        let b = store.create_note("B", Some("b"), None).unwrap();
+        crate::db::sync_document_links(
+            &store.db,
+            &root.id,
+            &format!(
+                r#"{{"type":"doc","content":[{{"type":"paragraph","content":[{{"type":"wikiLink","attrs":{{"label":"A","targetId":"{}"}}}}]}}]}}"#,
+                a.id
+            ),
+        )
+        .unwrap();
+        crate::db::sync_document_links(
+            &store.db,
+            &a.id,
+            &format!(
+                r#"{{"type":"doc","content":[{{"type":"paragraph","content":[{{"type":"wikiLink","attrs":{{"label":"B","targetId":"{}"}}}}]}}]}}"#,
+                b.id
+            ),
+        )
+        .unwrap();
+        let nb = store
+            .collect_wiki_neighborhood(&root.id, Some(2), Some(80))
+            .unwrap();
+        assert_eq!(nb.document_ids[0], root.id);
+        assert!(nb.document_ids.contains(&a.id));
+        assert!(nb.document_ids.contains(&b.id));
     }
 
     #[test]

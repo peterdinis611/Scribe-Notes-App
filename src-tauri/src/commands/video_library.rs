@@ -17,7 +17,7 @@ use crate::nlp::NlpSidecar;
 use crate::security::PathAccessGate;
 use crate::storage;
 use scribe_core::db::{
-    delete_library_video, get_library_video, insert_library_video, list_library_videos,
+    get_library_video, insert_library_video, list_library_videos,
     update_library_video,
 };
 use scribe_core::storage_fs;
@@ -185,21 +185,13 @@ pub fn delete_library_video_cmd(
 ) -> Result<bool, String> {
     validate_video_id(&id)?;
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
-    let Some(video) = get_library_video(&conn, &id)? else {
-        return Ok(false);
-    };
-    if remove_files.unwrap_or(true) {
-        if let Some(rel) = video.rel_path.as_deref() {
-            validate_video_rel_path(rel, &id)?;
-            let files_root = documents_files_root(&app, &conn)?;
-            let dir_rel = video_dir_rel(&id);
-            let abs_dir = storage_fs::safe_join_under(&files_root, &dir_rel)?;
-            if abs_dir.exists() {
-                let _ = fs::remove_dir_all(&abs_dir);
-            }
-        }
-    }
-    delete_library_video(&conn, &id)
+    let docs = crate::storage::get_documents_dir(&app, &conn).ok();
+    scribe_core::db::delete_library_video_with_files(
+        &conn,
+        docs.as_deref(),
+        &id,
+        remove_files.unwrap_or(true),
+    )
 }
 
 /// Best-effort ffprobe metadata; falls back to MoviePy NLP sidecar when ffprobe is missing.

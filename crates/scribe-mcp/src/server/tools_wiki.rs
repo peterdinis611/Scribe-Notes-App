@@ -339,15 +339,6 @@ impl ScribeMcp {
             let Some(video) = store.get_library_video(id)? else {
                 return Err(format!("Library video not found: {id}"));
             };
-            // Best-effort remove copy-mode sandbox tree under documents/files.
-            if let Some(rel) = video.rel_path.as_deref() {
-                if let Ok(docs) = store.documents_dir() {
-                    let abs = docs.join("files").join(rel);
-                    if let Some(parent) = abs.parent() {
-                        let _ = std::fs::remove_dir_all(parent);
-                    }
-                }
-            }
             let deleted = store.delete_library_video(id)?;
             Ok(tools::json(&serde_json::json!({
                 "deleted": deleted,

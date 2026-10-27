@@ -1,7 +1,9 @@
-use rusqlite::{params, Connection};
+use std::collections::{HashSet, VecDeque};
+
+use rusqlite::{params, Connection, OptionalExtension};
 
 use super::health::list_orphan_documents_limited;
-use super::types::{GraphHub, LinkEdge, LinkGraph, OrphanDocument};
+use super::types::{GraphHub, LinkEdge, LinkGraph, OrphanDocument, WikiNeighborhood};
 
 /// All orphans (no limit cap beyond SQL). Used by link graph UI.
 pub fn list_orphan_documents(conn: &Connection) -> Result<Vec<OrphanDocument>, String> {
@@ -77,4 +79,71 @@ pub fn list_graph_hubs(conn: &Connection, limit: i64) -> Result<Vec<GraphHub>, S
         })
         .map_err(|e| e.to_string())?;
     rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
+}
+
+/// Collect note + up to `hops` outbound wiki-link neighbors (BFS). Mirrors FE `collectWikiNeighborhood`.
+pub fn collect_wiki_neighborhood(
+    conn: &Connection,
+    root_id: &str,
+    hops: u32,
+    max_notes: usize,
+) -> Result<WikiNeighborhood, String> {
+    let root_id = root_id.trim();
+    if root_id.is_empty() {
+        return Err("root_id is required".into());
+    }
+    let max_notes = max_notes.clamp(1, 500);
+    let hops = hops.min(8);
+
+    let exists: Option<String> = conn
+        .query_row(
+            "SELECT id FROM documents WHERE id = ?1 AND deleted_at IS NULL",
+            params![root_id],
+            |row| row.get(0),
+        )
+        .optional()
+        .map_err(|e| e.to_string())?;
+    if exists.is_none() {
+        return Err(format!("Document not found: {root_id}"));
+    }
+
+    let mut seen = HashSet::new();
+    seen.insert(root_id.to_string());
+    let mut ordered = vec![root_id.to_string()];
+    let mut frontier: VecDeque<(String, u32)> = VecDeque::new();
+    frontier.push_back((root_id.to_string(), 0));
+
+    while let Some((id, depth)) = frontier.pop_front() {
+        if depth >= hops || ordered.len() >= max_notes {
+            continue;
+        }
+        let mut stmt = conn
+            .prepare(
+                "SELECT t.id
+                 FROM document_links l
+                 JOIN documents t ON t.id = l.target_id AND t.deleted_at IS NULL
+                 WHERE l.source_id = ?1
+                 ORDER BY t.title COLLATE NOCASE",
+            )
+            .map_err(|e| e.to_string())?;
+        let targets = stmt
+            .query_map(params![id], |row| row.get::<_, String>(0))
+            .map_err(|e| e.to_string())?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())?;
+        for target in targets {
+            if seen.contains(&target) || ordered.len() >= max_notes {
+                continue;
+            }
+            seen.insert(target.clone());
+            ordered.push(target.clone());
+            frontier.push_back((target, depth + 1));
+        }
+    }
+
+    Ok(WikiNeighborhood {
+        root_id: root_id.to_string(),
+        hops,
+        document_ids: ordered,
+    })
 }

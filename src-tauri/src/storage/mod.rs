@@ -221,55 +221,7 @@ fn cleanup_old_paths(dir: &Path, doc: &DiskDocument, old_path: Option<&str>, pat
     }
 }
 
-pub fn remap_document_asset_paths(content_json: &str, old_id: &str, new_id: &str) -> String {
-    let marker_old = format!("/assets/{old_id}/");
-    let marker_new = format!("/assets/{new_id}/");
-    content_json.replace(&marker_old, &marker_new)
-}
-
-pub fn duplicate_document_assets(
-    documents_dir: &Path,
-    from_id: &str,
-    to_id: &str,
-    content_json: &str,
-) -> Result<String, String> {
-    let from_assets = documents_dir.join("assets").join(from_id);
-    let to_assets = documents_dir.join("assets").join(to_id);
-
-    if from_assets.is_dir() {
-        copy_dir_all(&from_assets, &to_assets)?;
-    }
-
-    Ok(remap_document_asset_paths(content_json, from_id, to_id))
-}
-
-fn copy_dir_all(src: &Path, dst: &Path) -> Result<(), String> {
-    std::fs::create_dir_all(dst).map_err(|error| {
-        format!(
-            "Nepodarilo sa vytvoriť priečinok {}: {error}",
-            dst.display()
-        )
-    })?;
-
-    for entry in std::fs::read_dir(src).map_err(|error| error.to_string())? {
-        let entry = entry.map_err(|error| error.to_string())?;
-        let path = entry.path();
-        let dest = dst.join(entry.file_name());
-
-        if path.is_dir() {
-            copy_dir_all(&path, &dest)?;
-        } else {
-            std::fs::copy(&path, &dest).map_err(|error| {
-                format!(
-                    "Nepodarilo sa skopírovať {}: {error}",
-                    path.display()
-                )
-            })?;
-        }
-    }
-
-    Ok(())
-}
+pub use scribe_core::{duplicate_document_assets, remap_document_asset_paths};
 
 pub fn delete_document_file(path: &str) -> Result<(), String> {
     let file = Path::new(path);

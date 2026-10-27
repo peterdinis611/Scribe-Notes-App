@@ -3,6 +3,7 @@ pub mod dates;
 pub mod db;
 pub mod db_crypto;
 pub mod diff;
+pub mod document_assets;
 pub mod enhance;
 pub mod file_antivirus;
 pub mod file_integrity;
@@ -77,18 +78,24 @@ pub use tags::{
     add_document_tag, document_matches_meta_filters, make_meta_tag, parse_meta_tag,
     remove_document_tag, IdTags, MetaFilters, ParsedTag, TagKind, STATUS_TAG_VALUES,
 };
+pub use document_assets::{
+    document_assets_dir, duplicate_document_assets, remap_document_asset_paths,
+};
 pub use wiki::{
-    add_alias_tag, attach_link_suggestions, document_matches_title_or_alias,
-    find_documents_by_title, find_wiki_ghost_match, format_wiki_link_render_text,
-    list_graph_hubs, list_orphan_documents, list_stub_documents, list_unresolved_wiki_links,
-    parse_aliases, parse_wiki_link_raw, resolve_wiki_link_in_document, wiki_health, GraphHub,
-    OrphanDocument, ParsedWikiLink, ResolveWikiLinkResult, StubDocument, TitleMatch,
-    UnresolvedWikiLink, WikiGhostCandidate, WikiGhostMatch, WikiHealth,
+    add_alias_tag, attach_link_suggestions, collect_wiki_neighborhood,
+    document_matches_title_or_alias, find_documents_by_title, find_wiki_ghost_match,
+    format_wiki_link_render_text, list_graph_hubs, list_orphan_documents, list_stub_documents,
+    list_unresolved_wiki_links, parse_aliases, parse_wiki_link_raw, resolve_wiki_link_in_document,
+    wiki_health, GraphHub, OrphanDocument, ParsedWikiLink, ResolveWikiLinkResult, StubDocument,
+    TitleMatch, UnresolvedWikiLink, WikiGhostCandidate, WikiGhostMatch, WikiHealth,
+    WikiNeighborhood,
 };
 pub use manuscripts::{list_manuscripts, upsert_manuscript, ManuscriptRecord};
 pub use store_ext::{
-    delete_smart_folder_in_conn, evaluate_smart_folder_in_conn, list_smart_folders_in_conn,
-    upsert_smart_folder_in_conn, SmartFolderEval, SmartFolderMatch, SmartFolderRecord,
+    delete_smart_folder_in_conn, evaluate_smart_folder_in_conn, extract_plain_library_archive,
+    list_smart_folders_in_conn, upsert_smart_folder_in_conn, write_library_archive, BackupExportResult,
+    BackupImportResult, BackupInfo, BackupManifest, SmartFolderEval, SmartFolderMatch,
+    SmartFolderRecord,
 };
 pub use vault::{
     content_is_vault_cipher, document_is_vault, require_document_not_vault, vault_document_ids_among,

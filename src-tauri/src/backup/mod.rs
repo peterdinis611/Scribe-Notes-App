@@ -2,9 +2,7 @@ use crate::db::DbState;
 use crate::security::safe_join_under;
 use crate::storage;
 use rusqlite::Connection;
-use scribe_core::db::{list_library_videos, update_library_video};
-use scribe_core::storage_fs;
-use scribe_video::validate_video_rel_path;
+use scribe_core::db::remap_library_video_paths;
 use serde::{Deserialize, Serialize};
 use std::fs::{self, File};
 use std::io::{self, BufReader, BufWriter, Read, Write};
@@ -99,66 +97,6 @@ pub struct BackupImportResult {
     #[serde(default)]
     pub videos_remapped: u32,
     pub message: String,
-}
-
-/// After restoring a backup, absolute `library_videos.source_path` values from the export
-/// machine no longer point at the files under the new documents dir. Rebuild them from
-/// sandbox-relative `rel_path` (copy-mode imports only).
-fn remap_library_video_paths(conn: &Connection, documents_dir: &Path) -> Result<u32, String> {
-    let Ok(files_root) = storage_fs::ensure_files_root(documents_dir) else {
-        return Ok(0);
-    };
-    let videos = list_library_videos(conn)?;
-    let mut remapped = 0u32;
-    let now = chrono::Utc::now().timestamp();
-    for mut video in videos {
-        let Some(rel) = video.rel_path.clone() else {
-            continue;
-        };
-        if validate_video_rel_path(&rel, &video.id).is_err() {
-            continue;
-        }
-        let Ok(abs) = storage_fs::safe_join_under(&files_root, &rel) else {
-            continue;
-        };
-        if !abs.is_file() {
-            continue;
-        }
-        let resolved = abs.to_string_lossy().into_owned();
-        if video.source_path == resolved {
-            continue;
-        }
-        let old_src = video.source_path.clone();
-        video.source_path = resolved.clone();
-        video.updated_at = now;
-        update_library_video(conn, &video)?;
-        rewrite_video_src_in_documents(conn, &old_src, &resolved)?;
-        remapped += 1;
-    }
-    Ok(remapped)
-}
-
-/// Swap stale absolute video paths inside TipTap JSON after a path remap.
-fn rewrite_video_src_in_documents(
-    conn: &Connection,
-    old_src: &str,
-    new_src: &str,
-) -> Result<(), String> {
-    if old_src.is_empty() || old_src == new_src {
-        return Ok(());
-    }
-    let old_escaped = serde_json::to_string(old_src).map_err(|e| e.to_string())?;
-    let new_escaped = serde_json::to_string(new_src).map_err(|e| e.to_string())?;
-    // to_string wraps in quotes; REPLACE needs the JSON string body (escaped path).
-    let old_body = &old_escaped[1..old_escaped.len() - 1];
-    let new_body = &new_escaped[1..new_escaped.len() - 1];
-    conn.execute(
-        "UPDATE documents SET content_json = REPLACE(content_json, ?1, ?2)
-         WHERE instr(content_json, ?1) > 0",
-        rusqlite::params![old_body, new_body],
-    )
-    .map_err(|e| e.to_string())?;
-    Ok(())
 }
 
 fn checkpoint_wal(conn: &Connection) -> Result<(), String> {
