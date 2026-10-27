@@ -1,5 +1,7 @@
 import type { DocumentTask } from '@/lib/db/nlp-api'
 
+/** Sync mirror of `scribe_core::tasks_agenda` (UI / vitest without Tauri). */
+
 export type AgendaBucketId = 'overdue' | 'today' | 'upcoming' | 'later'
 
 export type AgendaBucket = {

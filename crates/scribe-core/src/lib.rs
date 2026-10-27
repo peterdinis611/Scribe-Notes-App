@@ -22,6 +22,7 @@ pub mod storage_fs;
 pub mod syntax_highlight;
 pub mod tags;
 pub mod tasks;
+pub mod tasks_agenda;
 pub mod vault;
 pub mod wiki;
 
@@ -62,8 +63,13 @@ pub use rich_import::{
     tiptap_to_opml, tiptap_to_structured_json,
 };
 pub use source_code::{
-    is_source_extension, language_from_extension, source_bytes_to_tiptap, source_path_to_tiptap,
-    source_text_to_tiptap,
+    extension_for_language, extract_first_code_block, is_source_extension, language_from_extension,
+    source_bytes_to_tiptap, source_path_to_tiptap, source_text_to_tiptap,
+};
+pub use tasks::DocumentTask;
+pub use tasks_agenda::{
+    agenda_bucket_for_due, group_tasks_by_agenda, parse_due_hint_ms, start_of_local_day_ms,
+    AgendaBucket, AgendaBucketId,
 };
 pub use plain_text::{tiptap_to_markdown, tiptap_to_plain_text};
 pub use store::{search_library, sync_sidecar_backend};
@@ -72,10 +78,12 @@ pub use tags::{
     remove_document_tag, IdTags, MetaFilters, ParsedTag, TagKind, STATUS_TAG_VALUES,
 };
 pub use wiki::{
-    attach_link_suggestions, find_documents_by_title, list_graph_hubs, list_orphan_documents,
-    list_stub_documents, list_unresolved_wiki_links, resolve_wiki_link_in_document, wiki_health,
-    GraphHub, OrphanDocument, ResolveWikiLinkResult, StubDocument, TitleMatch, UnresolvedWikiLink,
-    WikiHealth,
+    add_alias_tag, attach_link_suggestions, document_matches_title_or_alias,
+    find_documents_by_title, find_wiki_ghost_match, format_wiki_link_render_text,
+    list_graph_hubs, list_orphan_documents, list_stub_documents, list_unresolved_wiki_links,
+    parse_aliases, parse_wiki_link_raw, resolve_wiki_link_in_document, wiki_health, GraphHub,
+    OrphanDocument, ParsedWikiLink, ResolveWikiLinkResult, StubDocument, TitleMatch,
+    UnresolvedWikiLink, WikiGhostCandidate, WikiGhostMatch, WikiHealth,
 };
 pub use manuscripts::{list_manuscripts, upsert_manuscript, ManuscriptRecord};
 pub use store_ext::{

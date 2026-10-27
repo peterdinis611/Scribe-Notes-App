@@ -404,6 +404,90 @@ pub fn highlight_code(language: String, code: String) -> Option<String> {
     highlight_code_html(&language, &code)
 }
 
+#[tauri::command]
+pub fn parse_aliases(tags: Vec<String>) -> Vec<String> {
+    scribe_core::parse_aliases(&tags)
+}
+
+#[tauri::command]
+pub fn add_alias_tag(tags: Vec<String>, alias: String) -> Vec<String> {
+    scribe_core::add_alias_tag(&tags, &alias)
+}
+
+#[tauri::command]
+pub fn document_matches_title_or_alias(title: String, tags: Vec<String>, query: String) -> bool {
+    scribe_core::document_matches_title_or_alias(&title, &tags, &query)
+}
+
+#[tauri::command]
+pub fn parse_wiki_link_raw(raw: String) -> scribe_core::ParsedWikiLink {
+    scribe_core::parse_wiki_link_raw(&raw)
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FormatWikiLinkInput {
+    pub label: String,
+    pub link_title: Option<String>,
+    pub heading: Option<String>,
+}
+
+#[tauri::command]
+pub fn format_wiki_link_render_text(input: FormatWikiLinkInput) -> String {
+    scribe_core::format_wiki_link_render_text(
+        &input.label,
+        input.link_title.as_deref(),
+        input.heading.as_deref(),
+    )
+}
+
+#[tauri::command]
+pub fn find_wiki_ghost_match(
+    paragraph: String,
+    candidates: Vec<scribe_core::WikiGhostCandidate>,
+    min_length: Option<usize>,
+) -> Option<scribe_core::WikiGhostMatch> {
+    scribe_core::find_wiki_ghost_match(&paragraph, &candidates, min_length.unwrap_or(4))
+}
+
+#[tauri::command]
+pub fn agenda_bucket_for_due(
+    due_hint: Option<String>,
+    now_ms: i64,
+    offset_minutes_east: i32,
+) -> scribe_core::AgendaBucketId {
+    scribe_core::agenda_bucket_for_due(due_hint.as_deref(), now_ms, offset_minutes_east)
+}
+
+#[tauri::command]
+pub fn group_tasks_by_agenda(
+    tasks: Vec<scribe_core::DocumentTask>,
+    now_ms: i64,
+    offset_minutes_east: i32,
+) -> Vec<scribe_core::AgendaBucket> {
+    scribe_core::group_tasks_by_agenda(&tasks, now_ms, offset_minutes_east)
+}
+
+#[tauri::command]
+pub fn extension_for_language(language: Option<String>) -> String {
+    scribe_core::extension_for_language(language.as_deref())
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FirstCodeBlock {
+    pub language: Option<String>,
+    pub code: String,
+}
+
+#[tauri::command]
+pub fn extract_first_code_block(content_json: String) -> Option<FirstCodeBlock> {
+    scribe_core::extract_first_code_block(&content_json).map(|(language, code)| FirstCodeBlock {
+        language,
+        code,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

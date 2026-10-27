@@ -19,7 +19,10 @@ export type ParsedWikiLink = {
   displayLabel: string
 }
 
-/** Obsidian-style `[[Title#Heading|Alias]]` inner (without brackets). */
+/**
+ * Obsidian-style `[[Title#Heading|Alias]]` inner (without brackets).
+ * Sync mirror of `scribe_core::wiki::link_parse` (TipTap / vitest without Tauri).
+ */
 export function parseWikiLinkRaw(raw: string): ParsedWikiLink {
   const trimmed = raw.trim()
   const pipeIdx = trimmed.lastIndexOf('|')

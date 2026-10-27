@@ -1,6 +1,6 @@
 [project]
 name = "scribe-python-ui"
-version = "4.2.0"
+version = "5.0.0"
 description = "UI domain catalogs and helpers for Scribe (Python twin of crates/scribe-ui)"
 requires-python = ">=3.10"
 license = "MIT"

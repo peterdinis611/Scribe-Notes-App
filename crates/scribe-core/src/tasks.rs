@@ -1,11 +1,10 @@
-use serde::Serialize;
 use serde_json::Value;
 use rusqlite::{params, Connection};
 
 use crate::dates::extract_due_hint;
 use crate::nlp::NlpSidecar;
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct DocumentTask {
     pub text: String,

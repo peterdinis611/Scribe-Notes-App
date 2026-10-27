@@ -300,7 +300,7 @@ pub use scribe_video::{
 };
 pub use whats_new::{
     whats_new_highlights, whats_new_tag_keys, EDITION_MARK_KEY, WHATS_NEW_40_HIGHLIGHTS,
-    WHATS_NEW_40_TAG_KEYS,
+    WHATS_NEW_40_TAG_KEYS, WHATS_NEW_50_HIGHLIGHTS, WHATS_NEW_50_TAG_KEYS,
 };
 
 #[cfg(feature = "dioxus")]
@@ -402,15 +402,15 @@ mod tests {
         assert!(m.ui_skin_ids.contains(&"grove".to_string()));
         assert!(m.smart_filter_ids.contains(&"canvas".to_string()));
         assert!(m.library_view_ids.contains(&"wikiHealth".to_string()));
-        assert_eq!(m.whats_new_tag_keys, vec!["workspace", "design", "audit"]);
+        assert_eq!(m.whats_new_tag_keys, vec!["native", "library", "editor"]);
         assert_eq!(
             m.whats_new_highlights,
             vec![
-                "pageWorkspace",
-                "editorCanvas",
-                "welcomeHome",
-                "auditInsights",
-                "skinPicker",
+                "nativeCore",
+                "wikiNative",
+                "taskAgenda",
+                "sourceExport",
+                "stillLocal",
             ]
         );
         assert_eq!(m.docs_topic_tips.len(), 7);

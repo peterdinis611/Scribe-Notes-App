@@ -96,6 +96,8 @@ from .whats_new import (
     EDITION_MARK_KEY,
     WHATS_NEW_40_HIGHLIGHTS,
     WHATS_NEW_40_TAG_KEYS,
+    WHATS_NEW_50_HIGHLIGHTS,
+    WHATS_NEW_50_TAG_KEYS,
     whats_new_highlights,
     whats_new_tag_keys,
 )
@@ -133,6 +135,8 @@ __all__ = [
     "UI_SKIN_STORAGE_KEY",
     "WHATS_NEW_40_HIGHLIGHTS",
     "WHATS_NEW_40_TAG_KEYS",
+    "WHATS_NEW_50_HIGHLIGHTS",
+    "WHATS_NEW_50_TAG_KEYS",
     "FuzzyRankHit",
     "FuzzyRankItem",
     "UiManifest",

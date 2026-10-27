@@ -640,8 +640,8 @@
     "badge": "What's new in {{version}}",
     "kicker": "Edition notes",
     "title": "Scribe {{version}}",
-    "subtitle": "A calmer Page workspace, quieter chrome, richer audit insights, and skins you can switch — still fully local.",
-    "editionMark": "Workspace · Design",
+    "subtitle": "More of the note core runs in Rust — wiki links, task agenda, and source export — still fully local on this Mac.",
+    "editionMark": "Native · Library",
     "tagsLabel": "Themes in this release",
     "tags": {
       "agent": "Agent",
@@ -660,9 +660,30 @@
       "media": "Media",
       "workspace": "Workspace",
       "design": "Design",
-      "audit": "Audit"
+      "audit": "Audit",
+      "native": "Native"
     },
     "footNote": "Open Docs from the rail anytime. Capture and sync stay on this Mac.",
+    "nativeCore": {
+      "title": "Native note core",
+      "description": "Pure library helpers live in scribe-core — one canonical path for Tauri, tests, and the editor mirrors."
+    },
+    "wikiNative": {
+      "title": "Wiki in Rust",
+      "description": "Aliases, Obsidian [[Title#H|Alias]] parse, and ghost-link matching share the same native rules."
+    },
+    "taskAgenda": {
+      "title": "Task agenda",
+      "description": "Overdue · Today · Upcoming · Later buckets group open checkboxes by due hint in native code."
+    },
+    "sourceExport": {
+      "title": "Source export",
+      "description": "First code block → language extension mapping for exporting a note as a real source file."
+    },
+    "stillLocal": {
+      "title": "Still local",
+      "description": "Faster native pipelines, same privacy model — notes, capture, and sync stay on this Mac."
+    },
     "pageWorkspace": {
       "title": "Page workspace",
       "description": "The default Page skin — Outfit type, clean paper, sky accent, and flat chrome."

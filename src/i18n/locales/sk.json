@@ -640,8 +640,8 @@
     "badge": "Novinky {{version}}",
     "kicker": "Poznámky k vydaniu",
     "title": "Scribe {{version}}",
-    "subtitle": "Pokojnejší Page workspace, tichší chrome, bohatší audit a prepínateľné skiny — stále lokálne.",
-    "editionMark": "Workspace · Dizajn",
+    "subtitle": "Viac jadra poznámok beží v Ruste — wiki odkazy, agenda úloh a export zdrojáku — stále lokálne na tomto Macu.",
+    "editionMark": "Native · Knižnica",
     "tagsLabel": "Témy tohto vydania",
     "tags": {
       "agent": "Agent",
@@ -660,9 +660,30 @@
       "media": "Médiá",
       "workspace": "Workspace",
       "design": "Dizajn",
-      "audit": "Audit"
+      "audit": "Audit",
+      "native": "Native"
     },
     "footNote": "Docs otvoríš kedykoľvek z railu. Capture a sync ostávajú na tomto Macu.",
+    "nativeCore": {
+      "title": "Natívne jadro",
+      "description": "Čisté knižničné helpery žijú v scribe-core — jedna kanonická cesta pre Tauri, testy aj editorové zrkadlá."
+    },
+    "wikiNative": {
+      "title": "Wiki v Ruste",
+      "description": "Aliasy, Obsidian [[Title#H|Alias]] parse a ghost-link matching zdieľajú rovnaké natívne pravidlá."
+    },
+    "taskAgenda": {
+      "title": "Agenda úloh",
+      "description": "Overdue · Today · Upcoming · Later — otvorené checkboxy podľa due hintu v natívnom kóde."
+    },
+    "sourceExport": {
+      "title": "Export zdrojáku",
+      "description": "Prvý code block → mapovanie jazyka na príponu pre export poznámky ako skutočného súboru."
+    },
+    "stillLocal": {
+      "title": "Stále lokálne",
+      "description": "Rýchlejšie natívne pipeline, rovnaký privacy model — poznámky, capture a sync ostávajú na tomto Macu."
+    },
     "pageWorkspace": {
       "title": "Page workspace",
       "description": "Predvolený Page skin — Outfit, čistý papier, sky akcent a flat chrome."

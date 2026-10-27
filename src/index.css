@@ -15622,7 +15622,8 @@ html:not([data-ui-skin]) .folder-tree-row--doc.is-selected {
 .setup-folio--edition-37,
 .setup-folio--edition-38,
 .setup-folio--edition-39,
-.setup-folio--edition-40 {
+.setup-folio--edition-40,
+.setup-folio--edition-50 {
   min-height: 560px;
 }
 
@@ -15631,7 +15632,8 @@ html:not([data-ui-skin]) .folder-tree-row--doc.is-selected {
 .welcome-desk--edition-37 .welcome-edition-note,
 .welcome-desk--edition-38 .welcome-edition-note,
 .welcome-desk--edition-39 .welcome-edition-note,
-.welcome-desk--edition-40 .welcome-edition-note {
+.welcome-desk--edition-40 .welcome-edition-note,
+.welcome-desk--edition-50 .welcome-edition-note {
   margin: 10px 0 0;
   max-width: 42ch;
   padding: 8px 12px;

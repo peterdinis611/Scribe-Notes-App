@@ -1383,6 +1383,86 @@ export const invokeDocumentMatchesMetaFilters = (
     },
   })
 
+export const invokeParseAliases = (tags: string[]) =>
+  invoke<string[]>('parse_aliases', { tags })
+
+export const invokeAddAliasTag = (tags: string[], alias: string) =>
+  invoke<string[]>('add_alias_tag', { tags, alias })
+
+export const invokeDocumentMatchesTitleOrAlias = (
+  title: string,
+  tags: string[],
+  query: string,
+) => invoke<boolean>('document_matches_title_or_alias', { title, tags, query })
+
+export type ParsedWikiLinkDto = {
+  title: string
+  heading: string | null
+  alias: string | null
+  displayLabel: string
+}
+
+export const invokeParseWikiLinkRaw = (raw: string) =>
+  invoke<ParsedWikiLinkDto>('parse_wiki_link_raw', { raw })
+
+export const invokeFormatWikiLinkRenderText = (input: {
+  label: string
+  linkTitle?: string | null
+  heading?: string | null
+}) =>
+  invoke<string>('format_wiki_link_render_text', {
+    input: {
+      label: input.label,
+      linkTitle: input.linkTitle ?? null,
+      heading: input.heading ?? null,
+    },
+  })
+
+export type WikiGhostCandidateDto = { id: string; title: string; phrase: string }
+export type WikiGhostMatchDto = WikiGhostCandidateDto & { start: number; end: number }
+
+export const invokeFindWikiGhostMatch = (
+  paragraph: string,
+  candidates: WikiGhostCandidateDto[],
+  minLength?: number,
+) =>
+  invoke<WikiGhostMatchDto | null>('find_wiki_ghost_match', {
+    paragraph,
+    candidates,
+    minLength: minLength ?? null,
+  })
+
+export type AgendaBucketIdDto = 'overdue' | 'today' | 'upcoming' | 'later'
+
+export const invokeAgendaBucketForDue = (
+  dueHint: string | null | undefined,
+  nowMs: number,
+  offsetMinutesEast = -new Date().getTimezoneOffset(),
+) =>
+  invoke<AgendaBucketIdDto>('agenda_bucket_for_due', {
+    dueHint: dueHint ?? null,
+    nowMs,
+    offsetMinutesEast,
+  })
+
+export const invokeGroupTasksByAgenda = (
+  tasks: import('@/lib/db/nlp-api').DocumentTask[],
+  nowMs: number,
+  offsetMinutesEast = -new Date().getTimezoneOffset(),
+) =>
+  invoke<Array<{ id: AgendaBucketIdDto; items: import('@/lib/db/nlp-api').DocumentTask[] }>>(
+    'group_tasks_by_agenda',
+    { tasks, nowMs, offsetMinutesEast },
+  )
+
+export const invokeExtensionForLanguage = (language: string | null | undefined) =>
+  invoke<string>('extension_for_language', { language: language ?? null })
+
+export const invokeExtractFirstCodeBlock = (contentJson: string) =>
+  invoke<{ language: string | null; code: string } | null>('extract_first_code_block', {
+    contentJson,
+  })
+
 export const renderDocumentHtml = (documentId: string, includeTitleHeading = true) =>
   invoke<string>('render_document_html', {
     documentId,

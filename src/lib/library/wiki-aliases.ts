@@ -1,6 +1,9 @@
 import type { DocumentSummary } from '@/lib/db/api'
 
-/** Aliases live as tags: `alias:short-name` (multiple allowed). */
+/**
+ * Aliases live as tags: `alias:short-name` (multiple allowed).
+ * Sync mirror of `scribe_core::wiki::aliases` (hot path / vitest without Tauri).
+ */
 
 const ALIAS_PREFIX = /^alias:/i
 

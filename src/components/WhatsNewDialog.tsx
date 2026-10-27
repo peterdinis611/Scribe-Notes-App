@@ -6,19 +6,24 @@ import { closeScribeUiSurface } from '@/lib/scribe-ui-host'
 import { isTauriRuntime } from '@/lib/tauri'
 import { persistWhatsNewVersion } from '@/store/persistence'
 
-/** Edition 4.0 release notes — keep in sync with `scribe_ui::WHATS_NEW_40_*`. */
-export const WHATS_NEW_40_HIGHLIGHTS = [
-  'pageWorkspace',
-  'editorCanvas',
-  'welcomeHome',
-  'auditInsights',
-  'skinPicker',
+/** Edition 5.0 release notes — keep in sync with `scribe_ui::WHATS_NEW_50_*`. */
+export const WHATS_NEW_50_HIGHLIGHTS = [
+  'nativeCore',
+  'wikiNative',
+  'taskAgenda',
+  'sourceExport',
+  'stillLocal',
 ] as const
 
-/** Folio tag keys under `whatsNew.tags.*` — keep in sync with `WHATS_NEW_40_TAG_KEYS`. */
-export const WHATS_NEW_40_TAG_KEYS = ['workspace', 'design', 'audit'] as const
+/** Folio tag keys under `whatsNew.tags.*` — keep in sync with `WHATS_NEW_50_TAG_KEYS`. */
+export const WHATS_NEW_50_TAG_KEYS = ['native', 'library', 'editor'] as const
 
-export type WhatsNew40HighlightId = (typeof WHATS_NEW_40_HIGHLIGHTS)[number]
+export type WhatsNew50HighlightId = (typeof WHATS_NEW_50_HIGHLIGHTS)[number]
+
+/** @deprecated Alias for older catalogs — prefer WHATS_NEW_50_*. */
+export const WHATS_NEW_40_HIGHLIGHTS = WHATS_NEW_50_HIGHLIGHTS
+/** @deprecated Alias for older catalogs — prefer WHATS_NEW_50_*. */
+export const WHATS_NEW_40_TAG_KEYS = WHATS_NEW_50_TAG_KEYS
 
 type WhatsNewDialogProps = {
   open: boolean
@@ -52,7 +57,7 @@ export function WhatsNewDialog({ open, onClose }: WhatsNewDialogProps) {
         aria-label={t('whatsNew.gotIt')}
         onClick={handleClose}
       />
-      <div className="setup-folio setup-folio--news setup-folio--edition-40">
+      <div className="setup-folio setup-folio--news setup-folio--edition-50">
         <aside className="setup-folio-margin" aria-hidden="true">
           <p className="setup-folio-brand">
             {t('welcome.brandWithEdition', { version: APP_SHORT_VERSION })}
@@ -71,12 +76,12 @@ export function WhatsNewDialog({ open, onClose }: WhatsNewDialogProps) {
             </h1>
             <p className="setup-folio-lead">{t('whatsNew.subtitle')}</p>
             <ul className="setup-folio-tags" aria-label={t('whatsNew.tagsLabel')}>
-              {WHATS_NEW_40_TAG_KEYS.map((key) => (
+              {WHATS_NEW_50_TAG_KEYS.map((key) => (
                 <li key={key}>{t(`whatsNew.tags.${key}`)}</li>
               ))}
             </ul>
           </header>
-          <WhatsNew40Highlights />
+          <WhatsNew50Highlights />
           <footer className="setup-folio-foot">
             <span className="setup-folio-foot-note">{t('whatsNew.footNote')}</span>
             <button type="button" className="setup-folio-next" onClick={handleClose}>
@@ -89,10 +94,10 @@ export function WhatsNewDialog({ open, onClose }: WhatsNewDialogProps) {
   )
 }
 
-/** Presentational list of 4.0 edition highlights — hydrated from Rust UiManifest when available. */
-export function WhatsNew40Highlights() {
+/** Presentational list of 5.0 edition highlights — hydrated from Rust UiManifest when available. */
+export function WhatsNew50Highlights() {
   const { t } = useTranslation()
-  const [highlights, setHighlights] = useState<string[]>([...WHATS_NEW_40_HIGHLIGHTS])
+  const [highlights, setHighlights] = useState<string[]>([...WHATS_NEW_50_HIGHLIGHTS])
 
   useEffect(() => {
     if (!isTauriRuntime()) return
@@ -126,3 +131,6 @@ export function WhatsNew40Highlights() {
     </ol>
   )
 }
+
+/** @deprecated Prefer WhatsNew50Highlights. */
+export const WhatsNew40Highlights = WhatsNew50Highlights

@@ -1,6 +1,6 @@
 //! Fuzzy string similarity for title / wiki label matching.
 
-use std::collections::{BTreeSet, HashMap};
+use std::collections::BTreeSet;
 
 use unicode_normalization::UnicodeNormalization;
 
@@ -145,6 +145,8 @@ pub fn fuzzy_extract(query: &str, choices: &[String], limit: usize, score_cutoff
 
 #[cfg(not(feature = "fuzzy"))]
 fn dice_bigram(left: &str, right: &str) -> f64 {
+    use std::collections::HashMap;
+
     fn bigrams(value: &str) -> (HashMap<(char, char), usize>, usize) {
         let chars: Vec<char> = value.chars().collect();
         let mut map = HashMap::new();

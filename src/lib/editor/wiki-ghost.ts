@@ -1,3 +1,5 @@
+/** Sync mirror of `scribe_core::wiki::ghost` (TipTap / vitest without Tauri). */
+
 export type WikiGhostCandidate = {
   id: string
   title: string
