@@ -299,8 +299,8 @@ export function AgentSection() {
   function setToolMode(tool: AgentToolId, mode: ToolMode) {
     let preferredTools = prefs.preferredTools.filter((item) => item !== tool)
     let disabledTools = prefs.disabledTools.filter((item) => item !== tool)
-    if (mode === 'prefer') preferredTools = [...preferredTools, tool].slice(0, 6)
-    if (mode === 'never') disabledTools = [...disabledTools, tool].slice(0, 6)
+    if (mode === 'prefer') preferredTools = [...preferredTools, tool].slice(0, 10)
+    if (mode === 'never') disabledTools = [...disabledTools, tool].slice(0, 10)
     dispatch(patchAgentPrefs({ preferredTools, disabledTools }))
   }
 
@@ -955,7 +955,7 @@ export function AgentSection() {
                   aria-label={t('settings.agent.customRecipeNamePlaceholder')}
                 />
                 <div className="agent-settings-tool-cloud" role="group">
-                  {AGENT_TOOL_IDS.filter((tool) => tool !== 'handoff').slice(0, 24).map((tool) => {
+                  {AGENT_TOOL_IDS.filter((tool) => tool !== 'handoff').map((tool) => {
                     const active = recipeTools.includes(tool)
                     return (
                       <button
@@ -967,7 +967,7 @@ export function AgentSection() {
                         onClick={() =>
                           setRecipeTools((prev) => {
                             if (prev.includes(tool)) return prev.filter((item) => item !== tool)
-                            return [...prev, tool].slice(0, 3)
+                            return [...prev, tool].slice(0, 6)
                           })
                         }
                       >

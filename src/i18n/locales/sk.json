@@ -3180,7 +3180,11 @@
       "digest": { "label": "Denný digest", "hint": "Brief knižnice" },
       "report": { "label": "Týždenný review", "hint": "Report + terminológia + termíny" },
       "files": { "label": "Opýtať sa files/", "hint": "Dotaz na sandbox files/", "defaultGoal": "Čo je v sandboxe files/?" },
+      "filesdigest": { "label": "Files digest", "hint": "Zhrnúť sandbox files/" },
+      "tolibrary": { "label": "Files → knižnica", "hint": "Importovať súbory do poznámok" },
       "code": { "label": "Code brief", "hint": "Review kódu v poznámke" },
+      "codepass": { "label": "Code pass", "hint": "Brief + vysvetlenie + osnova + kľúčové slová" },
+      "codeaudit": { "label": "Code audit", "hint": "Brief + sken tajomstiev + glossár" },
       "canvas": { "label": "Canvas board", "hint": "Canvas → poznámka" },
       "privacy": { "label": "Privacy pass", "hint": "PII + upratanie" },
       "handoff": { "label": "Handoff", "hint": "Poslať prácu inej roli agenta" },
@@ -3346,7 +3350,8 @@
       "polish": "Vylepšiť poznámku",
       "wikiCleanup": "Wiki upratanie",
       "canvasBoard": "Canvas → poznámka",
-      "codePass": "Code pass"
+      "codePass": "Code pass",
+      "codeAudit": "Code audit"
     },
     "quickPrompts": {
       "explain": "Vysvetli túto poznámku",

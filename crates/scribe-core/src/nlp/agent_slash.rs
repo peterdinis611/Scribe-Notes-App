@@ -621,6 +621,30 @@ fn slash_catalog() -> &'static [SlashDef] {
             default_goal_key: Some("agent.quickPrompts.askFiles"),
         },
         SlashDef {
+            id: "filesdigest",
+            name: "filesdigest",
+            aliases: &["fdigest"],
+            label_key: "agent.slash.filesdigest.label",
+            hint_key: "agent.slash.filesdigest.hint",
+            scopes: &[Library, Any],
+            tools: &[],
+            recipe_id: Some("files_digest"),
+            pass_args: false,
+            default_goal_key: None,
+        },
+        SlashDef {
+            id: "tolibrary",
+            name: "tolibrary",
+            aliases: &["filestolib", "importlib"],
+            label_key: "agent.slash.tolibrary.label",
+            hint_key: "agent.slash.tolibrary.hint",
+            scopes: &[Library, Any],
+            tools: &[],
+            recipe_id: Some("files_to_library"),
+            pass_args: false,
+            default_goal_key: None,
+        },
+        SlashDef {
             id: "code",
             name: "code",
             aliases: &["codebrief"],
@@ -631,6 +655,30 @@ fn slash_catalog() -> &'static [SlashDef] {
             recipe_id: None,
             pass_args: false,
             default_goal_key: Some("agent.tools.code_brief"),
+        },
+        SlashDef {
+            id: "codepass",
+            name: "codepass",
+            aliases: &["codereview"],
+            label_key: "agent.slash.codepass.label",
+            hint_key: "agent.slash.codepass.hint",
+            scopes: &[Document, Any],
+            tools: &[],
+            recipe_id: Some("code_pass"),
+            pass_args: false,
+            default_goal_key: None,
+        },
+        SlashDef {
+            id: "codeaudit",
+            name: "codeaudit",
+            aliases: &["codesec"],
+            label_key: "agent.slash.codeaudit.label",
+            hint_key: "agent.slash.codeaudit.hint",
+            scopes: &[Document, Any],
+            tools: &[],
+            recipe_id: Some("code_audit"),
+            pass_args: false,
+            default_goal_key: None,
         },
         SlashDef {
             id: "canvas",
@@ -923,6 +971,30 @@ mod tests {
             }
             other => panic!("unexpected {other:?}"),
         }
+        match parse_agent_slash("/filesdigest", "library") {
+            ParsedAgentSlash::Ok { recipe_id, .. } => {
+                assert_eq!(recipe_id.as_deref(), Some("files_digest"));
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+        match parse_agent_slash("/tolibrary", "library") {
+            ParsedAgentSlash::Ok { recipe_id, .. } => {
+                assert_eq!(recipe_id.as_deref(), Some("files_to_library"));
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+        match parse_agent_slash("/codepass", "document") {
+            ParsedAgentSlash::Ok { recipe_id, .. } => {
+                assert_eq!(recipe_id.as_deref(), Some("code_pass"));
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+        match parse_agent_slash("/codeaudit", "document") {
+            ParsedAgentSlash::Ok { recipe_id, .. } => {
+                assert_eq!(recipe_id.as_deref(), Some("code_audit"));
+            }
+            other => panic!("unexpected {other:?}"),
+        }
         match parse_agent_slash("/template", "document") {
             ParsedAgentSlash::Ok { recipe_id, .. } => {
                 assert_eq!(recipe_id.as_deref(), Some("note_to_template"));
@@ -1007,6 +1079,10 @@ mod tests {
             "wikiclean",
             "ingest",
             "revision",
+            "filesdigest",
+            "tolibrary",
+            "codepass",
+            "codeaudit",
         ] {
             assert!(
                 all.iter().any(|c| c.id == id),
@@ -1015,10 +1091,14 @@ mod tests {
         }
         let library = list_agent_slash_commands(Some("library"));
         assert!(library.iter().any(|c| c.id == "ingest"));
+        assert!(library.iter().any(|c| c.id == "filesdigest"));
+        assert!(library.iter().any(|c| c.id == "tolibrary"));
         // `revision` includes `Any` so it still appears in library scope (documentPreferred at run time).
         assert!(library.iter().any(|c| c.id == "revision"));
         let document = list_agent_slash_commands(Some("document"));
         assert!(document.iter().any(|c| c.id == "revision"));
         assert!(document.iter().any(|c| c.id == "template"));
+        assert!(document.iter().any(|c| c.id == "codepass"));
+        assert!(document.iter().any(|c| c.id == "codeaudit"));
     }
 }

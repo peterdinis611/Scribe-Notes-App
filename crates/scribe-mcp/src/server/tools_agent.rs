@@ -69,16 +69,39 @@ impl ScribeMcp {
     }
 
     #[tool(
-        description = "Run the same local agent planner used in the Scribe app: plan_agent_goal then execute tools. persona=general|spellcheck|proofreader|librarian|meeting|study|organizer|developer. For compare_notes/contradictions pass documentIdB; for revision pass revisionId. Requires Local AI."
+        description = "Run the same local agent as the Scribe app. Pass goal and/or recipeId/forceTools. persona=general|spellcheck|proofreader|librarian|meeting|study|organizer|developer. For compare_notes/contradictions pass documentIdB; for revision pass revisionId. recipeId skips the planner (e.g. code_pass, meeting_wrap). forceTools runs an explicit tool list. Requires Local AI."
     )]
     fn run_agent(
         &self,
         Parameters(params): Parameters<tools::RunAgentParams>,
     ) -> Result<String, String> {
-        let goal = params.goal.trim();
-        if goal.is_empty() {
-            return Err("goal is required".to_string());
+        let force_tools: Vec<String> = params
+            .force_tools
+            .unwrap_or_default()
+            .into_iter()
+            .map(|tool| tool.trim().to_string())
+            .filter(|tool| !tool.is_empty())
+            .collect();
+        let recipe_id = params
+            .recipe_id
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(|value| value.to_string());
+        let goal_raw = params
+            .goal
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(|value| value.to_string());
+        if goal_raw.is_none() && recipe_id.is_none() && force_tools.is_empty() {
+            return Err("goal is required (or pass recipeId / forceTools)".to_string());
         }
+        let goal = goal_raw.unwrap_or_else(|| {
+            recipe_id
+                .clone()
+                .unwrap_or_else(|| "run".to_string())
+        });
         let persona = normalize_run_agent_persona(params.persona.as_deref());
         let scope = params
             .scope
@@ -110,13 +133,19 @@ impl ScribeMcp {
             .map(|value| value.to_string());
 
         self.run_agent_with_persona(
-            goal,
+            &goal,
             scope,
             document_id,
             document_id_b,
             revision_id,
             params.max_tools,
             &persona,
+            recipe_id.as_deref(),
+            if force_tools.is_empty() {
+                None
+            } else {
+                Some(force_tools.as_slice())
+            },
         )
     }
 
@@ -146,6 +175,8 @@ impl ScribeMcp {
             None,
             Some(1),
             "spellcheck",
+            None,
+            None,
         )
     }
 

@@ -63,9 +63,16 @@ describe('agent roles', () => {
   it('developer role owns code_pass and keeps files tools', async () => {
     const { getAgentRole } = await import('@/lib/library/agent-roles')
     const developer = getAgentRole('developer')
-    expect(developer.recipeIds).toEqual(['code_pass'])
+    expect(developer.recipeIds).toEqual(['code_pass', 'code_audit'])
     expect(developer.tools).toEqual(
-      expect.arrayContaining(['code_brief', 'files_answer', 'files_ingest', 'handoff']),
+      expect.arrayContaining([
+        'code_brief',
+        'pii',
+        'glossary',
+        'files_answer',
+        'files_ingest',
+        'handoff',
+      ]),
     )
   })
 })

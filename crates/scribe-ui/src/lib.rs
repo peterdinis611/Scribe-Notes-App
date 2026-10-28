@@ -81,7 +81,7 @@ pub mod render;
 
 pub use agent_catalog::{
     agent_recipe_ids, agent_recipes, agent_role_ids, agent_roles, filter_tools_by_agents,
-    get_agent_role, is_agent_recipe_id, is_agent_role_id, is_recipe_allowed_by_agents,
+    get_agent_recipe, get_agent_role, is_agent_recipe_id, is_agent_role_id, is_recipe_allowed_by_agents,
     pick_canvas_template_id, preferred_tools_for_role, recipe_owner_role, resolve_agent_recipe,
     strip_answer_markdown, suggest_followup_recipes, title_from_markdown, tools_allowed_by_agents,
     AgentRecipeDef, AgentRoleDef, AGENT_RECIPE_IDS, AGENT_ROLE_IDS,

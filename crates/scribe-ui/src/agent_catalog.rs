@@ -30,6 +30,7 @@ pub const AGENT_RECIPE_IDS: &[&str] = &[
     "files_learn",
     "files_to_library",
     "code_pass",
+    "code_audit",
 ];
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -134,7 +135,13 @@ pub fn agent_recipes() -> Vec<AgentRecipeDef> {
         recipe(
             "code_pass",
             "agent.recipes.codePass",
-            &["code_brief", "explain", "keywords"],
+            &["code_brief", "explain", "outline", "keywords"],
+            true,
+        ),
+        recipe(
+            "code_audit",
+            "agent.recipes.codeAudit",
+            &["code_brief", "pii", "glossary"],
             true,
         ),
     ]
@@ -315,14 +322,16 @@ pub fn agent_roles() -> Vec<AgentRoleDef> {
         role(
             "developer",
             "agent",
-            &["code_pass"],
+            &["code_pass", "code_audit"],
             &[
                 "code_brief",
                 "explain",
-                "files_answer",
-                "files_ingest",
                 "outline",
                 "keywords",
+                "pii",
+                "glossary",
+                "files_answer",
+                "files_ingest",
                 "document_answer",
                 "library_answer",
                 "handoff",
@@ -337,6 +346,10 @@ pub fn is_agent_role_id(value: &str) -> bool {
 
 pub fn is_agent_recipe_id(value: &str) -> bool {
     AGENT_RECIPE_IDS.contains(&value)
+}
+
+pub fn get_agent_recipe(id: &str) -> Option<AgentRecipeDef> {
+    agent_recipes().into_iter().find(|r| r.id == id)
 }
 
 pub fn get_agent_role(id: &str) -> Option<AgentRoleDef> {
@@ -432,8 +445,11 @@ pub fn suggest_followup_recipes(
     if ok.contains("files_answer") || ok.contains("files_ingest") {
         out.extend(["files_learn", "files_to_library", "files_digest"]);
     }
-    if ok.contains("code_brief") || ok.contains("explain") {
+    if ok.contains("code_brief") || ok.contains("explain") || ok.contains("outline") {
         out.push("code_pass");
+    }
+    if ok.contains("code_brief") || ok.contains("pii") || ok.contains("glossary") {
+        out.push("code_audit");
     }
     if ok.contains("spellcheck") {
         out.extend(["spellcheck", "polish"]);
@@ -609,7 +625,7 @@ mod tests {
     #[test]
     fn catalogs_non_empty() {
         assert_eq!(agent_role_ids().len(), 7);
-        assert_eq!(agent_recipes().len(), 16);
+        assert_eq!(agent_recipes().len(), 17);
         assert_eq!(agent_roles().len(), 7);
     }
 
@@ -641,12 +657,20 @@ mod tests {
             .into_iter()
             .find(|r| r.id == "code_pass")
             .expect("code_pass");
-        assert_eq!(recipe.tools, vec!["code_brief", "explain", "keywords"]);
+        assert_eq!(
+            recipe.tools,
+            vec!["code_brief", "explain", "outline", "keywords"]
+        );
         assert!(recipe.document_preferred);
         assert_eq!(recipe_owner_role("code_pass").as_deref(), Some("developer"));
+        let audit = get_agent_recipe("code_audit").expect("code_audit");
+        assert_eq!(audit.tools, vec!["code_brief", "pii", "glossary"]);
+        assert_eq!(recipe_owner_role("code_audit").as_deref(), Some("developer"));
         let developer = get_agent_role("developer").expect("developer");
         assert!(developer.recipe_ids.iter().any(|id| id == "code_pass"));
+        assert!(developer.recipe_ids.iter().any(|id| id == "code_audit"));
         assert!(is_agent_recipe_id("code_pass"));
+        assert!(is_agent_recipe_id("code_audit"));
     }
 
     #[test]

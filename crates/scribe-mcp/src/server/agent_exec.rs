@@ -642,6 +642,8 @@ impl ScribeMcp {
         revision_id: Option<String>,
         max_tools: Option<i64>,
         persona: &str,
+        recipe_id: Option<&str>,
+        force_tools: Option<&[String]>,
     ) -> Result<String, String> {
         let spellcheck = persona == "spellcheck";
         if spellcheck && document_id.as_deref().map(str::trim).filter(|v| !v.is_empty()).is_none()
@@ -665,7 +667,22 @@ impl ScribeMcp {
             return Err("Local agent is disabled in Scribe settings".into());
         }
 
-        let scope = if spellcheck { "document" } else { scope };
+        let scope = if spellcheck {
+            "document"
+        } else if recipe_id
+            .and_then(scribe_ui::get_agent_recipe)
+            .map(|recipe| recipe.document_preferred)
+            .unwrap_or(false)
+            && document_id
+                .as_deref()
+                .map(str::trim)
+                .filter(|v| !v.is_empty())
+                .is_some()
+        {
+            "document"
+        } else {
+            scope
+        };
         let max_tools = if spellcheck {
             1
         } else {
@@ -700,8 +717,44 @@ impl ScribeMcp {
                 (Vec::new(), Vec::new(), None)
             };
 
+        let filter_disabled = |tools: Vec<String>| -> Vec<String> {
+            tools
+                .into_iter()
+                .filter(|tool| {
+                    !disabled_tools
+                        .iter()
+                        .any(|disabled| disabled.eq_ignore_ascii_case(tool))
+                })
+                .collect()
+        };
+        let apply_role = |tools: Vec<String>| -> Vec<String> {
+            if role_id == "general" {
+                tools
+            } else {
+                scribe_ui::filter_tools_by_agents(&tools, &[role_id.to_string()])
+            }
+        };
+
         let tools_list: Vec<String> = if spellcheck {
             vec!["spellcheck".into()]
+        } else if let Some(forced) = force_tools.filter(|tools| !tools.is_empty()) {
+            apply_role(filter_disabled(forced.to_vec()))
+                .into_iter()
+                .take(max_tools as usize)
+                .collect()
+        } else if let Some(recipe) = recipe_id.and_then(scribe_ui::get_agent_recipe) {
+            if !scribe_ui::is_recipe_allowed_by_agents(&recipe.id, &[role_id.to_string()])
+                && role_id != "general"
+            {
+                return Err(format!(
+                    "recipe `{rid}` is not allowed for persona `{role_id}`",
+                    rid = recipe.id
+                ));
+            }
+            apply_role(filter_disabled(recipe.tools))
+                .into_iter()
+                .take(max_tools as usize)
+                .collect()
         } else {
             let handoffs = if handoff_summaries.is_empty() {
                 None
@@ -733,20 +786,12 @@ impl ScribeMcp {
                 .unwrap_or_default()
                 .into_iter()
                 .filter_map(|value| value.as_str().map(|s| s.to_string()))
-                .filter(|tool| {
-                    !disabled_tools
-                        .iter()
-                        .any(|disabled| disabled.eq_ignore_ascii_case(tool))
-                })
                 .collect::<Vec<_>>();
 
-            let planned = if role_id == "general" {
-                planned
-            } else {
-                scribe_ui::filter_tools_by_agents(&planned, &[role_id.to_string()])
-            };
-
-            let planned: Vec<String> = planned.into_iter().take(max_tools as usize).collect();
+            let planned = apply_role(filter_disabled(planned))
+                .into_iter()
+                .take(max_tools as usize)
+                .collect::<Vec<_>>();
 
             if plan
                 .get("needsClarification")
@@ -761,6 +806,7 @@ impl ScribeMcp {
                     "documentIdB": document_id_b,
                     "revisionId": revision_id,
                     "persona": persona,
+                    "recipeId": recipe_id,
                     "needsClarification": true,
                     "clarifyOptions": plan.get("clarifyOptions").cloned().unwrap_or(serde_json::json!([])),
                     "steps": [],

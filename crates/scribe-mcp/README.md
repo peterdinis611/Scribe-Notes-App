@@ -153,7 +153,7 @@ Encrypted vault notes are stored as AES-GCM ciphertext in SQLite. The unlock pas
 | `set_nlp_enabled` | Enable/disable Local AI (writable) |
 | `set_embed_backend` | `hash` or `quality` embeddings (writable) |
 | `calendar_events` | Date events from recent notes |
-| `run_agent` | Local agent planner (role personas, forward_plan/compare/revision, files_ingest/canvas_template with write; `persona=spellcheck` for Spellcheck Agent) |
+| `run_agent` | Local agent (planner or `recipeId`/`forceTools`; role personas; write-gated ingest/canvas/template; `persona=spellcheck` for Spellcheck Agent) |
 | `run_spellcheck_agent` | Spellcheck Agent on one note (grammar teachings) |
 | `spellcheck` | Spellcheck a document |
 | `extract_keywords` | Keywords / keyphrases |

@@ -78,6 +78,40 @@ const FIXTURE: AgentSlashCommand[] = [
     scopes: ['document', 'any'],
     tools: ['code_brief'],
   },
+  {
+    id: 'codepass',
+    name: 'codepass',
+    aliases: ['codereview'],
+    labelKey: 'agent.slash.codepass.label',
+    hintKey: 'agent.slash.codepass.hint',
+    scopes: ['document', 'any'],
+    recipeId: 'code_pass',
+  },
+  {
+    id: 'codeaudit',
+    name: 'codeaudit',
+    aliases: ['codesec'],
+    labelKey: 'agent.slash.codeaudit.label',
+    hintKey: 'agent.slash.codeaudit.hint',
+    scopes: ['document', 'any'],
+    recipeId: 'code_audit',
+  },
+  {
+    id: 'filesdigest',
+    name: 'filesdigest',
+    labelKey: 'agent.slash.filesdigest.label',
+    hintKey: 'agent.slash.filesdigest.hint',
+    scopes: ['library', 'any'],
+    recipeId: 'files_digest',
+  },
+  {
+    id: 'tolibrary',
+    name: 'tolibrary',
+    labelKey: 'agent.slash.tolibrary.label',
+    hintKey: 'agent.slash.tolibrary.hint',
+    scopes: ['library', 'any'],
+    recipeId: 'files_to_library',
+  },
 ]
 
 describe('agent-slash (TS thin layer over cached Rust catalog)', () => {
@@ -141,6 +175,18 @@ describe('agent-slash (TS thin layer over cached Rust catalog)', () => {
     })
     expect(parseAgentSlash('/import', 'library', t)).toMatchObject({
       recipeId: 'files_learn',
+    })
+    expect(parseAgentSlash('/codepass', 'document', t)).toMatchObject({
+      recipeId: 'code_pass',
+    })
+    expect(parseAgentSlash('/codesec', 'document', t)).toMatchObject({
+      recipeId: 'code_audit',
+    })
+    expect(parseAgentSlash('/filesdigest', 'library', t)).toMatchObject({
+      recipeId: 'files_digest',
+    })
+    expect(parseAgentSlash('/tolibrary', 'library', t)).toMatchObject({
+      recipeId: 'files_to_library',
     })
   })
 })

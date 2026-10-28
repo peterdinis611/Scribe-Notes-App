@@ -19,6 +19,7 @@ export type AgentRecipeId =
   | 'files_learn'
   | 'files_to_library'
   | 'code_pass'
+  | 'code_audit'
 
 export type AgentRecipe = {
   id: AgentRecipeId
@@ -128,7 +129,13 @@ export const AGENT_RECIPES: AgentRecipe[] = [
   {
     id: 'code_pass',
     labelKey: 'agent.recipes.codePass',
-    tools: ['code_brief', 'explain', 'keywords'],
+    tools: ['code_brief', 'explain', 'outline', 'keywords'],
+    documentPreferred: true,
+  },
+  {
+    id: 'code_audit',
+    labelKey: 'agent.recipes.codeAudit',
+    tools: ['code_brief', 'pii', 'glossary'],
     documentPreferred: true,
   },
 ]

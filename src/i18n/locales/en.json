@@ -3176,7 +3176,11 @@
       "digest": { "label": "Daily digest", "hint": "Library brief" },
       "report": { "label": "Weekly review", "hint": "Report + terminology + dates" },
       "files": { "label": "Ask files/", "hint": "Query the files sandbox", "defaultGoal": "What's in my files/ sandbox?" },
+      "filesdigest": { "label": "Files digest", "hint": "Summarize the files/ sandbox" },
+      "tolibrary": { "label": "Files → library", "hint": "Ingest sandbox files into notes" },
       "code": { "label": "Code brief", "hint": "Review code in this note" },
+      "codepass": { "label": "Code pass", "hint": "Brief + explain + outline + keywords" },
+      "codeaudit": { "label": "Code audit", "hint": "Brief + secrets scan + glossary" },
       "canvas": { "label": "Canvas board", "hint": "Canvas → note recipe" },
       "privacy": { "label": "Privacy pass", "hint": "PII + cleanup recipe" },
       "handoff": { "label": "Handoff", "hint": "Pass work to another agent role" },
@@ -3342,7 +3346,8 @@
       "polish": "Polish note",
       "wikiCleanup": "Wiki cleanup",
       "canvasBoard": "Canvas → note",
-      "codePass": "Code pass"
+      "codePass": "Code pass",
+      "codeAudit": "Code audit"
     },
     "quickPrompts": {
       "explain": "Explain this note",

@@ -137,6 +137,17 @@ describe('suggestFollowupRecipes', () => {
     expect(ids).toContain('code_pass')
   })
 
+  it('suggests code_audit after code_brief / pii', () => {
+    const ids = suggestFollowupRecipes(
+      [
+        { tool: 'code_brief', status: 'ok' },
+        { tool: 'pii', status: 'ok' },
+      ],
+      'document',
+    )
+    expect(ids).toContain('code_audit')
+  })
+
   it('suggests wiki_cleanup after wiki_health', () => {
     const ids = suggestFollowupRecipes(
       [{ tool: 'wiki_health', status: 'ok' }],

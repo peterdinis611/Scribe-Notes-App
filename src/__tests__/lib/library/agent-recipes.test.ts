@@ -15,13 +15,20 @@ describe('agent recipes catalog', () => {
   it('includes code_pass with expected tools', () => {
     const recipe = getAgentRecipe('code_pass')
     expect(recipe).toBeDefined()
-    expect(recipe?.tools).toEqual(['code_brief', 'explain', 'keywords'])
+    expect(recipe?.tools).toEqual(['code_brief', 'explain', 'outline', 'keywords'])
     expect(recipe?.documentPreferred).toBe(true)
     expect(recipe?.labelKey).toBe('agent.recipes.codePass')
   })
 
   it('lists code_pass among built-ins', () => {
     expect(AGENT_RECIPES.some((r) => r.id === 'code_pass')).toBe(true)
+  })
+
+  it('includes code_audit for secrets + glossary pass', () => {
+    const recipe = getAgentRecipe('code_audit')
+    expect(recipe?.tools).toEqual(['code_brief', 'pii', 'glossary'])
+    expect(recipeOwnerRole('code_audit')).toBe('developer')
+    expect(getAgentRole('developer').recipeIds).toContain('code_audit')
   })
 
   it('owns code_pass under developer and allows it by default', () => {
