@@ -3824,6 +3824,8 @@
     "emptyHintLinked": "Every document is already part of the map. Keep linking to densify the constellation.",
     "emptyTipWiki": "Write [[Title]] in a note to grow the map.",
     "emptyOrphans": "No orphan documents — every document is linked.",
+    "emptyOrphansFiltered": "Orphans are hidden by the current map filters.",
+    "clearMapFilters": "Clear filters",
     "emptyAround": "No neighbors for the active document. Turn off Around, or enable Orphans.",
     "summary": "{{nodes}} documents · {{edges}} links",
     "showOrphans": "Orphans",

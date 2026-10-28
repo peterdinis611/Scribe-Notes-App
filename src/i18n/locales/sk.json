@@ -3832,6 +3832,8 @@
     "emptyHintLinked": "Každý dokument už je súčasťou mapy. Ďalšími odkazmi hviezdokopu zahustíte.",
     "emptyTipWiki": "Napíšte [[Názov]] v poznámke a mapa narastie.",
     "emptyOrphans": "Žiadne osirolené dokumenty — všetky sú prepojené.",
+    "emptyOrphansFiltered": "Osirolené sú skryté aktuálnymi filtrami mapy.",
+    "clearMapFilters": "Zrušiť filtre",
     "emptyAround": "Aktívny dokument nemá susedov. Vypnite Okolie, alebo zapnite Osirotelé.",
     "summary": "{{nodes}} dokumentov · {{edges}} odkazov",
     "showOrphans": "Osirolené",

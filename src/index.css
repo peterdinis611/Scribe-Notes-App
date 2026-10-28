@@ -16674,7 +16674,6 @@ html:not([data-ui-skin]) .folder-tree-row--doc.is-selected {
 .selection-ai__primary,
 .library-duplicates__titles button,
 .library-duplicates__actions button,
-.library-orphan-rail button,
 .wiki-ghost-hint {
   border: none;
   background: transparent;
@@ -16694,7 +16693,6 @@ html:not([data-ui-skin]) .folder-tree-row--doc.is-selected {
 
 .selection-ai__mode:hover,
 .library-duplicates__titles button:hover,
-.library-orphan-rail button:hover,
 .wiki-ghost-hint:hover {
   background: color-mix(in srgb, var(--color-accent) 10%, transparent);
 }
@@ -16899,27 +16897,6 @@ html:not([data-ui-skin]) .folder-tree-row--doc.is-selected {
   font-weight: 500;
   letter-spacing: 0.01em;
   opacity: 0.78;
-}
-
-.library-orphan-rail {
-  margin: 0 0 10px;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.library-orphan-rail li {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-size: 12px;
-}
-
-.library-orphan-rail span {
-  color: var(--color-muted-foreground);
-  font-size: 10.5px;
 }
 
 /* ── Error folio (runtime crash screen) ───────────────────────────────────── */
