@@ -656,6 +656,78 @@ fn slash_catalog() -> &'static [SlashDef] {
             pass_args: false,
             default_goal_key: None,
         },
+        SlashDef {
+            id: "handoff",
+            name: "handoff",
+            aliases: &["posli"],
+            label_key: "agent.slash.handoff.label",
+            hint_key: "agent.slash.handoff.hint",
+            scopes: &[Document, Library, Folder, Any],
+            tools: &["handoff"],
+            recipe_id: None,
+            pass_args: true,
+            default_goal_key: Some("agent.tools.handoff"),
+        },
+        SlashDef {
+            id: "wikihealth",
+            name: "wikihealth",
+            aliases: &["wiki_health"],
+            label_key: "agent.slash.wikihealth.label",
+            hint_key: "agent.slash.wikihealth.hint",
+            scopes: &[Library, Document, Any],
+            tools: &["wiki_health"],
+            recipe_id: None,
+            pass_args: false,
+            default_goal_key: Some("agent.tools.wiki_health"),
+        },
+        SlashDef {
+            id: "template",
+            name: "template",
+            aliases: &["sablona"],
+            label_key: "agent.slash.template.label",
+            hint_key: "agent.slash.template.hint",
+            scopes: &[Document, Any],
+            tools: &[],
+            recipe_id: Some("note_to_template"),
+            pass_args: false,
+            default_goal_key: None,
+        },
+        SlashDef {
+            id: "wikiclean",
+            name: "wikiclean",
+            aliases: &["wikicleanup"],
+            label_key: "agent.slash.wikiclean.label",
+            hint_key: "agent.slash.wikiclean.hint",
+            scopes: &[Document, Library, Any],
+            tools: &[],
+            recipe_id: Some("wiki_cleanup"),
+            pass_args: false,
+            default_goal_key: None,
+        },
+        SlashDef {
+            id: "ingest",
+            name: "ingest",
+            aliases: &["import"],
+            label_key: "agent.slash.ingest.label",
+            hint_key: "agent.slash.ingest.hint",
+            scopes: &[Library, Any],
+            tools: &[],
+            recipe_id: Some("files_learn"),
+            pass_args: false,
+            default_goal_key: None,
+        },
+        SlashDef {
+            id: "revision",
+            name: "revision",
+            aliases: &["rev"],
+            label_key: "agent.slash.revision.label",
+            hint_key: "agent.slash.revision.hint",
+            scopes: &[Document, Any],
+            tools: &["revision"],
+            recipe_id: None,
+            pass_args: false,
+            default_goal_key: Some("agent.tools.revision"),
+        },
     ]
 }
 
@@ -842,6 +914,31 @@ mod tests {
         match parse_agent_slash("/planuj", "document") {
             ParsedAgentSlash::Ok { force_tools, .. } => {
                 assert_eq!(force_tools, vec!["forward_plan"]);
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+        match parse_agent_slash("/ingest", "library") {
+            ParsedAgentSlash::Ok { recipe_id, .. } => {
+                assert_eq!(recipe_id.as_deref(), Some("files_learn"));
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+        match parse_agent_slash("/template", "document") {
+            ParsedAgentSlash::Ok { recipe_id, .. } => {
+                assert_eq!(recipe_id.as_deref(), Some("note_to_template"));
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+        match parse_agent_slash("/posli organizer: triage inbox", "document") {
+            ParsedAgentSlash::Ok {
+                command_id,
+                force_tools,
+                args,
+                ..
+            } => {
+                assert_eq!(command_id, "handoff");
+                assert_eq!(force_tools, vec!["handoff"]);
+                assert_eq!(args, "organizer: triage inbox");
             }
             other => panic!("unexpected {other:?}"),
         }

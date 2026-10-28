@@ -29,6 +29,7 @@ pub const AGENT_RECIPE_IDS: &[&str] = &[
     "canvas_board",
     "files_learn",
     "files_to_library",
+    "code_pass",
 ];
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -129,6 +130,12 @@ pub fn agent_recipes() -> Vec<AgentRecipeDef> {
             "agent.recipes.filesToLibrary",
             &["files_ingest", "brief", "organize"],
             false,
+        ),
+        recipe(
+            "code_pass",
+            "agent.recipes.codePass",
+            &["code_brief", "explain", "keywords"],
+            true,
         ),
     ]
 }
@@ -308,7 +315,7 @@ pub fn agent_roles() -> Vec<AgentRoleDef> {
         role(
             "developer",
             "agent",
-            &[],
+            &["code_pass"],
             &[
                 "code_brief",
                 "explain",
@@ -424,6 +431,9 @@ pub fn suggest_followup_recipes(
     }
     if ok.contains("files_answer") || ok.contains("files_ingest") {
         out.extend(["files_learn", "files_to_library", "files_digest"]);
+    }
+    if ok.contains("code_brief") || ok.contains("explain") {
+        out.push("code_pass");
     }
     if ok.contains("spellcheck") {
         out.extend(["spellcheck", "polish"]);
@@ -599,7 +609,7 @@ mod tests {
     #[test]
     fn catalogs_non_empty() {
         assert_eq!(agent_role_ids().len(), 7);
-        assert_eq!(agent_recipes().len(), 15);
+        assert_eq!(agent_recipes().len(), 16);
         assert_eq!(agent_roles().len(), 7);
     }
 

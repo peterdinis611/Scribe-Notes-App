@@ -1689,6 +1689,60 @@ impl ScribeStore {
         })
     }
 
+    /// Replace document body with raw TipTap / canvas `content_json` (saves a revision when changed).
+    pub fn replace_document_content_json(
+        &self,
+        id: &str,
+        content_json: &str,
+    ) -> Result<IdTitle, String> {
+        let id = id.trim();
+        if id.is_empty() {
+            return Err("id is required".to_string());
+        }
+        let content_json = content_json.trim();
+        if content_json.is_empty() {
+            return Err("content_json is required".to_string());
+        }
+        // Validate JSON shape early.
+        let _: Value = serde_json::from_str(content_json).map_err(|e| e.to_string())?;
+
+        self.run_writable(|db| {
+            let row: Option<(String, String, Option<i64>)> = db
+                .query_row(
+                    "SELECT title, content_json, deleted_at FROM documents WHERE id = ?1",
+                    params![id],
+                    |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+                )
+                .optional()
+                .map_err(|e| e.to_string())?;
+
+            let Some((title, existing_json, deleted_at)) = row else {
+                return Err(format!("Document not found: {id}"));
+            };
+            if deleted_at.is_some() {
+                return Err(format!("Document not found: {id}"));
+            }
+
+            if existing_json != content_json {
+                save_revision(db, id, &title, &existing_json, None, false)?;
+            }
+
+            let now = Self::now_ms();
+            db.execute(
+                "UPDATE documents SET content_json = ?1, updated_at = ?2 WHERE id = ?3",
+                params![content_json, now, id],
+            )
+            .map_err(|e| e.to_string())?;
+            sync_document_fts(db, id, &title, content_json)?;
+            sync_document_links(db, id, content_json)?;
+
+            Ok(IdTitle {
+                id: id.to_string(),
+                title,
+            })
+        })
+    }
+
     pub fn set_document_favorite(&self, id: &str, favorite: bool) -> Result<IdTitle, String> {
         self.set_document_flag(id, "is_favorite", favorite)
     }

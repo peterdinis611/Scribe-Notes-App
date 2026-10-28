@@ -3182,7 +3182,13 @@
       "files": { "label": "Opýtať sa files/", "hint": "Dotaz na sandbox files/", "defaultGoal": "Čo je v sandboxe files/?" },
       "code": { "label": "Code brief", "hint": "Review kódu v poznámke" },
       "canvas": { "label": "Canvas board", "hint": "Canvas → poznámka" },
-      "privacy": { "label": "Privacy pass", "hint": "PII + upratanie" }
+      "privacy": { "label": "Privacy pass", "hint": "PII + upratanie" },
+      "handoff": { "label": "Handoff", "hint": "Poslať prácu inej roli agenta" },
+      "wikihealth": { "label": "Wiki health", "hint": "Report orphan / stub / hub" },
+      "template": { "label": "Poznámka → šablóna", "hint": "Hinty + osnova + uložiť šablónu" },
+      "wikiclean": { "label": "Wiki upratanie", "hint": "Health + odkazy + organizácia" },
+      "ingest": { "label": "Učiť sa z files/", "hint": "Opýtať sandbox a importovať poznámky" },
+      "revision": { "label": "Revision AI", "hint": "Prehľad nedávnych zmien poznámky" }
     },
     "send": "Spustiť",
     "thinking": "Agent spúšťa lokálne nástroje…",
@@ -3339,7 +3345,8 @@
       "privacyPass": "Privacy pass",
       "polish": "Vylepšiť poznámku",
       "wikiCleanup": "Wiki upratanie",
-      "canvasBoard": "Canvas → poznámka"
+      "canvasBoard": "Canvas → poznámka",
+      "codePass": "Code pass"
     },
     "quickPrompts": {
       "explain": "Vysvetli túto poznámku",

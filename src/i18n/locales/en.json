@@ -3178,7 +3178,13 @@
       "files": { "label": "Ask files/", "hint": "Query the files sandbox", "defaultGoal": "What's in my files/ sandbox?" },
       "code": { "label": "Code brief", "hint": "Review code in this note" },
       "canvas": { "label": "Canvas board", "hint": "Canvas → note recipe" },
-      "privacy": { "label": "Privacy pass", "hint": "PII + cleanup recipe" }
+      "privacy": { "label": "Privacy pass", "hint": "PII + cleanup recipe" },
+      "handoff": { "label": "Handoff", "hint": "Pass work to another agent role" },
+      "wikihealth": { "label": "Wiki health", "hint": "Orphan / stub / hub report" },
+      "template": { "label": "Note → template", "hint": "Hints + outline + save template" },
+      "wikiclean": { "label": "Wiki cleanup", "hint": "Health + links + organize" },
+      "ingest": { "label": "Learn from files/", "hint": "Ask sandbox then import notes" },
+      "revision": { "label": "Revision AI", "hint": "Review recent changes to this note" }
     },
     "send": "Run",
     "thinking": "Agent is running local tools…",
@@ -3335,7 +3341,8 @@
       "privacyPass": "Privacy pass",
       "polish": "Polish note",
       "wikiCleanup": "Wiki cleanup",
-      "canvasBoard": "Canvas → note"
+      "canvasBoard": "Canvas → note",
+      "codePass": "Code pass"
     },
     "quickPrompts": {
       "explain": "Explain this note",

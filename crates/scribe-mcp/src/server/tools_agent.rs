@@ -69,7 +69,7 @@ impl ScribeMcp {
     }
 
     #[tool(
-        description = "Run the same local agent planner used in the Scribe app: plan_agent_goal then execute tools (library/document Q&A, summarize, tasks, spellcheck, rewrite, glossary, …). Set persona=spellcheck for the Spellcheck Agent (grammar teachings + spellcheck only). Requires Local AI."
+        description = "Run the same local agent planner used in the Scribe app: plan_agent_goal then execute tools. persona=general|spellcheck|proofreader|librarian|meeting|study|organizer|developer. For compare_notes/contradictions pass documentIdB; for revision pass revisionId. Requires Local AI."
     )]
     fn run_agent(
         &self,
@@ -79,16 +79,7 @@ impl ScribeMcp {
         if goal.is_empty() {
             return Err("goal is required".to_string());
         }
-        let persona = match params
-            .persona
-            .as_deref()
-            .map(str::trim)
-            .map(|value| value.to_ascii_lowercase())
-            .as_deref()
-        {
-            Some("spellcheck") | Some("spell") | Some("grammar") => "spellcheck",
-            _ => "general",
-        };
+        let persona = normalize_run_agent_persona(params.persona.as_deref());
         let scope = params
             .scope
             .as_deref()
@@ -105,8 +96,28 @@ impl ScribeMcp {
             .map(str::trim)
             .filter(|value| !value.is_empty())
             .map(|value| value.to_string());
+        let document_id_b = params
+            .document_id_b
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(|value| value.to_string());
+        let revision_id = params
+            .revision_id
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(|value| value.to_string());
 
-        self.run_agent_with_persona(goal, scope, document_id, params.max_tools, persona)
+        self.run_agent_with_persona(
+            goal,
+            scope,
+            document_id,
+            document_id_b,
+            revision_id,
+            params.max_tools,
+            &persona,
+        )
     }
 
     #[tool(
@@ -131,6 +142,8 @@ impl ScribeMcp {
             goal,
             "document",
             Some(document_id.to_string()),
+            None,
+            None,
             Some(1),
             "spellcheck",
         )
@@ -441,5 +454,19 @@ impl ScribeMcp {
                 params.enhance_heuristics,
             )?))
         })
+    }
+}
+
+/// Map MCP persona aliases onto in-app role ids (`spellcheck` → proofreader path).
+fn normalize_run_agent_persona(raw: Option<&str>) -> String {
+    let folded = raw
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(|value| value.to_ascii_lowercase())
+        .unwrap_or_else(|| "general".into());
+    match folded.as_str() {
+        "spellcheck" | "spell" | "grammar" | "proofreader" => "spellcheck".into(),
+        id if scribe_ui::is_agent_role_id(id) => id.to_string(),
+        _ => "general".into(),
     }
 }

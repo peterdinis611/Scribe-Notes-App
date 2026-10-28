@@ -110,9 +110,14 @@ pub struct RunAgentParams {
     pub scope: Option<String>,
     /// Required for most document tools.
     pub document_id: Option<String>,
+    /// Second note for compare_notes / contradictions.
+    pub document_id_b: Option<String>,
+    /// Saved revision id for the `revision` tool.
+    pub revision_id: Option<String>,
     /// Cap tool steps (1–6). Default 3 (or agent prefs maxSteps).
     pub max_tools: Option<i64>,
-    /// Agent persona: `general` (default) or `spellcheck` (Spellcheck Agent).
+    /// Agent persona: `general` (default), `spellcheck`/`proofreader`, or any role id
+    /// (`librarian`, `meeting`, `study`, `organizer`, `developer`).
     pub persona: Option<String>,
 }
 

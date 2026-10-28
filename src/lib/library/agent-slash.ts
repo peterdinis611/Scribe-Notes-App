@@ -94,12 +94,6 @@ export function seedAgentSlashCatalogForTests(rows: AgentSlashCommand[]) {
   catalogCache = rows
 }
 
-/**
- * @deprecated Prefer ensureAgentSlashCatalog — kept as empty export for gradual migration.
- * Autocomplete should call filterAgentSlashCommands after ensure.
- */
-export const AGENT_SLASH_COMMANDS: AgentSlashCommand[] = []
-
 function toolsForSlashCommand(
   cmd: AgentSlashCommand,
   scope: ChatScope,

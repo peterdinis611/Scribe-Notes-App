@@ -230,7 +230,7 @@ export const AGENT_ROLES: AgentRoleDefinition[] = [
     dockTitleKey: 'agent.roles.developer.dockTitle',
     defaultEnabled: true,
     panel: 'agent',
-    recipeIds: [],
+    recipeIds: ['code_pass'],
     tools: [
       'code_brief',
       'explain',

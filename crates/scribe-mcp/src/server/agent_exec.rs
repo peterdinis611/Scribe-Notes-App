@@ -11,6 +11,8 @@ impl ScribeMcp {
         tool: &str,
         goal: &str,
         document_id: Option<&str>,
+        document_id_b: Option<&str>,
+        revision_id: Option<&str>,
     ) -> Result<(String, Option<String>), String> {
         let tool = tool.trim().to_ascii_lowercase();
         let grammar_rules = if tool == "grammar" || tool == "grammar_check" {
@@ -239,17 +241,65 @@ impl ScribeMcp {
                 let result = store.check_terminology_library(&self.sidecar, Some(16), Some(40))?;
                 Ok(("terminology_library".into(), Some(tools::json(&result))))
             }
-            "compare_notes" => Err(
-                "compare_notes needs two documents — call the compare_notes MCP tool with documentIdA/documentIdB"
-                    .into(),
-            ),
-            "contradictions" | "contradiction_hints" => Err(
-                "contradictions needs two documents — call the contradiction_hints MCP tool with idA/idB"
-                    .into(),
-            ),
-            "revision" => Err(
-                "revision needs a revisionId — call analyze_revision_diff_for_document".into(),
-            ),
+            "forward_plan" => {
+                let id =
+                    document_id.ok_or_else(|| "documentId required for forward_plan".to_string())?;
+                let result = store.forward_plan(&self.sidecar, Some(id), None, Some(12))?;
+                Ok(("forward_plan".into(), Some(tools::json(&result))))
+            }
+            "compare_notes" => {
+                let id_a =
+                    document_id.ok_or_else(|| "documentId required for compare_notes".to_string())?;
+                let id_b = document_id_b.ok_or_else(|| {
+                    "documentIdB required for compare_notes — pass RunAgentParams.documentIdB"
+                        .to_string()
+                })?;
+                let result = store.compare_notes(
+                    &self.sidecar,
+                    Some(id_a),
+                    Some(id_b),
+                    None,
+                    None,
+                    None,
+                    None,
+                )?;
+                Ok(("compare_notes".into(), Some(tools::json(&result))))
+            }
+            "contradictions" | "contradiction_hints" => {
+                let id_a = document_id
+                    .ok_or_else(|| "documentId required for contradictions".to_string())?;
+                let id_b = document_id_b.ok_or_else(|| {
+                    "documentIdB required for contradictions — pass RunAgentParams.documentIdB"
+                        .to_string()
+                })?;
+                let result = store.contradiction_hints(
+                    &self.sidecar,
+                    Some(id_a),
+                    Some(id_b),
+                    None,
+                    None,
+                    None,
+                    None,
+                    Some(8),
+                )?;
+                Ok(("contradictions".into(), Some(tools::json(&result))))
+            }
+            "revision" => {
+                let id =
+                    document_id.ok_or_else(|| "documentId required for revision".to_string())?;
+                let rev = revision_id.ok_or_else(|| {
+                    "revisionId required for revision — pass RunAgentParams.revisionId".to_string()
+                })?;
+                let result = store.analyze_revision_diff_for_document(
+                    &self.sidecar,
+                    id,
+                    rev,
+                    Some(12),
+                    None,
+                    None,
+                )?;
+                Ok(("revision".into(), Some(tools::json(&result))))
+            }
             "keywords" => {
                 let id = document_id.ok_or_else(|| "documentId required for keywords".to_string())?;
                 let result = store.extract_document_keywords(&self.sidecar, id, Some(16))?;
@@ -428,6 +478,8 @@ impl ScribeMcp {
         goal: &str,
         scope: &str,
         document_id: Option<String>,
+        document_id_b: Option<String>,
+        revision_id: Option<String>,
         max_tools: Option<i64>,
         persona: &str,
     ) -> Result<String, String> {
@@ -526,8 +578,15 @@ impl ScribeMcp {
                         .iter()
                         .any(|disabled| disabled.eq_ignore_ascii_case(tool))
                 })
-                .take(max_tools as usize)
                 .collect::<Vec<_>>();
+
+            let planned = if role_id == "general" {
+                planned
+            } else {
+                scribe_ui::filter_tools_by_agents(&planned, &[role_id.to_string()])
+            };
+
+            let planned: Vec<String> = planned.into_iter().take(max_tools as usize).collect();
 
             if plan
                 .get("needsClarification")
@@ -539,6 +598,8 @@ impl ScribeMcp {
                     "goal": goal,
                     "scope": scope,
                     "documentId": document_id,
+                    "documentIdB": document_id_b,
+                    "revisionId": revision_id,
                     "persona": persona,
                     "needsClarification": true,
                     "clarifyOptions": plan.get("clarifyOptions").cloned().unwrap_or(serde_json::json!([])),
@@ -561,7 +622,13 @@ impl ScribeMcp {
         }
 
         for tool_name in &tools_list {
-            match self.execute_agent_tool(tool_name, goal, document_id.as_deref()) {
+            match self.execute_agent_tool(
+                tool_name,
+                goal,
+                document_id.as_deref(),
+                document_id_b.as_deref(),
+                revision_id.as_deref(),
+            ) {
                 Ok((detail, answer)) => {
                     if let Some(text) = answer.as_ref().filter(|s| !s.trim().is_empty()) {
                         answers.push(text.clone());
@@ -589,7 +656,7 @@ impl ScribeMcp {
         };
 
         if let Some(store) = self.open_agent_store() {
-            let agent_id = if spellcheck { "proofreader" } else { "general" };
+            let agent_id = if spellcheck { "proofreader" } else { role_id };
             let _ = store.append_run(
                 scope,
                 document_id.as_deref(),
@@ -609,6 +676,8 @@ impl ScribeMcp {
                 "persona": persona,
                 "scope": scope,
                 "documentId": document_id,
+                "documentIdB": document_id_b,
+                "revisionId": revision_id,
                 "toolCount": tools_list.len(),
             })),
             "ok",
@@ -618,6 +687,8 @@ impl ScribeMcp {
             "goal": goal,
             "scope": scope,
             "documentId": document_id,
+            "documentIdB": document_id_b,
+            "revisionId": revision_id,
             "persona": persona,
             "steps": steps,
             "answer": answer,

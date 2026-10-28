@@ -18,6 +18,7 @@ export type AgentRecipeId =
   | 'canvas_board'
   | 'files_learn'
   | 'files_to_library'
+  | 'code_pass'
 
 export type AgentRecipe = {
   id: AgentRecipeId
@@ -122,6 +123,12 @@ export const AGENT_RECIPES: AgentRecipe[] = [
     id: 'canvas_board',
     labelKey: 'agent.recipes.canvasBoard',
     tools: ['canvas_summarize', 'canvas_to_note'],
+    documentPreferred: true,
+  },
+  {
+    id: 'code_pass',
+    labelKey: 'agent.recipes.codePass',
+    tools: ['code_brief', 'explain', 'keywords'],
     documentPreferred: true,
   },
 ]
