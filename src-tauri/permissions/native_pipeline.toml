@@ -1,4 +1,14 @@
 [[permission]]
+identifier = "allow-add-alias-tag"
+description = "Allow add_alias_tag"
+commands.allow = ["add_alias_tag"]
+
+[[permission]]
+identifier = "allow-agenda-bucket-for-due"
+description = "Allow agenda_bucket_for_due"
+commands.allow = ["agenda_bucket_for_due"]
+
+[[permission]]
 identifier = "allow-compile-documents"
 description = "Allow compile_documents"
 commands.allow = ["compile_documents"]
@@ -29,6 +39,11 @@ description = "Allow document_matches_meta_filters"
 commands.allow = ["document_matches_meta_filters"]
 
 [[permission]]
+identifier = "allow-document-matches-title-or-alias"
+description = "Allow document_matches_title_or_alias"
+commands.allow = ["document_matches_title_or_alias"]
+
+[[permission]]
 identifier = "allow-encode-phase-followup"
 description = "Allow encode_phase_followup"
 commands.allow = ["encode_phase_followup"]
@@ -44,9 +59,34 @@ description = "Allow export_wiki_pack"
 commands.allow = ["export_wiki_pack"]
 
 [[permission]]
+identifier = "allow-extension-for-language"
+description = "Allow extension_for_language"
+commands.allow = ["extension_for_language"]
+
+[[permission]]
+identifier = "allow-extract-first-code-block"
+description = "Allow extract_first_code_block"
+commands.allow = ["extract_first_code_block"]
+
+[[permission]]
 identifier = "allow-filter-agent-slash-commands"
 description = "Allow filter_agent_slash_commands"
 commands.allow = ["filter_agent_slash_commands"]
+
+[[permission]]
+identifier = "allow-find-wiki-ghost-match"
+description = "Allow find_wiki_ghost_match"
+commands.allow = ["find_wiki_ghost_match"]
+
+[[permission]]
+identifier = "allow-format-wiki-link-render-text"
+description = "Allow format_wiki_link_render_text"
+commands.allow = ["format_wiki_link_render_text"]
+
+[[permission]]
+identifier = "allow-group-tasks-by-agenda"
+description = "Allow group_tasks_by_agenda"
+commands.allow = ["group_tasks_by_agenda"]
 
 [[permission]]
 identifier = "allow-highlight-code"
@@ -84,9 +124,19 @@ description = "Allow parse_agent_slash"
 commands.allow = ["parse_agent_slash"]
 
 [[permission]]
+identifier = "allow-parse-aliases"
+description = "Allow parse_aliases"
+commands.allow = ["parse_aliases"]
+
+[[permission]]
 identifier = "allow-parse-meta-tag"
 description = "Allow parse_meta_tag"
 commands.allow = ["parse_meta_tag"]
+
+[[permission]]
+identifier = "allow-parse-wiki-link-raw"
+description = "Allow parse_wiki_link_raw"
+commands.allow = ["parse_wiki_link_raw"]
 
 [[permission]]
 identifier = "allow-phases-to-followups"
@@ -107,16 +157,24 @@ commands.allow = ["render_document_html"]
 identifier = "group-native-pipeline"
 description = "Command group: native_pipeline"
 permissions = [
+  "allow-add-alias-tag",
+  "allow-agenda-bucket-for-due",
   "allow-compile-documents",
   "allow-convert-tiptap",
   "allow-decode-phase-followup",
   "allow-diff-document-revisions",
   "allow-diff-plain-texts",
   "allow-document-matches-meta-filters",
+  "allow-document-matches-title-or-alias",
   "allow-encode-phase-followup",
   "allow-export-document-by-id",
   "allow-export-wiki-pack",
+  "allow-extension-for-language",
+  "allow-extract-first-code-block",
   "allow-filter-agent-slash-commands",
+  "allow-find-wiki-ghost-match",
+  "allow-format-wiki-link-render-text",
+  "allow-group-tasks-by-agenda",
   "allow-highlight-code",
   "allow-is-weak-agent-answer",
   "allow-list-agent-slash-commands",
@@ -124,7 +182,9 @@ permissions = [
   "allow-match-document-chat-intent",
   "allow-normalize-plan-phases",
   "allow-parse-agent-slash",
+  "allow-parse-aliases",
   "allow-parse-meta-tag",
+  "allow-parse-wiki-link-raw",
   "allow-phases-to-followups",
   "allow-publish-wiki-site",
   "allow-render-document-html",

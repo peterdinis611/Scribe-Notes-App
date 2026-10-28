@@ -1,25 +1,55 @@
-import { CalendarDays, FilePlus, FolderPlus, Lock, Search, Trash2 } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { CalendarDays, FilePlus, FolderKanban, FolderPlus, Lock, Plus, Search, Trash2 } from 'lucide-react'
+import {
+  lazy,
+  startTransition,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useRouterState } from '@tanstack/react-router'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { FolderTree } from '@/components/FolderTree'
 import SmartFoldersSection from '@/components/SmartFoldersSection'
-import { LibraryFavoritesView } from '@/components/LibraryFavoritesView'
 import { LibraryFilterBanner } from '@/components/LibraryFilterBanner'
 import { LibraryBulkBar } from '@/components/library/LibraryBulkBar'
 import { LibrarySmartFilters } from '@/components/library/LibrarySmartFilters'
-import { LibraryRecentView } from '@/components/LibraryRecentView'
-import { LibraryTagsView } from '@/components/LibraryTagsView'
-import { LibraryJournalView } from '@/components/LibraryJournalView'
-import { LibraryLinkGraphView } from '@/components/LibraryLinkGraphView'
-import { LibraryDuplicatesPanel } from '@/components/LibraryDuplicatesPanel'
-import { LibraryTasksPanel } from '@/components/LibraryTasksPanel'
-import { LibraryDatabaseView } from '@/components/LibraryDatabaseView'
-import { LibraryWikiHealthPanel } from '@/components/LibraryWikiHealthPanel'
-import { LibraryChatPanel } from '@/components/LibraryChatPanel'
 import { LibrarySwitcher } from '@/components/library/LibrarySwitcher'
-import { LibraryViewTabs } from '@/components/LibraryViewTabs'
+import { LibraryViewTabs, type LibraryView } from '@/components/LibraryViewTabs'
+
+const LibraryFavoritesView = lazy(() =>
+  import('@/components/LibraryFavoritesView').then((m) => ({ default: m.LibraryFavoritesView })),
+)
+const LibraryRecentView = lazy(() =>
+  import('@/components/LibraryRecentView').then((m) => ({ default: m.LibraryRecentView })),
+)
+const LibraryTagsView = lazy(() =>
+  import('@/components/LibraryTagsView').then((m) => ({ default: m.LibraryTagsView })),
+)
+const LibraryJournalView = lazy(() =>
+  import('@/components/LibraryJournalView').then((m) => ({ default: m.LibraryJournalView })),
+)
+const LibraryLinkGraphView = lazy(() =>
+  import('@/components/LibraryLinkGraphView').then((m) => ({ default: m.LibraryLinkGraphView })),
+)
+const LibraryDuplicatesPanel = lazy(() =>
+  import('@/components/LibraryDuplicatesPanel').then((m) => ({ default: m.LibraryDuplicatesPanel })),
+)
+const LibraryTasksPanel = lazy(() =>
+  import('@/components/LibraryTasksPanel').then((m) => ({ default: m.LibraryTasksPanel })),
+)
+const LibraryDatabaseView = lazy(() =>
+  import('@/components/LibraryDatabaseView').then((m) => ({ default: m.LibraryDatabaseView })),
+)
+const LibraryWikiHealthPanel = lazy(() =>
+  import('@/components/LibraryWikiHealthPanel').then((m) => ({ default: m.LibraryWikiHealthPanel })),
+)
+const LibraryChatPanel = lazy(() =>
+  import('@/components/LibraryChatPanel').then((m) => ({ default: m.LibraryChatPanel })),
+)
 import { SidebarRail } from '@/components/layout/SidebarRail'
 import { SidebarSearchResults } from '@/components/SidebarSearchResults'
 import { listWikiHealth } from '@/lib/db/api'
@@ -33,6 +63,13 @@ import { ROUTES } from '@/lib/routes'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { IconTooltip } from '@/components/ui/tooltip'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { openAgentPanel, setAgentPanelOpen, setLibraryGraphAroundActive, setLibraryView, setTrashOpen } from '@/store/documentsSlice'
 import {
@@ -57,7 +94,7 @@ function ConflictBadge() {
   return (
     <button
       type="button"
-      className="mt-1.5 h-[26px] w-full cursor-pointer rounded-lg border border-[color-mix(in_srgb,var(--color-destructive)_45%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-destructive)_10%,var(--color-surface))] font-[family-name:var(--font-mono)] text-[10px] font-[650] uppercase tracking-[0.04em] text-[var(--color-destructive)] hover:bg-[color-mix(in_srgb,var(--color-destructive)_16%,var(--color-surface))]"
+      className="library-conflict-badge"
       onClick={() => dispatch(setSyncConflictsOpen(true))}
       title={t('syncConflicts.badge', { count })}
     >
@@ -66,12 +103,10 @@ function ConflictBadge() {
   )
 }
 
-const libraryActionClass =
-  'library-docs-action inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-transparent bg-transparent text-[var(--color-muted-foreground)] transition-[background,color,border-color] hover:border-[var(--color-border)] hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]'
-
 export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarProps) {
   const { t } = useTranslation()
   const [query, setQuery] = useState('')
+  const [smartComposeOpen, setSmartComposeOpen] = useState(false)
   const [pluginsGeneration, setPluginsGeneration] = useState(() => getPluginsGeneration())
   const scrollRef = useRef<HTMLDivElement>(null)
   useEffect(() => subscribePlugins(() => setPluginsGeneration(getPluginsGeneration())), [])
@@ -87,7 +122,6 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
   const agentPanelOpen = useAppSelector((state) => state.documents.agentPanelOpen)
   const graphAroundActive = useAppSelector((state) => state.documents.libraryGraphAroundActive)
   const storageModeEnabled = useAppSelector((state) => state.settings.storageModeEnabled)
-  /** Agent stays in the right dock; chat has its own left-pane panel. */
   const contentView = libraryView === 'agent' ? 'folders' : libraryView
   const isContentSearch = query.trim().length >= 2
 
@@ -132,7 +166,6 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
   const [taskCount, setTaskCount] = useState(0)
   const [wikiHealthCount, setWikiHealthCount] = useState(0)
 
-  // Badge counts are nice-to-have — defer so library chrome paints first.
   useEffect(() => {
     let cancelled = false
     const cancel = scheduleIdle(() => {
@@ -161,6 +194,39 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
     await promptAndCreateFolder({ t, dispatch })
   }, [dispatch, t])
 
+  const handleViewChange = useCallback(
+    (view: LibraryView) => {
+      if (view === 'agent') {
+        if (agentPanelOpen) dispatch(setAgentPanelOpen(false))
+        else dispatch(openAgentPanel({ persona: 'general' }))
+        return
+      }
+      // Keep the tab chrome responsive while heavy views (graph/chat/…) load.
+      startTransition(() => {
+        if (view === 'chat') {
+          dispatch(setLibraryView('chat'))
+          return
+        }
+        if (view === 'graph') {
+          dispatch(setLibraryGraphAroundActive(false))
+          dispatch(setLibraryView('graph'))
+          return
+        }
+        if (view === 'storage') {
+          dispatch(setLibraryView('storage'))
+          void navigate(ROUTES.storageMode())
+          onClose?.()
+          return
+        }
+        if (libraryView === 'storage' && pathname === '/storage') {
+          void navigate(ROUTES.home())
+        }
+        dispatch(setLibraryView(view))
+      })
+    },
+    [agentPanelOpen, dispatch, libraryView, navigate, onClose, pathname],
+  )
+
   return (
     <aside
       className={cn(
@@ -179,34 +245,28 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
         />
         <SidebarRail onNavigate={onClose} />
 
-        <div className="app-sidebar-panel titlebar-no-drag min-h-0" data-tour="library-panel">
-          <div className="@container/library-head min-w-0 px-3 pb-1 pt-3">
-            <p className="m-0 truncate px-1 text-[14px] font-semibold tracking-[-0.01em] text-[var(--color-foreground)]">
-              {t('library.title')}
-            </p>
-            <p className="m-0 mt-0.5 truncate px-1 text-[12px] text-[var(--color-muted-foreground)]">
-              {t('library.documentCount', { count: visibleDocuments.length })}
-            </p>
-            <LibrarySwitcher />
+        <div className="app-sidebar-panel library-desk titlebar-no-drag min-h-0" data-tour="library-panel">
+          <header className="library-desk-head">
+            <div className="library-desk-identity">
+              <LibrarySwitcher />
+              <p className="library-desk-count">
+                {t('library.documentCount', { count: visibleDocuments.length })}
+              </p>
+            </div>
             <ConflictBadge />
-          </div>
 
-          <div className="px-2 py-1.5" data-tour="library-search">
-            <div className="relative flex items-center rounded-[var(--radius-sm)] border border-[color-mix(in_srgb,var(--color-border)_90%,transparent)] bg-[color-mix(in_srgb,var(--color-background)_55%,transparent)] transition-[border-color,background] duration-120 focus-within:border-[color-mix(in_srgb,var(--color-accent)_45%,var(--color-border))] focus-within:bg-[var(--color-background)]">
-              <Search
-                className="pointer-events-none absolute left-2.5 top-1/2 z-1 h-3.5 w-3.5 -translate-y-1/2 text-[var(--color-muted-foreground)]"
-                aria-hidden="true"
-              />
+            <div className="library-desk-search" data-tour="library-search">
+              <Search className="library-desk-search-icon" aria-hidden="true" />
               <input
                 type="search"
-                className="h-8 w-full rounded-[var(--radius-sm)] border-0 bg-transparent py-0 pr-10 pl-[30px] text-[13px] text-[var(--color-foreground)] outline-none placeholder:text-[var(--color-muted-foreground)]"
+                className="library-desk-search-input"
                 placeholder={t('library.searchPlaceholder')}
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />
               <button
                 type="button"
-                className="absolute top-1/2 right-1.5 inline-flex h-[18px] min-w-7 -translate-y-1/2 items-center justify-center rounded-[var(--radius-sm)] border border-[color-mix(in_srgb,var(--color-border)_80%,transparent)] bg-transparent px-1 font-[family-name:var(--font-mono)] text-[10px] font-medium text-[var(--color-muted-foreground)] transition-[color,background,border-color] duration-100 hover:border-[color-mix(in_srgb,var(--color-accent)_35%,var(--color-border))] hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
+                className="library-desk-search-cmd"
                 onClick={() => dispatch(setCommandPaletteOpen(true))}
                 title={t('shortcuts.commandPalette.label')}
                 aria-label={t('shortcuts.commandPalette.label')}
@@ -214,17 +274,13 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                 ⌘K
               </button>
             </div>
-          </div>
+          </header>
 
           <SidebarSearchResults query={query} onNavigate={onClose} />
 
           {!isContentSearch && (
             <>
-              <div
-                className="min-h-0 shrink-0 overflow-y-auto overscroll-contain px-2 pb-1 pt-0.5"
-                style={{ maxHeight: 'min(42vh, 320px)' }}
-                data-tour="library-views"
-              >
+              <div className="library-desk-chrome" data-tour="library-views">
                 <LibraryViewTabs
                   value={libraryView}
                   agentOpen={agentPanelOpen}
@@ -234,53 +290,15 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                   recentCount={recentCount}
                   taskCount={taskCount}
                   wikiHealthCount={wikiHealthCount}
-                  onChange={(view) => {
-                    if (view === 'agent') {
-                      if (agentPanelOpen) dispatch(setAgentPanelOpen(false))
-                      else dispatch(openAgentPanel({ persona: 'general' }))
-                      return
-                    }
-                    if (view === 'chat') {
-                      dispatch(setLibraryView('chat'))
-                      return
-                    }
-                    if (view === 'graph') {
-                      dispatch(setLibraryGraphAroundActive(false))
-                      dispatch(setLibraryView('graph'))
-                      return
-                    }
-                    if (view === 'storage') {
-                      dispatch(setLibraryView('storage'))
-                      void navigate(ROUTES.storageMode())
-                      onClose?.()
-                      return
-                    }
-                    if (libraryView === 'storage' && pathname === '/storage') {
-                      void navigate(ROUTES.home())
-                    }
-                    dispatch(setLibraryView(view))
-                  }}
-                />
-              </div>
-
-              <div
-                className="mx-3 my-2 h-px shrink-0 bg-[linear-gradient(90deg,var(--color-accent),color-mix(in_srgb,var(--color-border)_80%,transparent)_28%,transparent)]"
-                aria-hidden="true"
-              />
-
-              {contentView === 'folders' && (
-                <>
-                  <div className="shrink-0">
-                    <LibraryFilterBanner />
-                    <LibrarySmartFilters />
-                    <LibraryBulkBar />
-                    <div className="library-docs-header">
-                      <h2 className="library-docs-heading">{t('library.allDocuments')}</h2>
-                      <div className="library-docs-actions">
+                  onChange={handleViewChange}
+                  trailing={
+                    contentView === 'folders' ? (
+                      <>
+                        <LibrarySmartFilters />
                         <IconTooltip label={t('library.newPageInFolder')}>
                           <button
                             type="button"
-                            className="library-new-folder-btn"
+                            className="library-view-icon is-accent"
                             onClick={() =>
                               void createDocumentInFolder({
                                 folderId: null,
@@ -291,69 +309,86 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                             }
                             aria-label={t('library.newPageInFolder')}
                           >
-                            <FilePlus className="h-3.5 w-3.5" />
-                            <span className="library-new-folder-label">{t('library.newPageInFolder')}</span>
+                            <FilePlus className="h-4 w-4" />
                           </button>
                         </IconTooltip>
-                        <IconTooltip label={t('library.newFolder')}>
-                          <button
-                            type="button"
-                            className={libraryActionClass}
-                            onClick={() => void handleCreateFolder()}
-                            aria-label={t('library.newFolder')}
-                          >
-                            <FolderPlus className="h-3.5 w-3.5" />
-                          </button>
-                        </IconTooltip>
-                        <IconTooltip label={t('library.newVaultFolder')}>
-                          <button
-                            type="button"
-                            className={libraryActionClass}
-                            onClick={() =>
-                              void promptAndCreateVaultFolder({ t, dispatch }).catch(() => undefined)
-                            }
-                            aria-label={t('library.newVaultFolder')}
-                          >
-                            <Lock className="h-3.5 w-3.5" />
-                          </button>
-                        </IconTooltip>
-                        <IconTooltip label={t('journal.today')}>
-                          <button
-                            type="button"
-                            className={libraryActionClass}
-                            onClick={() => {
-                              void openTodayNote({
-                                documents,
-                                folders,
-                                dispatch,
-                                navigate,
-                                t: (key, options) => t(key, options),
-                              }).catch((error) => {
-                                toast.error(t('journal.openError'), String(error))
-                              })
-                            }}
-                            aria-label={t('journal.today')}
-                          >
-                            <CalendarDays className="h-3.5 w-3.5" />
-                          </button>
-                        </IconTooltip>
-                        <IconTooltip label={t('library.trash')}>
-                          <button
-                            type="button"
-                            className={libraryActionClass}
-                            onClick={() => dispatch(setTrashOpen(true))}
-                            aria-label={t('library.trash')}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </IconTooltip>
-                      </div>
-                    </div>
-                  </div>
-                  {/* Own scrollport so FolderTree virtualization stays correct. */}
-                  <ScrollArea className="min-h-0 flex-1" viewportRef={scrollRef}>
+                        <DropdownMenu>
+                          <IconTooltip label={t('library.moreActions')}>
+                            <DropdownMenuTrigger asChild>
+                              <button
+                                type="button"
+                                className="library-view-icon"
+                                aria-label={t('library.moreActions')}
+                              >
+                                <Plus className="h-4 w-4" />
+                              </button>
+                            </DropdownMenuTrigger>
+                          </IconTooltip>
+                          <DropdownMenuContent align="end" className="min-w-[12rem]">
+                            <DropdownMenuItem onSelect={() => void handleCreateFolder()}>
+                              <FolderPlus className="h-4 w-4" />
+                              {t('library.newFolder')}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onSelect={() =>
+                                void promptAndCreateVaultFolder({ t, dispatch }).catch(() => undefined)
+                              }
+                            >
+                              <Lock className="h-4 w-4" />
+                              {t('library.newVaultFolder')}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => setSmartComposeOpen(true)}>
+                              <FolderKanban className="h-4 w-4" />
+                              {t('smartFolders.add')}
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onSelect={() => {
+                                void openTodayNote({
+                                  documents,
+                                  folders,
+                                  dispatch,
+                                  navigate,
+                                  t: (key, options) => t(key, options),
+                                }).catch((error) => {
+                                  toast.error(t('journal.openError'), String(error))
+                                })
+                              }}
+                            >
+                              <CalendarDays className="h-4 w-4" />
+                              {t('journal.today')}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => dispatch(setTrashOpen(true))}>
+                              <Trash2 className="h-4 w-4" />
+                              {t('library.trash')}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </>
+                    ) : null
+                  }
+                />
+                {contentView === 'folders' && (
+                  <>
+                    <LibraryFilterBanner />
+                    <LibraryBulkBar />
+                  </>
+                )}
+              </div>
+
+              {contentView === 'folders' && (
+                <div className="library-desk-body">
+                  <div
+                    ref={scrollRef}
+                    className="library-folders-scroll"
+                    data-tour="library-tree-scroll"
+                  >
                     <div className="folder-tree px-1.5 pb-3" data-tour="library-tree">
-                      <SmartFoldersSection onNavigate={onClose} />
+                      <SmartFoldersSection
+                        onNavigate={onClose}
+                        composeOpen={smartComposeOpen}
+                        onComposeOpenChange={setSmartComposeOpen}
+                      />
                       <FolderTree query={query} scrollRef={scrollRef} onNavigate={onClose} />
                       {pluginPanels.length > 0 && (
                         <div className="mt-2 border-t border-[var(--color-border)] px-1 py-2">
@@ -365,40 +400,46 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                         </div>
                       )}
                     </div>
-                  </ScrollArea>
-                </>
+                  </div>
+                </div>
               )}
 
               {contentView !== 'folders' && (
-                <ScrollArea className="min-h-0 flex-1">
+                <ScrollArea className="library-desk-alt min-h-0 flex-1">
                   <div className="pb-3">
-                    {contentView === 'recent' && (
-                      <div className="px-1 pb-3 pt-1">
-                        <LibraryRecentView onNavigate={onClose} />
-                      </div>
-                    )}
-
-                    {contentView === 'favorites' && (
-                      <div className="px-1 pb-3 pt-1">
-                        <LibraryFavoritesView onNavigate={onClose} />
-                      </div>
-                    )}
-
-                    {contentView === 'tags' && (
-                      <div className="px-1 pb-3 pt-1">
-                        <LibraryTagsView onNavigate={onClose} />
-                      </div>
-                    )}
-
-                    {contentView === 'journal' && <LibraryJournalView onNavigate={onClose} />}
-
-                    {contentView === 'graph' && (
-                      <LibraryLinkGraphView
-                        initialAroundActive={graphAroundActive}
-                        onAroundActiveConsumed={() => dispatch(setLibraryGraphAroundActive(false))}
-                      />
-                    )}
-
+                    <Suspense fallback={null}>
+                      {contentView === 'recent' && (
+                        <div className="px-1 pb-3 pt-1">
+                          <LibraryRecentView onNavigate={onClose} />
+                        </div>
+                      )}
+                      {contentView === 'favorites' && (
+                        <div className="px-1 pb-3 pt-1">
+                          <LibraryFavoritesView onNavigate={onClose} />
+                        </div>
+                      )}
+                      {contentView === 'tags' && (
+                        <div className="px-1 pb-3 pt-1">
+                          <LibraryTagsView onNavigate={onClose} />
+                        </div>
+                      )}
+                      {contentView === 'journal' && <LibraryJournalView onNavigate={onClose} />}
+                      {contentView === 'graph' && (
+                        <LibraryLinkGraphView
+                          initialAroundActive={graphAroundActive}
+                          onAroundActiveConsumed={() => dispatch(setLibraryGraphAroundActive(false))}
+                        />
+                      )}
+                      {contentView === 'duplicates' && <LibraryDuplicatesPanel onNavigate={onClose} />}
+                      {contentView === 'tasks' && <LibraryTasksPanel onNavigate={onClose} />}
+                      {contentView === 'database' && <LibraryDatabaseView onNavigate={onClose} />}
+                      {contentView === 'wikiHealth' && <LibraryWikiHealthPanel onNavigate={onClose} />}
+                      {contentView === 'chat' && (
+                        <div className="px-1 pb-3 pt-1">
+                          <LibraryChatPanel />
+                        </div>
+                      )}
+                    </Suspense>
                     {contentView === 'storage' && (
                       <div className="px-3 py-3 text-[12px] leading-relaxed text-[var(--color-muted-foreground)]">
                         <p className="m-0 text-[13px] font-semibold tracking-[-0.01em] text-[var(--color-foreground)]">
@@ -417,21 +458,6 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
                         </button>
                       </div>
                     )}
-
-                    {contentView === 'duplicates' && <LibraryDuplicatesPanel onNavigate={onClose} />}
-
-                    {contentView === 'tasks' && <LibraryTasksPanel onNavigate={onClose} />}
-
-                    {contentView === 'database' && <LibraryDatabaseView onNavigate={onClose} />}
-
-                    {contentView === 'wikiHealth' && <LibraryWikiHealthPanel onNavigate={onClose} />}
-
-                    {contentView === 'chat' && (
-                      <div className="px-1 pb-3 pt-1">
-                        <LibraryChatPanel />
-                      </div>
-                    )}
-
                     {pluginPanels.length > 0 && (
                       <div className="border-t border-[var(--color-border)] px-1 py-2">
                         {pluginPanels.map((panel) => (

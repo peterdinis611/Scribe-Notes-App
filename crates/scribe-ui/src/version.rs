@@ -36,7 +36,7 @@ mod tests {
 
     #[test]
     fn short_version_trims_patch() {
-        assert_eq!(short_version_of("4.3.0"), "4.3");
+        assert_eq!(short_version_of("5.0.0"), "5.0");
         assert_eq!(short_version_of("1.0"), "1.0");
     }
 }

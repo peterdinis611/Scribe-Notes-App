@@ -47,7 +47,10 @@ function collectText(node: TipTapNode | undefined): string {
   return (node.content ?? []).map(collectText).join('')
 }
 
-/** First code block in the document, if any. */
+/**
+ * First code block in the document, if any.
+ * Sync mirror of `scribe_core::source_code` extract helpers.
+ */
 export function extractFirstCodeBlock(
   contentJson: string,
 ): { language: string | null; code: string } | null {

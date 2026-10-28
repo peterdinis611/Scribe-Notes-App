@@ -9,13 +9,22 @@ import {
   HardDrive,
   History,
   MessageSquare,
+  MoreHorizontal,
   Network,
   Star,
   Tag as TagIcon,
 } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { IconTooltip } from '@/components/ui/tooltip'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 /** Keep in sync with `scribe_ui::LIBRARY_VIEW_IDS` / UiManifest.libraryViewIds. */
 export const LIBRARY_VIEW_IDS = [
@@ -36,6 +45,10 @@ export const LIBRARY_VIEW_IDS = [
 
 export type LibraryView = (typeof LIBRARY_VIEW_IDS)[number]
 
+const PRIMARY_VIEWS: LibraryView[] = ['folders', 'recent', 'favorites', 'journal']
+
+type TabDef = { id: LibraryView; label: string; icon: typeof FolderTree }
+
 type LibraryViewTabsProps = {
   value: LibraryView
   agentOpen?: boolean
@@ -46,6 +59,8 @@ type LibraryViewTabsProps = {
   taskCount?: number
   wikiHealthCount?: number
   onChange: (view: LibraryView) => void
+  /** Extra controls rendered after the view icons (filter, create). */
+  trailing?: ReactNode
 }
 
 export function LibraryViewTabs({
@@ -58,10 +73,11 @@ export function LibraryViewTabs({
   taskCount = 0,
   wikiHealthCount = 0,
   onChange,
+  trailing,
 }: LibraryViewTabsProps) {
   const { t } = useTranslation()
 
-  const tabs: { id: LibraryView; label: string; icon: typeof FolderTree }[] = [
+  const tabs: TabDef[] = [
     { id: 'folders', label: t('library.tabs.folders'), icon: FolderTree },
     { id: 'recent', label: t('library.tabs.recent'), icon: History },
     { id: 'favorites', label: t('library.tabs.favorites'), icon: Star },
@@ -79,6 +95,13 @@ export function LibraryViewTabs({
     { id: 'agent', label: t('library.tabs.agent'), icon: Bot },
   ]
 
+  const primary = tabs.filter((tab) => PRIMARY_VIEWS.includes(tab.id))
+  const secondary = tabs.filter((tab) => !PRIMARY_VIEWS.includes(tab.id))
+  const activeSecondary = secondary.find((tab) =>
+    tab.id === 'agent' ? agentOpen : value === tab.id,
+  )
+  const ActiveSecondaryIcon = activeSecondary?.icon
+
   function countFor(view: LibraryView) {
     if (view === 'favorites') return favoriteCount
     if (view === 'tags') return tagCount
@@ -88,52 +111,87 @@ export function LibraryViewTabs({
     return null
   }
 
-  return (
-    <nav className="flex flex-col gap-0.5 border-0 bg-transparent p-0 titlebar-no-drag" aria-label={t('library.tabs.ariaLabel')}>
-      {tabs.map((tab) => {
-        const count = countFor(tab.id)
-        const Icon = tab.icon
-        const isActive = tab.id === 'agent' ? agentOpen : value === tab.id
+  function isActive(id: LibraryView) {
+    return id === 'agent' ? agentOpen : value === id
+  }
 
-        return (
-          <IconTooltip key={tab.id} label={tab.label}>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={isActive}
-              className={cn(
-                'flex w-full min-w-0 cursor-default items-center justify-start gap-2 rounded-[var(--radius-sm)] border border-transparent bg-transparent px-2 py-1.5 text-[13px] font-medium text-[var(--color-muted-foreground)] transition-[background,color,border-color] duration-120 hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]',
-                isActive &&
-                  'bg-[var(--color-hover)] text-[var(--color-foreground)] shadow-none [[html[data-ui-skin=grove]_&]]:bg-[var(--color-selection)] [[html[data-ui-skin=classic]_&]]:bg-[var(--color-selection)] [[html[data-ui-skin=press]_&]]:border-[color-mix(in_srgb,var(--color-accent)_28%,transparent)] [[html[data-ui-skin=press]_&]]:bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] [[html[data-ui-skin=press]_&]]:shadow-[inset_2px_0_0_0_var(--color-accent)]',
-              )}
-              data-tour={tab.id === 'chat' ? 'library-chat' : tab.id === 'agent' ? 'library-agent' : undefined}
-              onClick={() => onChange(tab.id)}
-              aria-label={tab.label}
-            >
-              <Icon
-                className={cn(
-                  'h-4 w-4 shrink-0 text-inherit opacity-85',
-                  isActive && 'text-[var(--color-accent)] opacity-100',
-                  tab.id === 'favorites' && isActive && 'fill-current',
+  return (
+    <nav className="library-view-strip titlebar-no-drag" aria-label={t('library.tabs.ariaLabel')}>
+      <div className="library-view-strip-primary" role="tablist">
+        {primary.map((tab) => {
+          const count = countFor(tab.id)
+          const Icon = tab.icon
+          const active = isActive(tab.id)
+          const tip = count && count > 0 ? `${tab.label} (${count})` : tab.label
+          return (
+            <IconTooltip key={tab.id} label={tip}>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={active}
+                className={cn('library-view-icon', active && 'is-active')}
+                onClick={() => onChange(tab.id)}
+                aria-label={tip}
+              >
+                <Icon className={cn('h-4 w-4', tab.id === 'favorites' && active && 'fill-current')} />
+                {count !== null && count > 0 && <span className="library-view-dot" aria-hidden />}
+              </button>
+            </IconTooltip>
+          )
+        })}
+
+        <DropdownMenu>
+          <IconTooltip label={activeSecondary?.label ?? t('library.tabs.more')}>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className={cn('library-view-icon', activeSecondary && 'is-active')}
+                aria-label={activeSecondary?.label ?? t('library.tabs.more')}
+              >
+                {ActiveSecondaryIcon ? (
+                  <ActiveSecondaryIcon className="h-4 w-4" />
+                ) : (
+                  <MoreHorizontal className="h-4 w-4" />
                 )}
-              />
-              <span className="min-w-0 flex-1 overflow-hidden text-left text-ellipsis whitespace-nowrap">
-                {tab.label}
-              </span>
-              {count !== null && count > 0 && (
-                <span
-                  className={cn(
-                    'min-w-0 rounded-[var(--radius-sm)] bg-transparent p-0 font-[family-name:var(--font-mono)] text-[10px] font-medium leading-none tracking-[0.02em] text-[var(--color-muted-foreground)]',
-                    isActive && 'text-[var(--color-accent)]',
-                  )}
-                >
-                  {count}
-                </span>
-              )}
-            </button>
+              </button>
+            </DropdownMenuTrigger>
           </IconTooltip>
-        )
-      })}
+          <DropdownMenuContent align="start" className="min-w-[12rem]">
+            {secondary.map((tab) => {
+              const count = countFor(tab.id)
+              const Icon = tab.icon
+              const active = isActive(tab.id)
+              const showSep = tab.id === 'chat'
+              return (
+                <div key={tab.id}>
+                  {showSep && <DropdownMenuSeparator />}
+                  <DropdownMenuItem
+                    className={cn(active && 'bg-[var(--color-hover)] text-[var(--color-foreground)]')}
+                    data-tour={
+                      tab.id === 'chat'
+                        ? 'library-chat'
+                        : tab.id === 'agent'
+                          ? 'library-agent'
+                          : undefined
+                    }
+                    onSelect={() => onChange(tab.id)}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span className="flex-1">{tab.label}</span>
+                    {count !== null && count > 0 && (
+                      <span className="font-[family-name:var(--font-mono)] text-[10px] text-[var(--color-muted-foreground)]">
+                        {count}
+                      </span>
+                    )}
+                  </DropdownMenuItem>
+                </div>
+              )
+            })}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      {trailing ? <div className="library-view-strip-trailing">{trailing}</div> : null}
     </nav>
   )
 }

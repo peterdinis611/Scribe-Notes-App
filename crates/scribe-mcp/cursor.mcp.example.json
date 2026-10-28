@@ -1,5 +1,5 @@
 {
-  "_comment": "Shared / team Cursor configs MUST keep WRITE=0 and SCOPE=no-vault. Never commit SCRIBE_MCP_WRITE=1 or SCRIBE_MCP_SCOPE=full.",
+  "_comment": "Shared / team Cursor configs MUST keep WRITE=0 and SCOPE=no-vault. Never commit SCRIBE_MCP_WRITE=1 or SCRIBE_MCP_SCOPE=full. For HTTP mode see scribe-memory-http (run: npm run mcp:http).",
   "mcpServers": {
     "scribe-memory": {
       "command": "__SCRIBE/target/release/scribe-mcp",
@@ -7,6 +7,13 @@
       "env": {
         "SCRIBE_MCP_WRITE": "0",
         "SCRIBE_MCP_SCOPE": "no-vault"
+      }
+    },
+    "scribe-memory-http": {
+      "_comment": "Requires a running HTTP server: SCRIBE_MCP_HTTP_TOKEN=… npm run mcp:http",
+      "url": "http://127.0.0.1:8788/mcp",
+      "headers": {
+        "Authorization": "Bearer change-me"
       }
     }
   }

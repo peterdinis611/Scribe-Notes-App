@@ -8,9 +8,21 @@ Server name: `scribe-memory`
 
 Mutating tools append soft-fail events to `scribe-audit.db` (same app data directory as `scribe.db` / `scribe-agent.db`). Source is always `mcp`. Categories include `mcp_tool`, `agent`, and `nlp`.
 
-Currently audited (non-exhaustive): `create_note`, `append_to_note`, `trash_document`, `restore_document`, `purge_document`, `rename_document`, `replace_document_content`, `duplicate_document`, `empty_trash`, `move_document_to_folder`, `set_nlp_enabled`, `run_agent` / spellcheck persona runs.
+Currently audited (non-exhaustive): `create_note`, `append_to_note`, `trash_document`, `restore_document`, `purge_document`, `rename_document`, `replace_document_content`, `duplicate_document`, `empty_trash`, `move_document_to_folder`, `set_nlp_enabled`, `run_agent` / spellcheck persona runs, `delete_library_video`.
 
 Audit viewing in the Scribe UI is admin-gated and may be hidden in some builds; the SQLite file is always written when the path is available.
+
+### Read tools
+
+| Tool | Purpose |
+|------|---------|
+| `audit_status` | Path, count, schema, optional stats snapshot |
+| `list_audit_events` | Filtered list (category/source/outcome/action/actor/q/since/until) |
+| `get_audit_event` | One event by id |
+| `get_audit_stats` | Aggregates + keep limit |
+| `export_audit_events_jsonl` | Matching events as JSON Lines |
+
+Prompt: `audit_security_review`.
 
 ---
 
@@ -869,9 +881,10 @@ Near-duplicate pairs across recent notes. Optional `limit` (default 20).
 
 ---
 
-## `list_templates` / `create_note_from_template`
+## `list_templates` / `create_note_from_template` / `parse_template_pack`
 
 `list_templates` — custom templates from SQLite (builtin packs are app-only).
+`parse_template_pack` — validate raw `.scribe-templates.json` without importing.
 
 `create_note_from_template` — `templateId`, optional `folderId`, optional `title`. Requires writable DB.
 
@@ -1107,6 +1120,8 @@ All accept `id` and/or `text` unless noted. Require Local AI enabled (except whe
 |------|------|--------|
 | `filter_library_smart` | `filter`, `limit?`, `folderId?` | `none` \| `unlinked` \| `untagged` \| `unread` \| `canvas` \| `stubs` \| `tasks` \| `media` |
 | `list_library_videos` | — | Local large-video library rows |
+| `get_library_video` | `id` | One library video |
+| `delete_library_video` | `id` | Delete row (+ copy sandbox); writable |
 
 ---
 

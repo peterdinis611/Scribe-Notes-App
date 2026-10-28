@@ -1,5 +1,5 @@
 import i18n from '@/i18n'
-import { WHATS_NEW_40_HIGHLIGHTS } from '@/components/WhatsNewDialog'
+import { WHATS_NEW_50_HIGHLIGHTS } from '@/components/WhatsNewDialog'
 import { DOCS_GROUPS, DOCS_TOPIC_IDS } from '@/components/docs/docs-groups'
 import { APP_SHORT_VERSION, APP_VERSION } from '@/lib/app-version'
 import { closeUiSurface, openUiSurface, renderUiSurfaceHtml, type UiSurfaceId, type UiSurfaceRequest } from '@/lib/db/api'
@@ -82,7 +82,7 @@ function docsGroups(): Array<[string, string[]]> {
 
 function highlightCopy(): Record<string, [string, string]> {
   const out: Record<string, [string, string]> = {}
-  for (const id of WHATS_NEW_40_HIGHLIGHTS) {
+  for (const id of WHATS_NEW_50_HIGHLIGHTS) {
     out[id] = [
       i18n.t(`whatsNew.${id}.title`),
       i18n.t(`whatsNew.${id}.description`),

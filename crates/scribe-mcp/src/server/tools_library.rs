@@ -36,6 +36,28 @@ impl ScribeMcp {
         })
     }
 
+    #[tool(
+        description = "Parse a `.scribe-templates.json` pack (raw JSON string). Validates schema and returns name, locale, and template summaries. Does not import into the DB."
+    )]
+    fn parse_template_pack(
+        &self,
+        Parameters(params): Parameters<tools::ParseTemplatePackParams>,
+    ) -> Result<String, String> {
+        let pack = scribe_ui::parse_template_pack_str(&params.raw).map_err(|e| e.to_string())?;
+        Ok(tools::json(&serde_json::json!({
+            "version": pack.version,
+            "name": pack.name,
+            "locale": pack.locale,
+            "count": pack.templates.len(),
+            "templates": pack.templates.iter().map(|item| serde_json::json!({
+                "name": item.name,
+                "title": item.title,
+                "description": item.description,
+                "categoryId": item.category_id,
+            })).collect::<Vec<_>>(),
+        })))
+    }
+
     #[tool(description = "Create a new note from a custom template id. Requires writable DB.")]
     fn create_note_from_template(
         &self,

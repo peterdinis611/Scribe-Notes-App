@@ -6,7 +6,11 @@ mod links;
 pub mod migrations;
 mod revisions;
 mod search;
-pub use library_scope::{active_library_id, DEFAULT_LIBRARY_ID, META_ACTIVE_LIBRARY};
+pub use library_scope::{
+    active_library_id, folder_belongs_to_library, require_folder_in_active_library,
+    require_library_id, scoped_library_equals_sql, set_active_library_id, DEFAULT_LIBRARY_ID,
+    META_ACTIVE_LIBRARY,
+};
 pub use search::{
     build_fts_query, filter_search_hits, fuse_search_hits, search_documents_filtered,
     search_documents_for_library, search_documents_in_conn, SearchFilter, SearchHit, SearchMode,
@@ -28,7 +32,8 @@ pub use fts::{
 };
 pub use links::{backfill_links, sync_document_links};
 pub use library_videos::{
-    delete_library_video, get_library_video, insert_library_video, list_library_videos,
+    delete_library_video, delete_library_video_with_files, get_library_video, insert_library_video,
+    list_library_videos, remap_library_video_paths, rewrite_video_src_in_documents,
     update_library_video,
 };
 pub use revisions::{

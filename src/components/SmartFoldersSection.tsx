@@ -17,16 +17,24 @@ import { cn } from '@/lib/utils'
 
 type SmartFoldersSectionProps = {
   onNavigate?: () => void
+  composeOpen?: boolean
+  onComposeOpenChange?: (open: boolean) => void
 }
 
-export default function SmartFoldersSection({ onNavigate }: SmartFoldersSectionProps) {
+export default function SmartFoldersSection({
+  onNavigate,
+  composeOpen,
+  onComposeOpenChange,
+}: SmartFoldersSectionProps) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [folders, setFolders] = useState<SmartFolderRecord[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
   const [matches, setMatches] = useState<SmartFolderMatch[] | null>(null)
   const [busy, setBusy] = useState(false)
-  const [isOpen, setIsOpen] = useState(false)
+  const [internalOpen, setInternalOpen] = useState(false)
+  const isOpen = composeOpen ?? internalOpen
+  const setIsOpen = onComposeOpenChange ?? setInternalOpen
   const [name, setName] = useState('')
   const [rule, setRule] = useState('')
 
@@ -100,17 +108,22 @@ export default function SmartFoldersSection({ onNavigate }: SmartFoldersSectionP
     onNavigate?.()
   }
 
+  // Stay out of the way until the user has smart folders or opens the create form.
+  if (folders.length === 0 && !isOpen) {
+    return null
+  }
+
   return (
     <div className="smart-folders px-1.5 pb-2 pt-1">
-      <div className="flex items-center justify-between gap-1 px-1 py-1 text-[11px] font-semibold uppercase tracking-[0.04em] text-[var(--color-muted-foreground)]">
-        <div className="flex items-center gap-1.5">
-          <FolderKanban className="h-3.5 w-3.5 text-[var(--color-accent)]" aria-hidden />
-          <span>{t('smartFolders.title')}</span>
+      <div className="flex items-center justify-between gap-1 border-b border-[color-mix(in_srgb,var(--color-border)_55%,transparent)] px-1 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--color-muted-foreground)]">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <FolderKanban className="h-3 w-3 shrink-0 text-[var(--color-accent)]" aria-hidden />
+          <span className="truncate">{t('smartFolders.title')}</span>
         </div>
         <IconTooltip label={t('smartFolders.add')}>
           <button
             type="button"
-            onClick={() => setIsOpen((value) => !value)}
+            onClick={() => setIsOpen(!isOpen)}
             className="rounded p-0.5 text-[var(--color-muted-foreground)] hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
             aria-label={t('smartFolders.add')}
           >
@@ -161,11 +174,7 @@ export default function SmartFoldersSection({ onNavigate }: SmartFoldersSectionP
       )}
 
       <div className="mt-0.5 flex flex-col gap-0.5">
-        {folders.length === 0 && !isOpen ? (
-          <p className="m-0 px-1 py-1.5 text-[11px] text-[var(--color-muted-foreground)]">
-            {t('smartFolders.empty')}
-          </p>
-        ) : (
+        {folders.length === 0 && !isOpen ? null : (
           folders.map((folder) => {
             const isActive = activeId === folder.id
             return (

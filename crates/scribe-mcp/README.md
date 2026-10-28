@@ -12,7 +12,7 @@ npm run mcp           # run via cargo (dev)
 
 Binary: `target/release/scribe-mcp`
 
-## Cursor config
+## Cursor config (stdio — local)
 
 ```json
 {
@@ -33,6 +33,45 @@ Example: [`cursor.mcp.example.json`](cursor.mcp.example.json)
 
 **Shared / team Cursor configs:** never set `SCRIBE_MCP_WRITE=1` or `SCRIBE_MCP_SCOPE=full`. Those belong only in a private local override when you explicitly need write/vault access, then turn them off again.
 
+## HTTP / online endpoints (Streamable HTTP)
+
+stdio stays the default. For remote Cursor / agents / tunnels, run Streamable HTTP:
+
+```bash
+# loopback only (no token required, but recommended)
+SCRIBE_MCP_HTTP_TOKEN='change-me' npm run mcp:http
+
+# or expose on LAN / VPS (token REQUIRED)
+SCRIBE_MCP_HTTP=1 \
+SCRIBE_MCP_HTTP_BIND=0.0.0.0:8788 \
+SCRIBE_MCP_HTTP_TOKEN="$(openssl rand -hex 24)" \
+npm run mcp:http
+```
+
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /health` | Liveness (`ok`) |
+| `POST/GET /mcp` | MCP Streamable HTTP (Bearer token when configured) |
+
+Cursor-style remote server (when your client supports URL MCP):
+
+```json
+{
+  "mcpServers": {
+    "scribe-memory-http": {
+      "url": "http://127.0.0.1:8788/mcp",
+      "headers": {
+        "Authorization": "Bearer change-me"
+      }
+    }
+  }
+}
+```
+
+For true “online” access, keep the process on loopback and put **Cloudflare Tunnel / Tailscale / ngrok** in front — do not publish an unauthenticated `0.0.0.0` bind.
+
+CLI flags: `--http`, `--bind 127.0.0.1:8788` (same as env).
+
 ## Environment
 
 | Variable | Meaning |
@@ -40,6 +79,9 @@ Example: [`cursor.mcp.example.json`](cursor.mcp.example.json)
 | `SCRIBE_DB_PATH` | Path to `scribe.db` (default: `~/Library/Application Support/com.scribe.app/scribe.db`) |
 | `SCRIBE_MCP_WRITE` | Default read-only. Set to `1` to allow write tools (**local only — not in shared configs**) |
 | `SCRIBE_MCP_SCOPE` | Vault access: `no-vault` (default), `meta-only`, or `full` (**never `full` in shared configs**) |
+| `SCRIBE_MCP_HTTP` | `1` → Streamable HTTP instead of stdio |
+| `SCRIBE_MCP_HTTP_BIND` | Bind address (default `127.0.0.1:8788`) |
+| `SCRIBE_MCP_HTTP_TOKEN` | Bearer token for `/mcp` (required when bind is not loopback) |
 | `SCRIBE_NLP_SCRIPT` | Path to Python NLP `__main__.py` for semantic tools |
 | `SCRIBE_NLP_PYTHON` | Python binary (default `python3`) |
 
@@ -132,7 +174,9 @@ Encrypted vault notes are stored as AES-GCM ciphertext in SQLite. The unlock pas
 | `auto_resolve_wiki_links` | Auto-link when suggestion ≥ minScore (writable) |
 | `expand_stub_document` | Append outline scaffold to a stub (writable) |
 | `filter_library_smart` | Sidebar smart filters (stubs/tasks/media/…) |
-| `list_library_videos` | Local large-video library |
+| `list_library_videos` / `get_library_video` / `delete_library_video` | Local large-video library |
+| `parse_template_pack` | Validate `.scribe-templates.json` (no import) |
+| `audit_status` / `list_audit_events` / `get_audit_event` / `get_audit_stats` / `export_audit_events_jsonl` | Local audit log (`scribe-audit.db`) |
 | `list_templates` | Custom note templates |
 | `create_note_from_template` | Create a note from a template (writable) |
 | `list_backups` | List zip backups |
@@ -149,7 +193,7 @@ Encrypted vault notes are stored as AES-GCM ciphertext in SQLite. The unlock pas
 
 Plus legacy tools: `scribe_status`, `get_document`, wiki links, folders, revisions, `create_note`, `append_to_note`, …
 
-Resources: `scribe://doc/{id}`, `scribe://artifact/{id}`. Prompts: `weekly_journal_review`, `capture_today`, `open_tasks_triage`, `wiki_health`, `rewrite_selection_draft`, `continue_document_chat`, `analyze_this_note`, `study_flashcards`, `writing_coach_pass`, `spellcheck_agent_pass`, `revision_review`, `continue_writing`, `switch_and_search`.
+Resources: `scribe://doc/{id}`, `scribe://artifact/{id}`. Prompts: `weekly_journal_review`, `capture_today`, `open_tasks_triage`, `wiki_health`, `rewrite_selection_draft`, `continue_document_chat`, `analyze_this_note`, `study_flashcards`, `writing_coach_pass`, `spellcheck_agent_pass`, `revision_review`, `continue_writing`, `switch_and_search`, `audit_security_review`.
 
 Full reference: [docs/tools.md](docs/tools.md) · guides: [docs/en.md](docs/en.md), [docs/sk.md](docs/sk.md)
 

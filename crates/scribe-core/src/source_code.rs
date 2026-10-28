@@ -91,6 +91,98 @@ pub fn is_source_extension(ext: &str) -> bool {
     language_from_extension(ext).is_some()
 }
 
+/// Inverse of `language_from_extension` for export filenames.
+pub fn extension_for_language(language: Option<&str>) -> String {
+    let Some(raw) = language.map(str::trim).filter(|s| !s.is_empty()) else {
+        return "txt".into();
+    };
+    let key = raw.to_ascii_lowercase();
+    match key.as_str() {
+        "javascript" => "js".into(),
+        "typescript" => "ts".into(),
+        "python" => "py".into(),
+        "rust" => "rs".into(),
+        "go" => "go".into(),
+        "ruby" => "rb".into(),
+        "php" => "php".into(),
+        "java" => "java".into(),
+        "kotlin" => "kt".into(),
+        "swift" => "swift".into(),
+        "c" => "c".into(),
+        "cpp" => "cpp".into(),
+        "csharp" => "cs".into(),
+        "json" => "json".into(),
+        "yaml" => "yml".into(),
+        "toml" => "toml".into(),
+        "xml" => "xml".into(),
+        "css" => "css".into(),
+        "scss" => "scss".into(),
+        "sql" => "sql".into(),
+        "bash" | "shell" => "sh".into(),
+        "powershell" => "ps1".into(),
+        "graphql" => "graphql".into(),
+        "dockerfile" => "Dockerfile".into(),
+        "markdown" => "md".into(),
+        "plaintext" => "txt".into(),
+        other => {
+            let cleaned: String = other
+                .chars()
+                .filter(|c| c.is_ascii_alphanumeric() || *c == '.' || *c == '+' || *c == '-')
+                .collect();
+            if cleaned.is_empty() {
+                "txt".into()
+            } else {
+                cleaned
+            }
+        }
+    }
+}
+
+/// First TipTap `codeBlock` in a document JSON, if any.
+pub fn extract_first_code_block(content_json: &str) -> Option<(Option<String>, String)> {
+    let value: Value = serde_json::from_str(content_json).ok()?;
+    walk_code_block(&value)
+}
+
+fn walk_code_block(node: &Value) -> Option<(Option<String>, String)> {
+    let obj = node.as_object()?;
+    if obj.get("type").and_then(|t| t.as_str()) == Some("codeBlock") {
+        let language = obj
+            .get("attrs")
+            .and_then(|a| a.get("language"))
+            .and_then(|v| v.as_str())
+            .map(str::to_string);
+        let code = collect_text(node);
+        return Some((language, code));
+    }
+    let content = obj.get("content")?.as_array()?;
+    for child in content {
+        if let Some(hit) = walk_code_block(child) {
+            return Some(hit);
+        }
+    }
+    None
+}
+
+fn collect_text(node: &Value) -> String {
+    let Some(obj) = node.as_object() else {
+        return String::new();
+    };
+    match obj.get("type").and_then(|t| t.as_str()) {
+        Some("text") => obj
+            .get("text")
+            .and_then(|t| t.as_str())
+            .unwrap_or("")
+            .to_string(),
+        Some("hardBreak") => "\n".into(),
+        _ => obj
+            .get("content")
+            .and_then(|c| c.as_array())
+            .map(|arr| arr.iter().map(collect_text).collect::<String>())
+            .unwrap_or_default(),
+    }
+}
+
 /// Build a TipTap doc with a single fenced code block.
 pub fn source_text_to_tiptap(code: &str, language: &str) -> String {
     let lang = language.trim();
@@ -204,5 +296,22 @@ mod tests {
             .unwrap();
         assert!(out.contains("dockerfile"));
         assert!(out.contains("FROM alpine"));
+    }
+
+    #[test]
+    fn extension_for_language_round_trip() {
+        assert_eq!(extension_for_language(Some("typescript")), "ts");
+        assert_eq!(extension_for_language(Some("python")), "py");
+        assert_eq!(extension_for_language(None), "txt");
+        assert_eq!(extension_for_language(Some("dockerfile")), "Dockerfile");
+    }
+
+    #[test]
+    fn extract_first_code_block_walks_doc() {
+        let json = r#"{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"hi"}]},{"type":"codeBlock","attrs":{"language":"rust"},"content":[{"type":"text","text":"fn main() {}"}]}]}"#;
+        let (lang, code) = extract_first_code_block(json).unwrap();
+        assert_eq!(lang.as_deref(), Some("rust"));
+        assert_eq!(code, "fn main() {}");
+        assert!(extract_first_code_block(r#"{"type":"doc","content":[]}"#).is_none());
     }
 }

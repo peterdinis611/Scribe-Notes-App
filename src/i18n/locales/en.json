@@ -640,8 +640,8 @@
     "badge": "What's new in {{version}}",
     "kicker": "Edition notes",
     "title": "Scribe {{version}}",
-    "subtitle": "A calmer Page workspace, quieter chrome, richer audit insights, and skins you can switch — still fully local.",
-    "editionMark": "Workspace · Design",
+    "subtitle": "More of the note core runs in Rust — wiki links, task agenda, and source export — still fully local on this Mac.",
+    "editionMark": "Native · Library",
     "tagsLabel": "Themes in this release",
     "tags": {
       "agent": "Agent",
@@ -660,9 +660,30 @@
       "media": "Media",
       "workspace": "Workspace",
       "design": "Design",
-      "audit": "Audit"
+      "audit": "Audit",
+      "native": "Native"
     },
     "footNote": "Open Docs from the rail anytime. Capture and sync stay on this Mac.",
+    "nativeCore": {
+      "title": "Native note core",
+      "description": "Pure library helpers live in scribe-core — one canonical path for Tauri, tests, and the editor mirrors."
+    },
+    "wikiNative": {
+      "title": "Wiki in Rust",
+      "description": "Aliases, Obsidian [[Title#H|Alias]] parse, and ghost-link matching share the same native rules."
+    },
+    "taskAgenda": {
+      "title": "Task agenda",
+      "description": "Overdue · Today · Upcoming · Later buckets group open checkboxes by due hint in native code."
+    },
+    "sourceExport": {
+      "title": "Source export",
+      "description": "First code block → language extension mapping for exporting a note as a real source file."
+    },
+    "stillLocal": {
+      "title": "Still local",
+      "description": "Faster native pipelines, same privacy model — notes, capture, and sync stay on this Mac."
+    },
     "pageWorkspace": {
       "title": "Page workspace",
       "description": "The default Page skin — Outfit type, clean paper, sky accent, and flat chrome."
@@ -1332,8 +1353,8 @@
       "clearConfirmOk": "Delete everything",
       "folderChanged": "Documents folder changed",
       "backupTitle": "Library backup",
-      "backupDescription": "Export or import the full archive (.scribe-backup.zip) including SQLite and on-disk files.",
-      "backupDescriptionShort": "Export / import the full archive (.scribe-backup.zip). Optional AES-256 password.",
+      "backupDescription": "Export or import the full archive (.scribe-backup.zip) including SQLite, notes, attachments, and local library videos. After import, copied videos are re-linked automatically.",
+      "backupDescriptionShort": "Export / import the full archive (.scribe-backup.zip), including local videos. Optional AES-256 password.",
       "backupExport": "Export",
       "backupExporting": "Exporting…",
       "backupExportDone": "Backup exported",
@@ -1344,9 +1365,11 @@
       "backupImport": "Import",
       "backupImporting": "Importing…",
       "backupImportDone": "Backup restored",
+      "backupImportDoneDetail": "{{files}} files restored · {{version}}",
+      "backupImportDoneDetailWithVideos": "{{files}} files restored, {{videos}} videos re-linked · {{version}}",
       "backupImportError": "Backup import failed",
       "backupImportConfirmTitle": "Restore backup?",
-      "backupImportConfirm": "The current library will be replaced by the archive contents. The existing database is backed up to a .bak file.",
+      "backupImportConfirm": "The current library will be replaced by the archive contents (notes, attachments, and local videos). The existing database is backed up to a .bak file.",
       "backupImportConfirmOk": "Import",
       "backupImportPasswordTitle": "Backup password",
       "backupImportPasswordDescription": "Enter the archive password if it was encrypted. Leave empty for unencrypted archives.",
@@ -2400,7 +2423,7 @@
           "title": "Backup and restore",
           "summary": "Full library archives",
           "paragraphs": [
-            "Settings → Storage can export or import a full library archive (.scribe-backup.zip), including the database and on-disk files."
+            "Settings → Storage can export or import a full library archive (.scribe-backup.zip), including the database, attachments, and local library videos. Copied videos are re-linked automatically after import."
           ],
           "points": [
             "Import replaces the current library; the previous database is kept as a .bak file",
@@ -2697,6 +2720,7 @@
     "resize": "Resize library",
     "resizeHint": "Drag to resize. Double-click to reset.",
     "allDocuments": "All documents",
+    "moreActions": "New & more",
     "expandFolder": "Expand folder",
     "collapseFolder": "Collapse folder",
     "documentCount_one": "{{count}} document",
@@ -2704,6 +2728,7 @@
     "searchPlaceholder": "Search documents…",
     "tabs": {
       "ariaLabel": "Library view",
+      "more": "More",
       "folders": "Folders",
       "recent": "Recent",
       "favorites": "Favorites",
@@ -5295,6 +5320,7 @@
     "add": "Add smart folder",
     "remove": "Remove smart folder",
     "empty": "No smart folders yet. Add one with a rule like tag:work.",
+    "emptyShort": "none yet",
     "namePlaceholder": "Name (e.g. Work)",
     "rulePlaceholder": "Rule (tag:work, folder:…, or search)",
     "ruleHint": "tag:name · folder:id · or any search phrase",

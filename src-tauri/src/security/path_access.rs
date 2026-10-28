@@ -21,18 +21,24 @@ impl PathAccessGate {
     /// Grant access after a native file/folder picker (or other trusted Rust path).
     /// Do not call with untrusted strings from the webview.
     pub fn grant_from_picker(&self, path: &Path) {
-        let Ok(canonical) = canonicalize_path(path) else {
-            return;
-        };
-
         let mut guard = match self.granted.lock() {
             Ok(guard) => guard,
             Err(_) => return,
         };
 
-        guard.insert(canonical.clone());
-        if let Some(parent) = canonical.parent() {
-            guard.insert(parent.to_path_buf());
+        if let Ok(canonical) = canonicalize_path(path) {
+            guard.insert(canonical.clone());
+            if let Some(parent) = canonical.parent() {
+                guard.insert(parent.to_path_buf());
+            }
+            return;
+        }
+
+        // New save targets: leaf may not exist yet — still grant the parent folder.
+        if let Some(parent) = path.parent() {
+            if let Ok(canonical_parent) = canonicalize_path(parent) {
+                guard.insert(canonical_parent);
+            }
         }
     }
 

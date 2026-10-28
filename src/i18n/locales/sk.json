@@ -640,8 +640,8 @@
     "badge": "Novinky {{version}}",
     "kicker": "Poznámky k vydaniu",
     "title": "Scribe {{version}}",
-    "subtitle": "Pokojnejší Page workspace, tichší chrome, bohatší audit a prepínateľné skiny — stále lokálne.",
-    "editionMark": "Workspace · Dizajn",
+    "subtitle": "Viac jadra poznámok beží v Ruste — wiki odkazy, agenda úloh a export zdrojáku — stále lokálne na tomto Macu.",
+    "editionMark": "Native · Knižnica",
     "tagsLabel": "Témy tohto vydania",
     "tags": {
       "agent": "Agent",
@@ -660,9 +660,30 @@
       "media": "Médiá",
       "workspace": "Workspace",
       "design": "Dizajn",
-      "audit": "Audit"
+      "audit": "Audit",
+      "native": "Native"
     },
     "footNote": "Docs otvoríš kedykoľvek z railu. Capture a sync ostávajú na tomto Macu.",
+    "nativeCore": {
+      "title": "Natívne jadro",
+      "description": "Čisté knižničné helpery žijú v scribe-core — jedna kanonická cesta pre Tauri, testy aj editorové zrkadlá."
+    },
+    "wikiNative": {
+      "title": "Wiki v Ruste",
+      "description": "Aliasy, Obsidian [[Title#H|Alias]] parse a ghost-link matching zdieľajú rovnaké natívne pravidlá."
+    },
+    "taskAgenda": {
+      "title": "Agenda úloh",
+      "description": "Overdue · Today · Upcoming · Later — otvorené checkboxy podľa due hintu v natívnom kóde."
+    },
+    "sourceExport": {
+      "title": "Export zdrojáku",
+      "description": "Prvý code block → mapovanie jazyka na príponu pre export poznámky ako skutočného súboru."
+    },
+    "stillLocal": {
+      "title": "Stále lokálne",
+      "description": "Rýchlejšie natívne pipeline, rovnaký privacy model — poznámky, capture a sync ostávajú na tomto Macu."
+    },
     "pageWorkspace": {
       "title": "Page workspace",
       "description": "Predvolený Page skin — Outfit, čistý papier, sky akcent a flat chrome."
@@ -1332,8 +1353,8 @@
       "clearConfirmOk": "Vymazať všetko",
       "folderChanged": "Priečinok dokumentov zmenený",
       "backupTitle": "Záloha knižnice",
-      "backupDescription": "Export alebo import celého archívu (.scribe-backup.zip) vrátane SQLite a súborov na disku.",
-      "backupDescriptionShort": "Export / import celého archívu (.scribe-backup.zip). Voliteľné AES-256 heslo.",
+      "backupDescription": "Export alebo import celého archívu (.scribe-backup.zip) vrátane SQLite, poznámok, príloh a lokálnych videí. Po importe sa skopírované videá automaticky znova napoja.",
+      "backupDescriptionShort": "Export / import celého archívu (.scribe-backup.zip) vrátane lokálnych videí. Voliteľné AES-256 heslo.",
       "backupExport": "Exportovať",
       "backupExporting": "Exportujem…",
       "backupExportDone": "Záloha exportovaná",
@@ -1344,9 +1365,11 @@
       "backupImport": "Importovať",
       "backupImporting": "Importujem…",
       "backupImportDone": "Záloha obnovená",
+      "backupImportDoneDetail": "{{files}} súborov obnovených · {{version}}",
+      "backupImportDoneDetailWithVideos": "{{files}} súborov obnovených, {{videos}} videí znova napojených · {{version}}",
       "backupImportError": "Import zálohy zlyhal",
       "backupImportConfirmTitle": "Obnoviť zálohu?",
-      "backupImportConfirm": "Aktuálna knižnica bude nahradená obsahom archívu. Existujúca databáza sa zálohuje do .bak súboru.",
+      "backupImportConfirm": "Aktuálna knižnica bude nahradená obsahom archívu (poznámky, prílohy a lokálne videá). Existujúca databáza sa zálohuje do .bak súboru.",
       "backupImportConfirmOk": "Importovať",
       "backupImportPasswordTitle": "Heslo zálohy",
       "backupImportPasswordDescription": "Zadajte heslo archívu, ak bol šifrovaný. Prázdne pre nešifrované archívy.",
@@ -2404,7 +2427,7 @@
           "title": "Záloha a obnovenie",
           "summary": "Celý archív knižnice",
           "paragraphs": [
-            "Nastavenia → Úložisko dokáže exportovať alebo importovať celý archív knižnice (.scribe-backup.zip) vrátane databázy a súborov na disku."
+            "Nastavenia → Úložisko dokáže exportovať alebo importovať celý archív knižnice (.scribe-backup.zip) vrátane databázy, príloh a lokálnych videí. Skopírované videá sa po importe automaticky znova napoja."
           ],
           "points": [
             "Import nahradí aktuálnu knižnicu; predchádzajúca databáza sa uloží ako .bak",
@@ -2697,6 +2720,7 @@
     "resize": "Zmeniť šírku knižnice",
     "resizeHint": "Ťahaním zmeníte šírku. Dvojklik vráti predvolenú šírku.",
     "allDocuments": "Všetky dokumenty",
+    "moreActions": "Nové a ďalšie",
     "expandFolder": "Rozbaliť priečinok",
     "collapseFolder": "Zbaliť priečinok",
     "documentCount_one": "{{count}} dokument",
@@ -2706,6 +2730,7 @@
     "searchPlaceholder": "Hľadať v dokumentoch…",
     "tabs": {
       "ariaLabel": "Zobrazenie knižnice",
+      "more": "Viac",
       "folders": "Priečinky",
       "recent": "Nedávne",
       "favorites": "Obľúbené",
@@ -5311,6 +5336,7 @@
     "add": "Pridať inteligentný priečinok",
     "remove": "Odstrániť inteligentný priečinok",
     "empty": "Zatiaľ žiadne inteligentné priečinky. Pridajte pravidlo napr. tag:praca.",
+    "emptyShort": "zatiaľ žiadne",
     "namePlaceholder": "Názov (napr. Práca)",
     "rulePlaceholder": "Pravidlo (tag:praca, folder:…, alebo hľadanie)",
     "ruleHint": "tag:názov · folder:id · alebo ľubovoľný výraz",

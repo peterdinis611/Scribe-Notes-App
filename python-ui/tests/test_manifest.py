@@ -21,15 +21,15 @@ class ManifestTests(unittest.TestCase):
         self.assertEqual(m["version"], APP_VERSION)
         self.assertEqual(m["shortVersion"], short_version())
         self.assertEqual(len(m["whatsNewHighlights"]), 5)
-        self.assertEqual(m["whatsNewTagKeys"], ["workspace", "design", "audit"])
+        self.assertEqual(m["whatsNewTagKeys"], ["native", "library", "editor"])
         self.assertEqual(
             m["whatsNewHighlights"],
             [
-                "pageWorkspace",
-                "editorCanvas",
-                "welcomeHome",
-                "auditInsights",
-                "skinPicker",
+                "nativeCore",
+                "wikiNative",
+                "taskAgenda",
+                "sourceExport",
+                "stillLocal",
             ],
         )
         self.assertIn("agent", m["settingsSectionIds"])

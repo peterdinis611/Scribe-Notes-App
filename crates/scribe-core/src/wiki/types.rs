@@ -76,3 +76,12 @@ pub struct GraphHub {
     pub backlinks: i64,
     pub outgoing: i64,
 }
+
+/// Note ids within N outbound wiki-link hops of a root (BFS order, root first).
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WikiNeighborhood {
+    pub root_id: String,
+    pub hops: u32,
+    pub document_ids: Vec<String>,
+}

@@ -1,12 +1,14 @@
 //! MCP tool parameter types (split by domain).
 
 mod agent_nlp;
+mod audit;
 mod documents;
 mod library_ui;
 mod study_files;
 mod wiki;
 
 pub use agent_nlp::*;
+pub use audit::*;
 pub use documents::*;
 pub use library_ui::*;
 pub use study_files::*;

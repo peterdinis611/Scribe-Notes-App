@@ -1,7 +1,8 @@
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import react, { reactCompilerPreset } from '@vitejs/plugin-react'
+import babel from '@rolldown/plugin-babel'
 import tailwindcss from '@tailwindcss/vite'
 import { scribeEditorFullReload } from './scripts/vite-editor-full-reload'
 
@@ -14,7 +15,13 @@ const tauriHost = process.env.TAURI_DEV_HOST
 const rootFsAllow = [...new Set([rootDir, rootDir.normalize('NFC'), rootDir.normalize('NFD')])]
 
 export default defineConfig({
-  plugins: [react(), tailwindcss(), scribeEditorFullReload()],
+  plugins: [
+    react(),
+    // React Compiler (auto-memoization) — must run via Babel preset after plugin-react.
+    babel({ presets: [reactCompilerPreset()] }),
+    tailwindcss(),
+    scribeEditorFullReload(),
+  ],
   resolve: {
     alias: {
       '@': path.resolve(rootDir, './src'),

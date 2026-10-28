@@ -42,6 +42,42 @@ Smoke-run (process waits on stdio — expected; Ctrl+C to stop):
 npm run mcp
 ```
 
+### HTTP / remote (optional)
+
+Streamable HTTP for tunnels or remote MCP clients, plus a small REST API for library folders and the Local Files sandbox (`documents/files/…`):
+
+```bash
+SCRIBE_MCP_HTTP_TOKEN='change-me' SCRIBE_MCP_WRITE=1 npm run mcp:http
+# → http://127.0.0.1:8788/mcp     MCP Streamable HTTP
+# → http://127.0.0.1:8788/health  liveness
+# → http://127.0.0.1:8788/v1      REST catalog
+```
+
+Same Bearer token as `/mcp` protects `/v1`. Writes (`POST`) also need `SCRIBE_MCP_WRITE=1`.
+
+| Method | Path | Body |
+|--------|------|------|
+| `GET` | `/v1/library/folders` | — |
+| `POST` | `/v1/library/folders` | `{ "name": "…", "parentId?": "…" }` |
+| `GET` | `/v1/fs/list?path=&recursive=` | — |
+| `POST` | `/v1/fs/mkdir` | `{ "path": "notes/inbox" }` |
+| `POST` | `/v1/fs/write-text` | `{ "path": "a.md", "text": "…", "overwrite?": true }` |
+| `POST` | `/v1/fs/write` | `{ "path": "bin.dat", "contentBase64": "…", "overwrite?": true }` |
+| `POST` | `/v1/fs/upload` | `multipart/form-data`: field `file` + optional `path` (dir or full relative path) |
+
+```bash
+curl -H "Authorization: Bearer change-me" \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Inbox"}' \
+  http://127.0.0.1:8788/v1/library/folders
+
+curl -H "Authorization: Bearer change-me" \
+  -F 'file=@./photo.jpg' -F 'path=inbox/' \
+  http://127.0.0.1:8788/v1/fs/upload
+```
+
+Non-loopback binds require `SCRIBE_MCP_HTTP_TOKEN`. Prefer Tailscale / Cloudflare Tunnel in front of loopback rather than opening `0.0.0.0` publicly.
+
 ## Connect Cursor
 
 1. Open Cursor MCP settings (or `.cursor/mcp.json`).
