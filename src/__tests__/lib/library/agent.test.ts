@@ -3,6 +3,7 @@ import {
   planAgentGoal,
   runAgentGoal,
   agentMemoryContext,
+  suggestFollowupRecipes,
 } from '@/lib/library/agent'
 import {
   buildAgentGoalChips,
@@ -121,6 +122,27 @@ describe('runAgentGoal', () => {
     ])
     expect(ctx).toHaveLength(2)
     expect(ctx[0].text.length).toBeLessThanOrEqual(1200)
+  })
+})
+
+describe('suggestFollowupRecipes', () => {
+  it('suggests code_pass after code_brief / explain', () => {
+    const ids = suggestFollowupRecipes(
+      [
+        { tool: 'code_brief', status: 'ok' },
+        { tool: 'explain', status: 'ok' },
+      ],
+      'document',
+    )
+    expect(ids).toContain('code_pass')
+  })
+
+  it('suggests wiki_cleanup after wiki_health', () => {
+    const ids = suggestFollowupRecipes(
+      [{ tool: 'wiki_health', status: 'ok' }],
+      'document',
+    )
+    expect(ids).toContain('wiki_cleanup')
   })
 })
 

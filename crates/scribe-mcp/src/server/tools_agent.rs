@@ -458,7 +458,7 @@ impl ScribeMcp {
 }
 
 /// Map MCP persona aliases onto in-app role ids (`spellcheck` → proofreader path).
-fn normalize_run_agent_persona(raw: Option<&str>) -> String {
+pub(crate) fn normalize_run_agent_persona(raw: Option<&str>) -> String {
     let folded = raw
         .map(str::trim)
         .filter(|value| !value.is_empty())
@@ -468,5 +468,36 @@ fn normalize_run_agent_persona(raw: Option<&str>) -> String {
         "spellcheck" | "spell" | "grammar" | "proofreader" => "spellcheck".into(),
         id if scribe_ui::is_agent_role_id(id) => id.to_string(),
         _ => "general".into(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::normalize_run_agent_persona;
+
+    #[test]
+    fn persona_defaults_to_general() {
+        assert_eq!(normalize_run_agent_persona(None), "general");
+        assert_eq!(normalize_run_agent_persona(Some("")), "general");
+        assert_eq!(normalize_run_agent_persona(Some("  ")), "general");
+        assert_eq!(normalize_run_agent_persona(Some("unknown-role")), "general");
+    }
+
+    #[test]
+    fn persona_spellcheck_aliases() {
+        for raw in ["spellcheck", "spell", "grammar", "proofreader", " SPELL "] {
+            assert_eq!(normalize_run_agent_persona(Some(raw)), "spellcheck");
+        }
+    }
+
+    #[test]
+    fn persona_accepts_all_role_ids() {
+        for id in scribe_ui::AGENT_ROLE_IDS {
+            if *id == "proofreader" {
+                assert_eq!(normalize_run_agent_persona(Some(id)), "spellcheck");
+            } else {
+                assert_eq!(normalize_run_agent_persona(Some(id)), *id);
+            }
+        }
     }
 }

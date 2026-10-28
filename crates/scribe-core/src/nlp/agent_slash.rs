@@ -962,4 +962,63 @@ mod tests {
         assert!(hits.iter().any(|c| c.id == "meeting"));
         assert!(!list_agent_slash_commands(Some("document")).is_empty());
     }
+
+    #[test]
+    fn new_slash_entries_parse() {
+        match parse_agent_slash("/wikihealth", "library") {
+            ParsedAgentSlash::Ok { force_tools, .. } => {
+                assert_eq!(force_tools, vec!["wiki_health"]);
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+        match parse_agent_slash("/wikicleanup", "document") {
+            ParsedAgentSlash::Ok { recipe_id, .. } => {
+                assert_eq!(recipe_id.as_deref(), Some("wiki_cleanup"));
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+        match parse_agent_slash("/rev", "document") {
+            ParsedAgentSlash::Ok { force_tools, .. } => {
+                assert_eq!(force_tools, vec!["revision"]);
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+        match parse_agent_slash("/sablona", "document") {
+            ParsedAgentSlash::Ok { recipe_id, .. } => {
+                assert_eq!(recipe_id.as_deref(), Some("note_to_template"));
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+        match parse_agent_slash("/import", "library") {
+            ParsedAgentSlash::Ok { recipe_id, .. } => {
+                assert_eq!(recipe_id.as_deref(), Some("files_learn"));
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+    }
+
+    #[test]
+    fn catalog_includes_expanded_commands() {
+        let all = list_agent_slash_commands(None);
+        for id in [
+            "handoff",
+            "wikihealth",
+            "template",
+            "wikiclean",
+            "ingest",
+            "revision",
+        ] {
+            assert!(
+                all.iter().any(|c| c.id == id),
+                "missing slash command {id}"
+            );
+        }
+        let library = list_agent_slash_commands(Some("library"));
+        assert!(library.iter().any(|c| c.id == "ingest"));
+        // `revision` includes `Any` so it still appears in library scope (documentPreferred at run time).
+        assert!(library.iter().any(|c| c.id == "revision"));
+        let document = list_agent_slash_commands(Some("document"));
+        assert!(document.iter().any(|c| c.id == "revision"));
+        assert!(document.iter().any(|c| c.id == "template"));
+    }
 }

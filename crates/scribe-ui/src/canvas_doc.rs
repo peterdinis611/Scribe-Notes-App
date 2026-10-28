@@ -627,6 +627,49 @@ mod tests {
     use super::*;
 
     #[test]
+    fn build_blank_template() {
+        let doc = build_canvas_template("blank");
+        assert!(doc.objects.is_empty());
+        assert_eq!(doc.doc_type, CANVAS_CONTENT_TYPE);
+    }
+
+    #[test]
+    fn build_brainstorm_template() {
+        let doc = build_canvas_template("brainstorm");
+        assert!(doc.objects.len() >= 5);
+        assert!(doc
+            .objects
+            .iter()
+            .any(|o| o.kind == CanvasObjectKind::Frame && o.label == "Ideas"));
+        assert!(doc.objects.iter().any(|o| !o.parent_id.is_empty()));
+        let json = serialize_canvas_document(&doc);
+        assert!(parse_canvas_document(&json).is_some());
+    }
+
+    #[test]
+    fn build_roadmap_template() {
+        let doc = build_canvas_template("roadmap");
+        assert!(doc
+            .objects
+            .iter()
+            .any(|o| o.kind == CanvasObjectKind::Frame && o.label == "Now"));
+        assert!(doc
+            .objects
+            .iter()
+            .any(|o| o.kind == CanvasObjectKind::Frame && o.label == "Later"));
+        assert!(!doc.cards.is_empty());
+    }
+
+    #[test]
+    fn build_template_defaults_to_brainstorm() {
+        let doc = build_canvas_template("unknown-layout");
+        assert!(doc
+            .objects
+            .iter()
+            .any(|o| o.kind == CanvasObjectKind::Text && o.text == "Brainstorm"));
+    }
+
+    #[test]
     fn empty_roundtrip() {
         let s = serialize_canvas_document(&empty_canvas_document());
         assert_eq!(s, r#"{"type":"canvas","version":2,"cards":[],"edges":[]}"#);

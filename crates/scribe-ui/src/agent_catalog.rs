@@ -634,4 +634,39 @@ mod tests {
         );
         assert_eq!(title_from_markdown("# My Note\n\nbody", "fallback"), "My Note");
     }
+
+    #[test]
+    fn code_pass_recipe_and_developer_role() {
+        let recipe = agent_recipes()
+            .into_iter()
+            .find(|r| r.id == "code_pass")
+            .expect("code_pass");
+        assert_eq!(recipe.tools, vec!["code_brief", "explain", "keywords"]);
+        assert!(recipe.document_preferred);
+        assert_eq!(recipe_owner_role("code_pass").as_deref(), Some("developer"));
+        let developer = get_agent_role("developer").expect("developer");
+        assert!(developer.recipe_ids.iter().any(|id| id == "code_pass"));
+        assert!(is_agent_recipe_id("code_pass"));
+    }
+
+    #[test]
+    fn followup_from_code_brief() {
+        let ids = suggest_followup_recipes(
+            &["code_brief".into(), "explain".into()],
+            "document",
+            &[],
+        );
+        assert!(ids.contains(&"code_pass".into()));
+    }
+
+    #[test]
+    fn filter_tools_by_single_role() {
+        let meeting = filter_tools_by_agents(
+            &["meeting".into(), "quiz".into(), "handoff".into()],
+            &["meeting".into()],
+        );
+        assert!(meeting.contains(&"meeting".into()));
+        assert!(meeting.contains(&"handoff".into()));
+        assert!(!meeting.contains(&"quiz".into()));
+    }
 }

@@ -3,6 +3,66 @@
 use crate::server::ScribeMcp;
 use crate::tools;
 
+/// Pick up to `limit` sandbox paths for `files_ingest` (mirrors FE agent-files-ingest).
+pub(crate) fn select_files_ingest_paths(
+    entries: &[serde_json::Value],
+    goal: &str,
+    limit: usize,
+) -> Vec<String> {
+    let needle = goal.trim().to_ascii_lowercase();
+    let candidates: Vec<(String, String)> = entries
+        .iter()
+        .filter_map(|entry| {
+            let kind = entry.get("kind").and_then(|v| v.as_str()).unwrap_or("");
+            if kind == "dir" {
+                return None;
+            }
+            let path = entry.get("path").and_then(|v| v.as_str())?.to_string();
+            let name = entry
+                .get("name")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            let text_like = entry
+                .get("textLike")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false);
+            let looks_code = path.rsplit('.').next().is_some_and(|ext| {
+                matches!(
+                    ext.to_ascii_lowercase().as_str(),
+                    "rs" | "py" | "ts" | "tsx" | "js" | "jsx" | "go" | "java"
+                        | "kt" | "swift" | "c" | "h" | "cpp" | "cs" | "rb" | "php"
+                        | "lua" | "sql" | "toml" | "yml" | "yaml" | "xml" | "css"
+                        | "scss" | "sh" | "bash" | "json" | "md" | "txt" | "csv"
+                        | "html" | "htm" | "log"
+                )
+            });
+            if text_like || looks_code {
+                Some((path, name))
+            } else {
+                None
+            }
+        })
+        .collect();
+    let matched: Vec<(String, String)> = if needle.is_empty() {
+        candidates.clone()
+    } else {
+        candidates
+            .iter()
+            .filter(|(path, name)| {
+                format!("{path} {name}")
+                    .to_ascii_lowercase()
+                    .contains(&needle)
+            })
+            .cloned()
+            .collect()
+    };
+    if matched.is_empty() {
+        candidates.into_iter().map(|(path, _)| path).take(limit).collect()
+    } else {
+        matched.into_iter().map(|(path, _)| path).take(limit).collect()
+    }
+}
 
 impl ScribeMcp {
     /// Map planner tool ids to store methods (mirrors the in-app Local Agent).
@@ -385,64 +445,12 @@ impl ScribeMcp {
                     return Err("files_ingest requires SCRIBE_MCP_WRITE=1".into());
                 }
                 let listed = store.files_list(&self.sidecar, "", true, None)?;
-                let needle = goal.trim().to_ascii_lowercase();
                 let entries = listed
                     .get("entries")
                     .and_then(|v| v.as_array())
                     .cloned()
                     .unwrap_or_default();
-                let candidates: Vec<(String, String)> = entries
-                    .iter()
-                    .filter_map(|entry| {
-                        let kind = entry.get("kind").and_then(|v| v.as_str()).unwrap_or("");
-                        if kind == "dir" {
-                            return None;
-                        }
-                        let path = entry.get("path").and_then(|v| v.as_str())?.to_string();
-                        let name = entry
-                            .get("name")
-                            .and_then(|v| v.as_str())
-                            .unwrap_or("")
-                            .to_string();
-                        let text_like = entry
-                            .get("textLike")
-                            .and_then(|v| v.as_bool())
-                            .unwrap_or(false);
-                        let looks_code = path.rsplit('.').next().is_some_and(|ext| {
-                            matches!(
-                                ext.to_ascii_lowercase().as_str(),
-                                "rs" | "py" | "ts" | "tsx" | "js" | "jsx" | "go" | "java"
-                                    | "kt" | "swift" | "c" | "h" | "cpp" | "cs" | "rb" | "php"
-                                    | "lua" | "sql" | "toml" | "yml" | "yaml" | "xml" | "css"
-                                    | "scss" | "sh" | "bash" | "json" | "md" | "txt" | "csv"
-                                    | "html" | "htm" | "log"
-                            )
-                        });
-                        if text_like || looks_code {
-                            Some((path, name))
-                        } else {
-                            None
-                        }
-                    })
-                    .collect();
-                let matched: Vec<(String, String)> = if needle.is_empty() {
-                    candidates.clone()
-                } else {
-                    candidates
-                        .iter()
-                        .filter(|(path, name)| {
-                            format!("{path} {name}")
-                                .to_ascii_lowercase()
-                                .contains(&needle)
-                        })
-                        .cloned()
-                        .collect()
-                };
-                let paths: Vec<String> = if matched.is_empty() {
-                    candidates.into_iter().map(|(path, _)| path).take(5).collect()
-                } else {
-                    matched.into_iter().map(|(path, _)| path).take(5).collect()
-                };
+                let paths = select_files_ingest_paths(&entries, goal, 5);
                 if paths.is_empty() {
                     return Ok((
                         "files_ingest".into(),
@@ -845,5 +853,59 @@ impl ScribeMcp {
             "steps": steps,
             "answer": answer,
         })))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::select_files_ingest_paths;
+    use serde_json::json;
+
+    #[test]
+    fn files_ingest_skips_dirs_and_binaries() {
+        let entries = vec![
+            json!({"kind": "dir", "path": "src", "name": "src", "textLike": false}),
+            json!({"kind": "file", "path": "src/main.rs", "name": "main.rs", "textLike": true}),
+            json!({"kind": "file", "path": "logo.png", "name": "logo.png", "textLike": false}),
+            json!({"kind": "file", "path": "notes.md", "name": "notes.md", "textLike": true}),
+        ];
+        let paths = select_files_ingest_paths(&entries, "", 5);
+        assert_eq!(paths, vec!["src/main.rs", "notes.md"]);
+    }
+
+    #[test]
+    fn files_ingest_filters_by_goal_needle() {
+        let entries = vec![
+            json!({"kind": "file", "path": "inbox/a.md", "name": "a.md", "textLike": true}),
+            json!({"kind": "file", "path": "inbox/b.py", "name": "b.py", "textLike": true}),
+            json!({"kind": "file", "path": "other/c.md", "name": "c.md", "textLike": true}),
+        ];
+        let paths = select_files_ingest_paths(&entries, "inbox", 5);
+        assert_eq!(paths, vec!["inbox/a.md", "inbox/b.py"]);
+    }
+
+    #[test]
+    fn files_ingest_falls_back_when_needle_misses() {
+        let entries = vec![
+            json!({"kind": "file", "path": "readme.md", "name": "readme.md", "textLike": true}),
+        ];
+        let paths = select_files_ingest_paths(&entries, "zzzz-missing", 5);
+        assert_eq!(paths, vec!["readme.md"]);
+    }
+
+    #[test]
+    fn files_ingest_caps_at_limit() {
+        let entries: Vec<_> = (0..8)
+            .map(|i| {
+                json!({
+                    "kind": "file",
+                    "path": format!("f{i}.md"),
+                    "name": format!("f{i}.md"),
+                    "textLike": true,
+                })
+            })
+            .collect();
+        let paths = select_files_ingest_paths(&entries, "", 5);
+        assert_eq!(paths.len(), 5);
     }
 }
