@@ -3,6 +3,11 @@ import { dismissToast as dismissToastAction, pushToast } from '@/store/uiSlice'
 
 export type ToastVariant = 'default' | 'success' | 'error' | 'info'
 
+export const TOAST_EXIT_EVENT = 'scribe:toast-exit'
+export const TOAST_EXIT_MS = 200
+
+const pendingExit = new Set<string>()
+
 export type ToastItem = {
   id: string
   title: string
@@ -52,8 +57,14 @@ function pushToastItem(input: ToastInput): string {
 }
 
 export function dismissToast(id: string) {
-  toastActionHandlers.delete(id)
-  store.dispatch(dismissToastAction(id))
+  if (pendingExit.has(id)) return
+  pendingExit.add(id)
+  window.dispatchEvent(new CustomEvent(TOAST_EXIT_EVENT, { detail: { id } }))
+  window.setTimeout(() => {
+    pendingExit.delete(id)
+    toastActionHandlers.delete(id)
+    store.dispatch(dismissToastAction(id))
+  }, TOAST_EXIT_MS)
 }
 
 export function runToastAction(id: string) {

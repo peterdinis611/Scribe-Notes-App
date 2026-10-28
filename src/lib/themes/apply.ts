@@ -141,10 +141,23 @@ function colorsForSkin(
   return colors
 }
 
+let themeHasAppliedOnce = false
+let themeTransitionTimer: number | null = null
+
 export function applyThemeSettings(settings: ThemeSettings, skin: UiSkin = readUiSkin()) {
   const { colors: baseColors, colorScheme, resolvedId } = resolveThemeColors(settings)
   const colors = colorsForSkin(baseColors, resolvedId, colorScheme, skin)
   const root = document.documentElement
+
+  if (themeHasAppliedOnce) {
+    root.classList.add('theme-transition')
+    if (themeTransitionTimer != null) window.clearTimeout(themeTransitionTimer)
+    themeTransitionTimer = window.setTimeout(() => {
+      root.classList.remove('theme-transition')
+      themeTransitionTimer = null
+    }, 200)
+  }
+  themeHasAppliedOnce = true
 
   applyUiSkin(skin)
   applyUiFontSettings()
