@@ -17,14 +17,17 @@ export function DropdownMenuTrigger({
 export function DropdownMenuContent({
   className,
   sideOffset = 6,
+  collisionPadding = 8,
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Content>) {
   return (
     <DropdownMenuPrimitive.Portal>
       <DropdownMenuPrimitive.Content
         sideOffset={sideOffset}
+        collisionPadding={collisionPadding}
         className={cn(
-          'titlebar-no-drag z-[70] min-w-[8rem] overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-background)] p-1 shadow-[0_8px_24px_rgba(15,15,15,0.12)]',
+          // Cap to viewport collision box so long menus (File → Export…) scroll instead of clipping.
+          'titlebar-no-drag z-[70] max-h-[min(80vh,var(--radix-dropdown-menu-content-available-height))] min-w-[8rem] overflow-x-hidden overflow-y-auto overscroll-contain rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-background)] p-1 shadow-[0_8px_24px_rgba(15,15,15,0.12)]',
           className,
         )}
         {...props}
@@ -87,12 +90,14 @@ export function DropdownMenuSubTrigger({
 
 export function DropdownMenuSubContent({
   className,
+  collisionPadding = 8,
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.SubContent>) {
   return (
     <DropdownMenuPrimitive.SubContent
+      collisionPadding={collisionPadding}
       className={cn(
-        'titlebar-no-drag z-[80] min-w-[8rem] overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] p-1 shadow-lg',
+        'titlebar-no-drag z-[80] max-h-[min(80vh,var(--radix-dropdown-menu-content-available-height))] min-w-[8rem] overflow-x-hidden overflow-y-auto overscroll-contain rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] p-1 shadow-lg',
         className,
       )}
       {...props}
