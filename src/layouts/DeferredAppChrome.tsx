@@ -43,6 +43,9 @@ const StorageAccessDialogHost = lazy(() =>
     default: m.StorageAccessDialogHost,
   })),
 )
+const ConfirmDialogHost = lazy(() =>
+  import('@/components/ConfirmDialogHost').then((m) => ({ default: m.ConfirmDialogHost })),
+)
 const SaveCustomTemplateDialogHost = lazy(() =>
   import('@/components/SaveCustomTemplateDialogHost').then((m) => ({
     default: m.SaveCustomTemplateDialogHost,
@@ -146,6 +149,7 @@ export function DeferredAppChrome({
           <CommandPalette />
         </OpenWhen>
         <InputDialogHost />
+        <ConfirmDialogHost />
         <StorageAccessDialogHost />
         <OpenWhen open={agentPanelOpen}>
           <AgentWorkspaceDock />

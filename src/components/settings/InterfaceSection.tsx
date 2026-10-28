@@ -2,6 +2,7 @@ import { RotateCcw } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
+import { Separator } from '@/components/ui/separator'
 import {
   SettingsGroup,
   SettingsRow,
@@ -118,6 +119,8 @@ export function InterfaceSection() {
           </SettingsRow>
         </SettingsGroup>
       </SettingsSection>
+
+      <Separator className="my-5" />
 
       <SettingsSection>
         <SettingsSectionHeader

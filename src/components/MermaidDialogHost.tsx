@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Textarea } from '@/components/ui/textarea'
 import { resolveMermaidDialog } from '@/lib/mermaid-dialog'
 import {
   MERMAID_DEFAULT_SOURCE,
@@ -97,9 +98,9 @@ export function MermaidDialogHost() {
 
             <label className="grid gap-1.5 text-[12px] text-[var(--color-muted-foreground)]" htmlFor={fieldId}>
               {t('mermaid.builder.sourceLabel')}
-              <textarea
+              <Textarea
                 id={fieldId}
-                className="min-h-[200px] w-full resize-y rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2 font-mono text-[12px] leading-relaxed text-[var(--color-foreground)] outline-none focus-visible:border-[var(--color-accent)]"
+                className="min-h-[200px] font-mono text-[12px] leading-relaxed"
                 value={source}
                 spellCheck={false}
                 onChange={(event) => {

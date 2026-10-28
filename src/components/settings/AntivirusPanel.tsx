@@ -7,6 +7,9 @@ import {
   SettingsToggle,
 } from '@/components/settings/SettingsPrimitives'
 import { Button } from '@/components/ui/button'
+import { Progress } from '@/components/ui/progress'
+import { Separator } from '@/components/ui/separator'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   antivirusListQuarantine,
   antivirusPickAndScan,
@@ -193,11 +196,18 @@ export function AntivirusPanel() {
       <SettingsRow
         title={t('settings.antivirus.engine')}
         description={
-          status
-            ? status.available
-              ? `${status.engine}${status.version ? ` · ${status.version}` : ''}`
-              : status.installHint
-            : t('settings.antivirus.loading')
+          status ? (
+            status.available ? (
+              `${status.engine}${status.version ? ` · ${status.version}` : ''}`
+            ) : (
+              status.installHint
+            )
+          ) : (
+            <div className="mt-1 flex flex-col gap-1.5">
+              <Skeleton className="h-3 w-40" />
+              <Skeleton className="h-3 w-56" />
+            </div>
+          )
         }
       >
         <div className="flex items-center gap-2">
@@ -269,40 +279,49 @@ export function AntivirusPanel() {
         />
       </SettingsRow>
 
+      <div className="px-4 py-2">
+        <Separator />
+      </div>
+
       <SettingsRow
         title={t('settings.antivirus.actions')}
         description={t('settings.antivirus.actionsHint')}
         layout="stack"
       >
-        <div className="flex flex-wrap gap-1.5">
-          <Button type="button" size="sm" variant="outline" disabled={busy != null} onClick={() => void runSelfTest()}>
-            {busy === 'selfTest' ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : null}
-            {t('settings.antivirus.selfTest')}
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            disabled={busy != null}
-            onClick={() => void runTreeScan('inbox', 'scanInbox', 'settings.antivirus.scanClean')}
-          >
-            {busy === 'scanInbox' ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : null}
-            {t('settings.antivirus.scanInbox')}
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            disabled={busy != null}
-            onClick={() => void runTreeScan(null, 'scanAll', 'settings.antivirus.scanAllClean')}
-          >
-            {busy === 'scanAll' ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : null}
-            {t('settings.antivirus.scanAll')}
-          </Button>
-          <Button type="button" size="sm" variant="outline" disabled={busy != null} onClick={() => void pickAndScan()}>
-            {busy === 'pick' ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : null}
-            {t('settings.antivirus.pickScan')}
-          </Button>
+        <div className="flex w-full flex-col gap-2.5">
+          <div className="flex flex-wrap gap-1.5">
+            <Button type="button" size="sm" variant="outline" disabled={busy != null} onClick={() => void runSelfTest()}>
+              {busy === 'selfTest' ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : null}
+              {t('settings.antivirus.selfTest')}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={busy != null}
+              onClick={() => void runTreeScan('inbox', 'scanInbox', 'settings.antivirus.scanClean')}
+            >
+              {busy === 'scanInbox' ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : null}
+              {t('settings.antivirus.scanInbox')}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={busy != null}
+              onClick={() => void runTreeScan(null, 'scanAll', 'settings.antivirus.scanAllClean')}
+            >
+              {busy === 'scanAll' ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : null}
+              {t('settings.antivirus.scanAll')}
+            </Button>
+            <Button type="button" size="sm" variant="outline" disabled={busy != null} onClick={() => void pickAndScan()}>
+              {busy === 'pick' ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : null}
+              {t('settings.antivirus.pickScan')}
+            </Button>
+          </div>
+          {busy === 'scanInbox' || busy === 'scanAll' || busy === 'pick' || busy === 'selfTest' ? (
+            <Progress aria-label={t('settings.antivirus.actions')} className="h-1.5" />
+          ) : null}
         </div>
       </SettingsRow>
 

@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { resolveInputDialog } from '@/lib/input-dialog'
 import { useAppSelector } from '@/store/hooks'
 
@@ -60,9 +61,9 @@ export function InputDialogHost() {
               {dialog.description && <DialogDescription>{dialog.description}</DialogDescription>}
             </DialogHeader>
             {dialog.multiline ? (
-              <textarea
+              <Textarea
                 ref={textareaRef}
-                className="input-dialog-textarea titlebar-no-drag flex min-h-[10rem] w-full resize-y rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 font-mono text-[13px] leading-relaxed text-[var(--color-foreground)] outline-none transition-[border-color,box-shadow] placeholder:text-[var(--color-muted-foreground)] focus:border-[var(--color-accent)] focus:shadow-[0_0_0_3px_var(--color-selection)]"
+                className="input-dialog-textarea titlebar-no-drag min-h-[10rem] bg-[var(--color-surface)] font-mono text-[13px] leading-relaxed"
                 value={value}
                 placeholder={dialog.placeholder}
                 rows={8}

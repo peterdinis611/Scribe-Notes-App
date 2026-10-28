@@ -18,6 +18,9 @@ import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from
 import { useTranslation } from 'react-i18next'
 import { AgentBlobatar, AGENT_BLOBATAR_NAME } from '@/components/agent/AgentBlobatar'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   SettingsSection,
   SettingsSectionHeader,
@@ -973,15 +976,14 @@ export function AgentSection() {
                     )
                   })}
                 </div>
-                <label className="agent-settings-inline-check">
-                  <input
-                    type="checkbox"
+                <Label className="agent-settings-inline-check">
+                  <Checkbox
                     checked={recipeDocPreferred}
                     disabled={!prefs.enabled}
-                    onChange={(event) => setRecipeDocPreferred(event.target.checked)}
+                    onCheckedChange={(checked) => setRecipeDocPreferred(checked === true)}
                   />
                   {t('settings.agent.customRecipeDocPreferred')}
-                </label>
+                </Label>
                 <Button type="submit" size="sm" disabled={!prefs.enabled || recipeLabel.trim().length < 2}>
                   {t('settings.agent.customRecipeAdd')}
                 </Button>
@@ -1097,29 +1099,23 @@ export function AgentSection() {
                   {t('settings.agent.teachScopeToggleDocument')}
                 </button>
               </div>
-              <div
-                className="agent-scope-switch"
-                role="group"
-                aria-label={t('settings.agent.teachTopicLabel')}
+              <Tabs
+                value={teachTopic}
+                onValueChange={(value) => {
+                  const topic = value as AgentTeachingTopic
+                  setTeachTopic(topic)
+                  if (topic === 'grammar') setTeachAgentId('proofreader')
+                }}
               >
-                <button
-                  type="button"
-                  className={cn('library-chat-scope-tab', teachTopic === 'general' && 'is-active')}
-                  onClick={() => setTeachTopic('general')}
-                >
-                  {t('settings.agent.teachTopicGeneral')}
-                </button>
-                <button
-                  type="button"
-                  className={cn('library-chat-scope-tab', teachTopic === 'grammar' && 'is-active')}
-                  onClick={() => {
-                    setTeachTopic('grammar')
-                    setTeachAgentId('proofreader')
-                  }}
-                >
-                  {t('settings.agent.teachTopicGrammar')}
-                </button>
-              </div>
+                <TabsList aria-label={t('settings.agent.teachTopicLabel')} className="h-8">
+                  <TabsTrigger value="general" className="px-2.5 py-0.5 text-[12px]">
+                    {t('settings.agent.teachTopicGeneral')}
+                  </TabsTrigger>
+                  <TabsTrigger value="grammar" className="px-2.5 py-0.5 text-[12px]">
+                    {t('settings.agent.teachTopicGrammar')}
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
             </div>
             {teachTopic !== 'grammar' ? (
               <div

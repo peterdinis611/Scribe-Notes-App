@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
 
 export function SettingsSection({
@@ -121,20 +123,19 @@ export function SettingsToggle({
   onLabel: string
   offLabel: string
 }) {
+  const label = checked ? onLabel : offLabel
   return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      disabled={disabled}
-      className={cn('settings-toggle', checked && 'is-on')}
-      onClick={onChange}
-    >
-      <span className="settings-toggle-track" aria-hidden="true">
-        <span className="settings-toggle-knob" />
-      </span>
-      <span className="settings-toggle-label">{checked ? onLabel : offLabel}</span>
-    </button>
+    <div className="flex items-center gap-2">
+      <Switch
+        checked={checked}
+        disabled={disabled}
+        onCheckedChange={() => onChange()}
+        aria-label={label}
+      />
+      <Label className="cursor-pointer text-[12px] font-medium text-[var(--color-muted-foreground)]">
+        {label}
+      </Label>
+    </div>
   )
 }
 

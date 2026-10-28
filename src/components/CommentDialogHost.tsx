@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { resolveCommentDialog } from '@/lib/comment-dialog'
 import { resolveCommentAuthor } from '@/lib/editor/comment-author'
 import { useAppSelector } from '@/store/hooks'
@@ -94,9 +95,9 @@ export function CommentDialogHost() {
             <span className="text-[11px] font-medium text-[var(--color-muted-foreground)]">
               {t('panels.comments.bodyLabel')}
             </span>
-            <textarea
+            <Textarea
               ref={bodyRef}
-              className="min-h-[92px] w-full resize-y rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 font-[family-name:var(--font-sans)] text-[13px] leading-[1.45] text-[var(--color-foreground)] outline-none placeholder:text-[var(--color-muted-foreground)] focus:border-[var(--color-accent)] focus:shadow-[0_0_0_3px_var(--color-selection)]"
+              className="min-h-[92px] bg-[var(--color-surface)] font-[family-name:var(--font-sans)] text-[13px] leading-[1.45]"
               value={body}
               onChange={(event) => setBody(event.target.value)}
               placeholder={t('editorActions.commentPlaceholder')}
