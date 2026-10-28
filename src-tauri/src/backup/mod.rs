@@ -973,7 +973,11 @@ mod tests {
             )
             .unwrap();
         assert_ne!(source, stale);
-        assert!(source.ends_with("attachments/videos/vid-remap-1/source.mp4"));
+        // Remap stores OS-native paths (`\` on Windows); compare with Path, not `/` literals.
+        assert!(
+            Path::new(&source).ends_with(Path::new("attachments/videos/vid-remap-1/source.mp4")),
+            "unexpected remapped path: {source}"
+        );
         assert!(Path::new(&source).is_file());
 
         let content: String = conn
