@@ -165,7 +165,7 @@ impl ServerHandler for ScribeMcp {
         .with_instructions(
             "Scribe local notes.              Prefer search (with folderId/tag/fromDate/toDate), \
              get_document_outline, then get_document or export_document. \
-             For multi-step local agent goals use run_agent (same planner as the Scribe app; persona=spellcheck for the Spellcheck Agent). \
+             For multi-step local agent goals use run_agent (same planner as the Scribe app; persona=spellcheck|librarian|meeting|study|organizer|developer; documentIdB/revisionId for compare/revision). \
              Prefer run_spellcheck_agent when the user only wants spelling/grammar on one note. \
              list_documents / create_note / search are scoped to the active library — \
              call list_libraries / switch_library first if the user names another library. \

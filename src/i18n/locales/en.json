@@ -2355,7 +2355,7 @@
             "Optional Local LLM (Ollama on localhost) can polish selected heuristics — summarize, writing coach, rewrite, explain, simplify — when you turn on Enhance heuristics in Settings. Model picker and a connectivity test live on the same page.",
             "Storage Files API exposes your documents folder’s files/ sandbox on loopback. With the API running, Local AI can list, search, summarize, and answer questions over those text files with path citations — still never leaving this Mac.",
             "After enabling, documents are indexed into vectors (model scribe-hash-v4). If you update Scribe and the model changes, a reindex banner appears — mixing old and new vectors would give inconsistent results.",
-            "In document chat and the Local Agent you can run study and style actions: flashcards, takeaways, glossary, explain, simplify, action items, terminology, and a writing coach — plus the Deep read recipe (outline → glossary → takeaways → flashcards)."
+            "In document chat and the Local Agent you can run study and style actions: flashcards, takeaways, glossary, explain, simplify, action items, terminology, and a writing coach — plus the Deep read recipe (section summaries → tone → takeaways → flashcards)."
           ],
           "points": [
             "Built into Scribe — enable once in Settings → Local AI, no third-party account",

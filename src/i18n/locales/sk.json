@@ -2359,7 +2359,7 @@
             "Voliteľné lokálne LLM (Ollama na localhote) môže vylepšiť vybrané heuristiky — zhrnutie, writing coach, prepis, vysvetlenie, zjednodušenie — keď zapnete Enhance heuristics. Výber modelu a test spojenia sú na tej istej stránke.",
             "Storage Files API sprístupní sandbox files/ z priečinka dokumentov na loopbacku. Keď API beží, Lokálna AI vie súbory listovať, hľadať, sumarizovať a odpovedať s citáciami ciest — stále bez cloudu.",
             "Po zapnutí sa dokumenty indexujú do vektorov (model scribe-hash-v4). Ak Scribe aktualizujete a model sa zmení, zobrazí sa upozornenie na preindexovanie — staré a nové vektory by inak dávali nekonzistentné výsledky.",
-            "V chate dokumentu a Local Agent môžete spustiť študijné a štýlové akcie: kartičky, závery, slovník, vysvetlenie, zjednodušenie, akčné body, terminológiu a štýlový kouč — plus recept Hĺbkové čítanie (osnova → slovník → závery → kartičky)."
+            "V chate dokumentu a Local Agent môžete spustiť študijné a štýlové akcie: kartičky, závery, slovník, vysvetlenie, zjednodušenie, akčné body, terminológiu a štýlový kouč — plus recept Hĺbkové čítanie (súhrny sekcií → tón → závery → kartičky)."
           ],
           "points": [
             "Súčasť Scribe — zapnite raz v Nastaveniach → Lokálna AI, bez účtu tretej strany",

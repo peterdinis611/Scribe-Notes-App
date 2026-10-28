@@ -90,10 +90,9 @@ pub use agent_suggestions::{
     build_agent_goal_chips, build_agent_tool_options, AgentSuggestionAnalysis, AgentSuggestionTask,
 };
 pub use canvas_doc::{
-    empty_canvas_document, is_canvas_content, parse_canvas_document, serialize_canvas_document,
-    CanvasCard, CanvasDocument, CanvasEdge, CanvasObject, CanvasObjectKind, CanvasPoint,
-    CanvasViewport,
-    CANVAS_CONTENT_TYPE, CANVAS_VERSION,
+    build_canvas_template, empty_canvas_document, is_canvas_content, parse_canvas_document,
+    serialize_canvas_document, CanvasCard, CanvasDocument, CanvasEdge, CanvasObject,
+    CanvasObjectKind, CanvasPoint, CanvasViewport, CANVAS_CONTENT_TYPE, CANVAS_VERSION,
 };
 pub use canvas_flow::{
     canvas_edges_to_flow, cards_to_nodes, create_note_node, create_note_node_with_id,

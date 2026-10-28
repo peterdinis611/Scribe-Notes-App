@@ -512,6 +512,116 @@ pub fn serialize_canvas_document(doc: &CanvasDocument) -> String {
     serde_json::to_string(&canonical).unwrap_or_else(|_| "{}".into())
 }
 
+fn make_object(
+    kind: CanvasObjectKind,
+    x: f64,
+    y: f64,
+    z_index: f64,
+    text: &str,
+    label: &str,
+    w: Option<f64>,
+    h: Option<f64>,
+    font_size: Option<f64>,
+) -> CanvasObject {
+    let (dw, dh, fill, stroke, stroke_width, dfs, color, corner_radius) = defaults_for_kind(kind);
+    CanvasObject {
+        id: new_id(),
+        kind,
+        x,
+        y,
+        w: w.unwrap_or(dw),
+        h: h.unwrap_or(dh),
+        z_index,
+        text: text.into(),
+        label: label.into(),
+        fill: fill.into(),
+        stroke: stroke.into(),
+        stroke_width,
+        font_size: font_size.unwrap_or(dfs),
+        color: color.into(),
+        opacity: 1.0,
+        corner_radius,
+        rotation: 0.0,
+        group_id: String::new(),
+        parent_id: String::new(),
+        document_id: String::new(),
+        document_title: String::new(),
+        points: Vec::new(),
+    }
+}
+
+/// Built-in board layouts (`blank` | `brainstorm` | `roadmap`) — mirrors FE `buildCanvasTemplate`.
+pub fn build_canvas_template(id: &str) -> CanvasDocument {
+    let id = id.trim().to_ascii_lowercase();
+    if id == "blank" {
+        return empty_canvas_document();
+    }
+
+    if id == "roadmap" {
+        let mut objects = vec![
+            make_object(CanvasObjectKind::Text, 40.0, 20.0, 0.0, "Roadmap", "", None, None, Some(22.0)),
+            make_object(CanvasObjectKind::Frame, 40.0, 80.0, 1.0, "", "Now", Some(240.0), Some(280.0), None),
+            make_object(CanvasObjectKind::Frame, 320.0, 80.0, 2.0, "", "Next", Some(240.0), Some(280.0), None),
+            make_object(CanvasObjectKind::Frame, 600.0, 80.0, 3.0, "", "Later", Some(240.0), Some(280.0), None),
+            make_object(CanvasObjectKind::Note, 60.0, 130.0, 4.0, "Ship…", "", None, None, None),
+            make_object(CanvasObjectKind::Note, 340.0, 130.0, 5.0, "Explore…", "", None, None, None),
+            make_object(CanvasObjectKind::Note, 620.0, 130.0, 6.0, "Dream…", "", None, None, None),
+        ];
+        for i in 0..3 {
+            let fr_x = objects[1 + i].x;
+            let fr_y = objects[1 + i].y;
+            let fr_id = objects[1 + i].id.clone();
+            objects[4 + i].parent_id = fr_id;
+            objects[4 + i].x -= fr_x;
+            objects[4 + i].y -= fr_y;
+        }
+        let cards = objects.iter().filter_map(object_to_card).collect();
+        return CanvasDocument {
+            doc_type: CANVAS_CONTENT_TYPE.into(),
+            version: CANVAS_VERSION,
+            cards,
+            objects,
+            edges: Vec::new(),
+            viewport: None,
+        };
+    }
+
+    // brainstorm (default)
+    let mut objects = vec![
+        make_object(CanvasObjectKind::Text, 40.0, 24.0, 0.0, "Brainstorm", "", None, None, Some(22.0)),
+        make_object(CanvasObjectKind::Frame, 40.0, 80.0, 1.0, "", "Ideas", Some(420.0), Some(320.0), None),
+        make_object(CanvasObjectKind::Note, 60.0, 120.0, 2.0, "Idea 1", "", None, None, None),
+        make_object(CanvasObjectKind::Note, 280.0, 120.0, 3.0, "Idea 2", "", None, None, None),
+        make_object(CanvasObjectKind::Note, 60.0, 260.0, 4.0, "Idea 3", "", None, None, None),
+        make_object(CanvasObjectKind::Frame, 500.0, 80.0, 5.0, "", "Decide", Some(280.0), Some(320.0), None),
+        make_object(CanvasObjectKind::Note, 520.0, 140.0, 6.0, "Next step…", "", None, None, None),
+    ];
+    let ideas_x = objects[1].x;
+    let ideas_y = objects[1].y;
+    let ideas_id = objects[1].id.clone();
+    for idx in [2usize, 3, 4] {
+        objects[idx].parent_id = ideas_id.clone();
+        objects[idx].x -= ideas_x;
+        objects[idx].y -= ideas_y;
+    }
+    let decide_x = objects[5].x;
+    let decide_y = objects[5].y;
+    let decide_id = objects[5].id.clone();
+    objects[6].parent_id = decide_id;
+    objects[6].x -= decide_x;
+    objects[6].y -= decide_y;
+
+    let cards = objects.iter().filter_map(object_to_card).collect();
+    CanvasDocument {
+        doc_type: CANVAS_CONTENT_TYPE.into(),
+        version: CANVAS_VERSION,
+        cards,
+        objects,
+        edges: Vec::new(),
+        viewport: None,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

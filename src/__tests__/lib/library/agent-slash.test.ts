@@ -82,4 +82,14 @@ describe('agent-slash (TS thin layer over cached Rust catalog)', () => {
     expect(isAgentSlashMenuOpen('/meeting more')).toBe(false)
     expect(agentSlashQuery('/plan ahead')).toBe('plan')
   })
+
+  it('scopes slash suggestions to the active dock role', () => {
+    seedAgentSlashCatalogForTests(FIXTURE)
+    const meetingOnly = filterAgentSlashCommands('', 'document', 20, 'meeting')
+    expect(meetingOnly.some((c) => c.id === 'meeting')).toBe(true)
+    expect(meetingOnly.some((c) => c.id === 'wrap')).toBe(true)
+    expect(meetingOnly.some((c) => c.id === 'talk')).toBe(false)
+    const studyOnly = filterAgentSlashCommands('', 'document', 20, 'study')
+    expect(studyOnly.some((c) => c.id === 'meeting')).toBe(false)
+  })
 })

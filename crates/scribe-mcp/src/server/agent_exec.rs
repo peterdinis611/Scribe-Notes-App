@@ -380,10 +380,131 @@ impl ScribeMcp {
                 let sent = agent.send_handoff("general", to, summary, document_id, None)?;
                 Ok(("handoff".into(), Some(tools::json(&sent))))
             }
-            "files_ingest" => Err(
-                "files_ingest runs in the Scribe app (sandbox → notes). Use files_answer from MCP, or open the app agent."
-                    .into(),
-            ),
+            "files_ingest" => {
+                if !self.writable {
+                    return Err("files_ingest requires SCRIBE_MCP_WRITE=1".into());
+                }
+                let listed = store.files_list(&self.sidecar, "", true, None)?;
+                let needle = goal.trim().to_ascii_lowercase();
+                let entries = listed
+                    .get("entries")
+                    .and_then(|v| v.as_array())
+                    .cloned()
+                    .unwrap_or_default();
+                let candidates: Vec<(String, String)> = entries
+                    .iter()
+                    .filter_map(|entry| {
+                        let kind = entry.get("kind").and_then(|v| v.as_str()).unwrap_or("");
+                        if kind == "dir" {
+                            return None;
+                        }
+                        let path = entry.get("path").and_then(|v| v.as_str())?.to_string();
+                        let name = entry
+                            .get("name")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("")
+                            .to_string();
+                        let text_like = entry
+                            .get("textLike")
+                            .and_then(|v| v.as_bool())
+                            .unwrap_or(false);
+                        let looks_code = path.rsplit('.').next().is_some_and(|ext| {
+                            matches!(
+                                ext.to_ascii_lowercase().as_str(),
+                                "rs" | "py" | "ts" | "tsx" | "js" | "jsx" | "go" | "java"
+                                    | "kt" | "swift" | "c" | "h" | "cpp" | "cs" | "rb" | "php"
+                                    | "lua" | "sql" | "toml" | "yml" | "yaml" | "xml" | "css"
+                                    | "scss" | "sh" | "bash" | "json" | "md" | "txt" | "csv"
+                                    | "html" | "htm" | "log"
+                            )
+                        });
+                        if text_like || looks_code {
+                            Some((path, name))
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+                let matched: Vec<(String, String)> = if needle.is_empty() {
+                    candidates.clone()
+                } else {
+                    candidates
+                        .iter()
+                        .filter(|(path, name)| {
+                            format!("{path} {name}")
+                                .to_ascii_lowercase()
+                                .contains(&needle)
+                        })
+                        .cloned()
+                        .collect()
+                };
+                let paths: Vec<String> = if matched.is_empty() {
+                    candidates.into_iter().map(|(path, _)| path).take(5).collect()
+                } else {
+                    matched.into_iter().map(|(path, _)| path).take(5).collect()
+                };
+                if paths.is_empty() {
+                    return Ok((
+                        "files_ingest".into(),
+                        Some(
+                            "No text/code files found in the sandbox to import. Put files under `files/` and start the Local Files API."
+                                .into(),
+                        ),
+                    ));
+                }
+                let mut lines = Vec::new();
+                let mut created = Vec::new();
+                for path in &paths {
+                    match store.files_read_text(&self.sidecar, path, None) {
+                        Ok(read) => {
+                            let text = read
+                                .get("text")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("")
+                                .trim();
+                            if text.is_empty() {
+                                lines.push(format!("- Skipped `{path}` (empty)"));
+                                continue;
+                            }
+                            let title = path
+                                .rsplit(['/', '\\'])
+                                .next()
+                                .unwrap_or(path)
+                                .trim()
+                                .to_string();
+                            let body = format!("<!-- imported from files/{path} -->\n\n{text}");
+                            match store.create_note(&title, Some(&body), None) {
+                                Ok(note) => {
+                                    lines.push(format!("- [[{}]] ← `{path}`", note.title));
+                                    created.push(serde_json::json!({
+                                        "id": note.id,
+                                        "title": note.title,
+                                        "path": path,
+                                    }));
+                                }
+                                Err(error) => {
+                                    lines.push(format!("- Failed `{path}`: {error}"));
+                                }
+                            }
+                        }
+                        Err(error) => {
+                            lines.push(format!("- Failed `{path}`: {error}"));
+                        }
+                    }
+                }
+                Ok((
+                    "files_ingest".into(),
+                    Some(tools::json(&serde_json::json!({
+                        "imported": created.len(),
+                        "created": created,
+                        "answer": format!(
+                            "**Imported {} file(s) into the library**\n\n{}",
+                            created.len(),
+                            lines.join("\n")
+                        ),
+                    }))),
+                ))
+            }
             "canvas_summarize" => {
                 let id = document_id
                     .ok_or_else(|| "documentId required for canvas_summarize".to_string())?;
@@ -466,9 +587,40 @@ impl ScribeMcp {
                 let created = store.create_note(&title, Some(&body), None)?;
                 Ok(("canvas_to_note".into(), Some(tools::json(&created))))
             }
-            "canvas_template" => Err(
-                "canvas_template applies built-in board layouts in the Scribe app only".into(),
-            ),
+            "canvas_template" => {
+                let id = document_id
+                    .ok_or_else(|| "documentId required for canvas_template".to_string())?;
+                if !self.writable {
+                    return Err("canvas_template requires SCRIBE_MCP_WRITE=1".into());
+                }
+                let doc = store
+                    .get_document(id, true)?
+                    .ok_or_else(|| format!("document not found: {id}"))?;
+                let content = doc
+                    .content_json
+                    .as_deref()
+                    .ok_or_else(|| "document has no content".to_string())?;
+                if scribe_ui::parse_canvas_document(content).is_none() {
+                    return Err("document is not a canvas".into());
+                }
+                let template_id = scribe_ui::pick_canvas_template_id(goal);
+                let next = scribe_ui::build_canvas_template(template_id);
+                let content_json = scribe_ui::serialize_canvas_document(&next);
+                let updated = store.replace_document_content_json(id, &content_json)?;
+                Ok((
+                    "canvas_template".into(),
+                    Some(tools::json(&serde_json::json!({
+                        "id": updated.id,
+                        "title": updated.title,
+                        "templateId": template_id,
+                        "objectCount": next.objects.len(),
+                        "answer": format!(
+                            "Applied canvas template **{template_id}** ({} objects).",
+                            next.objects.len()
+                        ),
+                    }))),
+                ))
+            }
             other => Err(format!("unsupported agent tool: {other}")),
         })
     }
