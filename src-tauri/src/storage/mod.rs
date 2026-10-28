@@ -222,6 +222,8 @@ fn cleanup_old_paths(dir: &Path, doc: &DiskDocument, old_path: Option<&str>, pat
 }
 
 pub use scribe_core::duplicate_document_assets;
+#[cfg(test)]
+use scribe_core::remap_document_asset_paths;
 
 pub fn delete_document_file(path: &str) -> Result<(), String> {
     let file = Path::new(path);
