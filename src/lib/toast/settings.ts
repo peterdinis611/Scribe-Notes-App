@@ -51,7 +51,7 @@ function clamp(n: number, min: number, max: number): number {
 
 export function normalizeToastSettings(input: Partial<ToastSettings> | null | undefined): ToastSettings {
   const base = { ...DEFAULT_TOAST_SETTINGS, ...(input ?? {}) }
-  let durationMs = clamp(base.durationMs, DURATION_MIN, DURATION_MAX)
+  const durationMs = clamp(base.durationMs, DURATION_MIN, DURATION_MAX)
   let durationWithActionMs = clamp(base.durationWithActionMs, DURATION_MIN, DURATION_MAX)
   if (durationWithActionMs < durationMs) durationWithActionMs = durationMs
   const position: ToastPosition = (

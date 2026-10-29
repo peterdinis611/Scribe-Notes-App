@@ -313,6 +313,7 @@ ui	count_characters_ui
 ui	count_words_ui
 ui	create_custom_template_ui
 ui	current_week_range_ui
+ui	default_toast_settings
 ui	document_highlight_css_ui
 ui	document_matches_meta_filters_ui
 ui	document_matches_smart_filter
@@ -357,6 +358,7 @@ ui	move_id_before
 ui	next_editor_panel_width_on_double_click
 ui	normalize_compare_pair_ui
 ui	normalize_locale_code_ui
+ui	normalize_toast_settings
 ui	normalize_ui_skin
 ui	parse_canvas_document_ui
 ui	parse_custom_locale_pack_ui
@@ -376,6 +378,7 @@ ui	resolve_header_footer_template_ui
 ui	resolve_page_layout_ui
 ui	resolve_panel_widths_ui
 ui	resolve_theme_colors_ui
+ui	resolve_toast_duration
 ui	sanitize_file_name_ui
 ui	sanitize_snippet
 ui	serialize_canvas_document_ui
@@ -388,6 +391,8 @@ ui	tiptap_json_to_markdown_ui
 ui	title_from_html_ui
 ui	title_from_markdown_ui
 ui	to_global_shortcut_accelerator_ui
+ui	toast_position_class
+ui	toast_settings_from_json
 ui	ui_font_presets_ui
 ui	validate_snippet_input_ui
 ui_host	close_ui_surface
