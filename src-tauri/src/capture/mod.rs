@@ -1,14 +1,14 @@
 //! Local LAN capture server — phone opens a QR URL and posts notes into Inbox.
+//!
+//! HTTP protocol + HTML live in [`scribe_capture`]; this module owns Tauri lifecycle,
+//! security sessions, and Inbox DB inserts.
 
-mod html;
-mod server;
-
-use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::net::TcpListener;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
+use std::time::Instant;
 use tauri::{AppHandle, Emitter, Manager, State};
 use uuid::Uuid;
 
@@ -16,31 +16,16 @@ use crate::db::DbState;
 use crate::security::{
     log_security, RateLimiter, TokenSession, CAPTURE_IDLE_STOP, CAPTURE_TOKEN_TTL,
 };
-use std::time::Instant;
-use server::handle_connection;
-
-const DEFAULT_PORT: u16 = 17_847;
-const INBOX_FOLDER_NAME: &str = "Inbox";
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CaptureStatus {
-    pub running: bool,
-    pub port: Option<u16>,
-    pub url: Option<String>,
-    pub token: Option<String>,
-    pub token_expires_at: Option<i64>,
-    pub lan_ip: Option<String>,
-    pub allow_lan: bool,
-    pub inbox_folder_id: Option<String>,
-}
+use rusqlite::OptionalExtension;
+use scribe_capture::{
+    detect_lan_ip, handle_connection, CaptureCreated, CaptureInbox, CaptureRateLimit,
+    CaptureStatus, CaptureTokenAuth, DEFAULT_PORT, INBOX_FOLDER_NAME,
+};
 
 struct CaptureRuntime {
     session: Arc<TokenSession>,
-    /// Kept alive for the accept loop (cloned into the worker thread).
     #[allow(dead_code)]
     form_nonce: Arc<Mutex<Option<String>>>,
-    /// Cloned into the accept loop for idle auto-stop.
     #[allow(dead_code)]
     last_activity: Arc<Mutex<Instant>>,
     port: u16,
@@ -67,32 +52,6 @@ fn now_ts() -> i64 {
     chrono::Utc::now().timestamp()
 }
 
-fn detect_lan_ip() -> Option<String> {
-    #[cfg(target_os = "macos")]
-    {
-        for iface in ["en0", "en1", "en2", "bridge0"] {
-            if let Ok(output) = std::process::Command::new("ipconfig")
-                .args(["getifaddr", iface])
-                .output()
-            {
-                if output.status.success() {
-                    let ip = String::from_utf8_lossy(&output.stdout).trim().to_string();
-                    if !ip.is_empty() && ip.contains('.') {
-                        return Some(ip);
-                    }
-                }
-            }
-        }
-    }
-    #[cfg(not(target_os = "macos"))]
-    {
-        // Best-effort: first non-loopback IPv4 from hostname resolution is unreliable;
-        // try common env / leave None so UI can show localhost warning.
-        let _ = ();
-    }
-    None
-}
-
 fn ensure_inbox_folder(conn: &rusqlite::Connection) -> Result<String, String> {
     let existing: Option<String> = conn
         .query_row(
@@ -114,7 +73,6 @@ fn ensure_inbox_folder(conn: &rusqlite::Connection) -> Result<String, String> {
         rusqlite::params![id, INBOX_FOLDER_NAME, now],
     );
     if insert.is_err() {
-        // Pre-migration fallback without vault columns.
         id = Uuid::new_v4().to_string();
         conn.execute(
             "INSERT INTO folders (id, name, parent_id, created_at, updated_at) \
@@ -124,6 +82,28 @@ fn ensure_inbox_folder(conn: &rusqlite::Connection) -> Result<String, String> {
         .map_err(|e| e.to_string())?;
     }
     Ok(id)
+}
+
+struct AppCaptureInbox {
+    app: AppHandle,
+}
+
+impl CaptureInbox for AppCaptureInbox {
+    fn create_note(&self, title: &str, body: &str) -> Result<CaptureCreated, String> {
+        create_inbox_note(&self.app, title, body)
+    }
+}
+
+impl CaptureTokenAuth for TokenSession {
+    fn is_valid(&self, token: &str) -> bool {
+        TokenSession::is_valid(self, token)
+    }
+}
+
+impl CaptureRateLimit for RateLimiter {
+    fn check(&self, client_key: &str) -> bool {
+        RateLimiter::check(self, client_key)
+    }
 }
 
 pub(crate) fn create_inbox_note(
@@ -178,16 +158,6 @@ pub(crate) fn create_inbox_note(
     Ok(created)
 }
 
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CaptureCreated {
-    pub document_id: String,
-    pub title: String,
-    pub folder_id: String,
-}
-
-use rusqlite::OptionalExtension;
-
 #[tauri::command]
 pub fn capture_status(state: State<'_, CaptureServerState>) -> Result<CaptureStatus, String> {
     let guard = state.inner.lock().map_err(|e| e.to_string())?;
@@ -202,16 +172,7 @@ pub fn capture_status(state: State<'_, CaptureServerState>) -> Result<CaptureSta
             allow_lan: runtime.allow_lan,
             inbox_folder_id: None,
         },
-        None => CaptureStatus {
-            running: false,
-            port: None,
-            url: None,
-            token: None,
-            token_expires_at: None,
-            lan_ip: detect_lan_ip(),
-            allow_lan: false,
-            inbox_folder_id: None,
-        },
+        None => CaptureStatus::idle(detect_lan_ip()),
     })
 }
 
@@ -254,7 +215,6 @@ pub fn capture_start(
     } else {
         "127.0.0.1".to_string()
     };
-    // Short-lived session token in the URL hash (not query / Referer).
     let url = format!("http://{display_host}:{port}/#t={token}");
 
     let stop = Arc::new(AtomicBool::new(false));
@@ -267,6 +227,9 @@ pub fn capture_start(
 
     let join = std::thread::spawn(move || {
         listener.set_nonblocking(true).ok();
+        let inbox = AppCaptureInbox {
+            app: app_thread.clone(),
+        };
         while !stop_thread.load(Ordering::SeqCst) {
             if let Ok(last) = last_activity_thread.lock() {
                 if last.elapsed() >= CAPTURE_IDLE_STOP {
@@ -281,9 +244,9 @@ pub fn capture_start(
                     handle_connection(
                         stream,
                         Some(peer),
-                        &app_thread,
-                        &session_thread,
-                        &limiter_thread,
+                        &inbox,
+                        session_thread.as_ref(),
+                        limiter_thread.as_ref(),
                         &form_nonce_thread,
                         &last_activity_thread,
                     );
@@ -344,20 +307,10 @@ pub fn capture_stop(state: State<'_, CaptureServerState>) -> Result<CaptureStatu
     let mut guard = state.inner.lock().map_err(|e| e.to_string())?;
     if let Some(mut runtime) = guard.take() {
         runtime.stop.store(true, Ordering::SeqCst);
-        // Unblock accept by connecting to self.
         let _ = std::net::TcpStream::connect(("127.0.0.1", runtime.port));
         if let Some(join) = runtime.join.take() {
             let _ = join.join();
         }
     }
-    Ok(CaptureStatus {
-        running: false,
-        port: None,
-        url: None,
-        token: None,
-        token_expires_at: None,
-        lan_ip: detect_lan_ip(),
-        allow_lan: false,
-        inbox_folder_id: None,
-    })
+    Ok(CaptureStatus::idle(detect_lan_ip()))
 }

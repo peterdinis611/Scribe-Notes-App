@@ -151,7 +151,9 @@ dependencies = [
  "rusqlite",
  "scribe-agent",
  "scribe-audit",
+ "scribe-capture",
  "scribe-core",
+ "scribe-sync",
  "scribe-ui",
  "scribe-video",
  "serde",
@@ -4518,6 +4520,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "scribe-capture"
+version = "5.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "uuid",
+]
+
+[[package]]
 name = "scribe-core"
 version = "5.1.0"
 dependencies = [
@@ -4558,7 +4569,9 @@ dependencies = [
  "schemars 1.2.3",
  "scribe-agent",
  "scribe-audit",
+ "scribe-capture",
  "scribe-core",
+ "scribe-sync",
  "scribe-ui",
  "serde",
  "serde_json",
@@ -4566,6 +4579,18 @@ dependencies = [
  "tokio-util",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "scribe-sync"
+version = "5.1.0"
+dependencies = [
+ "dirs 6.0.0",
+ "log",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "uuid",
 ]
 
 [[package]]

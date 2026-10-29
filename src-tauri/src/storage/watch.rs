@@ -3,6 +3,7 @@
 use crate::db::DbState;
 use crate::storage;
 use notify::{Event, RecommendedWatcher, RecursiveMode, Watcher};
+use scribe_sync::should_ignore_path;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc;
@@ -38,20 +39,6 @@ impl DocumentsWatcher {
             }
         }
     }
-}
-
-pub(crate) fn should_ignore_path(path: &Path) -> bool {
-    let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
-        return true;
-    };
-    if name.starts_with('.') || name == "pdf" || name == "assets" || name == "Backups" {
-        return true;
-    }
-    // Temp write artifacts from Scribe / cloud providers.
-    if name.ends_with(".tmp") || name.ends_with(".part") || name.ends_with("~") {
-        return true;
-    }
-    false
 }
 
 fn should_ignore(path: &Path) -> bool {
@@ -105,7 +92,6 @@ pub fn spawn(app: AppHandle) -> Arc<DocumentsWatcher> {
         .spawn(move || {
             loop {
                 if !state_for_thread.enabled.load(Ordering::SeqCst) {
-                    // Sleep until restart signal toggles enabled back on.
                     let _ = restart_rx.recv_timeout(Duration::from_secs(30));
                     continue;
                 }
@@ -141,7 +127,6 @@ pub fn spawn(app: AppHandle) -> Arc<DocumentsWatcher> {
                 let mut pending = false;
 
                 loop {
-                    // Prefer restart → rebuild watcher (dir changed / toggled).
                     match restart_rx.recv_timeout(Duration::from_millis(400)) {
                         Ok(()) => break,
                         Err(mpsc::RecvTimeoutError::Timeout) => {}
@@ -175,31 +160,4 @@ pub fn spawn(app: AppHandle) -> Arc<DocumentsWatcher> {
         .ok();
 
     watcher_state
-}
-
-#[cfg(test)]
-mod tests {
-    use super::should_ignore_path;
-    use std::path::Path;
-
-    #[test]
-    fn ignores_dotfiles_and_sidecar_dirs() {
-        assert!(should_ignore_path(Path::new("/docs/.DS_Store")));
-        assert!(should_ignore_path(Path::new("/docs/pdf")));
-        assert!(should_ignore_path(Path::new("/docs/assets")));
-        assert!(should_ignore_path(Path::new("/docs/Backups")));
-    }
-
-    #[test]
-    fn ignores_temp_write_artifacts() {
-        assert!(should_ignore_path(Path::new("/docs/note.scribe.tmp")));
-        assert!(should_ignore_path(Path::new("/docs/note.scribe.part")));
-        assert!(should_ignore_path(Path::new("/docs/note~")));
-    }
-
-    #[test]
-    fn keeps_real_scribe_files() {
-        assert!(!should_ignore_path(Path::new("/docs/Meeting.scribe")));
-        assert!(!should_ignore_path(Path::new("/docs/folder/note.scribe.json")));
-    }
 }

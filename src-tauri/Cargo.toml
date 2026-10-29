@@ -41,6 +41,8 @@ scribe-agent = { path = "../crates/scribe-agent" }
 scribe-audit = { path = "../crates/scribe-audit" }
 scribe-ui = { path = "../crates/scribe-ui", features = ["dioxus"] }
 scribe-video = { path = "../crates/scribe-video" }
+scribe-sync = { path = "../crates/scribe-sync" }
+scribe-capture = { path = "../crates/scribe-capture" }
 sha2 = "0.10"
 tauri-plugin-persisted-scope = { version = "2.3.7", features = ["protocol-asset"] }
 tauri-plugin-positioner = { version = "2.4.0", features = ["tray-icon"] }

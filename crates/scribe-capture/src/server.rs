@@ -2,10 +2,9 @@ use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::sync::Mutex;
 use std::time::Instant;
-use tauri::AppHandle;
 
-use super::html::capture_page;
-use super::create_inbox_note;
+use crate::html::capture_page;
+use crate::traits::{client_key, CaptureInbox, CaptureRateLimit, CaptureTokenAuth};
 
 fn read_http_request(stream: &mut TcpStream) -> Option<(String, String, Vec<u8>)> {
     let _ = stream.set_read_timeout(Some(std::time::Duration::from_secs(8)));
@@ -96,7 +95,7 @@ fn write_response(stream: &mut TcpStream, status: &str, content_type: &str, body
 }
 
 /// Capture auth: Bearer / X-Scribe-Capture-Token only (query `?token=` is never read).
-pub(crate) fn presented_capture_token(headers: &str) -> Option<String> {
+pub fn presented_capture_token(headers: &str) -> Option<String> {
     for line in headers.lines() {
         let lower = line.to_ascii_lowercase();
         if let Some(rest) = lower.strip_prefix("authorization:") {
@@ -115,7 +114,6 @@ pub(crate) fn presented_capture_token(headers: &str) -> Option<String> {
 /// Equality check for unit tests; production validates via the token session.
 #[cfg(test)]
 pub(crate) fn token_ok(headers: &str, path: &str, expected: &str) -> bool {
-    // Explicitly ignore query tokens — they must not authorize.
     let _ = path;
     presented_capture_token(headers).as_deref() == Some(expected)
 }
@@ -142,7 +140,6 @@ fn consume_form_nonce(store: &Mutex<Option<String>>, presented: &str) -> bool {
     match guard.take() {
         Some(expected) if !presented.is_empty() && expected == presented => true,
         Some(expected) => {
-            // Put back so a wrong guess does not wipe a valid pending nonce.
             *guard = Some(expected);
             false
         }
@@ -153,9 +150,9 @@ fn consume_form_nonce(store: &Mutex<Option<String>>, presented: &str) -> bool {
 pub fn handle_connection(
     mut stream: TcpStream,
     peer: Option<std::net::SocketAddr>,
-    app: &AppHandle,
-    session: &crate::security::TokenSession,
-    limiter: &crate::security::RateLimiter,
+    inbox: &dyn CaptureInbox,
+    session: &dyn CaptureTokenAuth,
+    limiter: &dyn CaptureRateLimit,
     form_nonce: &Mutex<Option<String>>,
     last_activity: &Mutex<Instant>,
 ) {
@@ -173,7 +170,7 @@ pub fn handle_connection(
         return;
     }
 
-    let key = crate::security::client_key(peer);
+    let key = client_key(peer);
     if !limiter.check(&key) {
         write_response(
             &mut stream,
@@ -229,7 +226,6 @@ pub fn handle_connection(
             .map(|n| consume_form_nonce(form_nonce, n))
             .unwrap_or(false);
         if !nonce_ok {
-            // Issue a fresh nonce so a legitimate client can retry after reload.
             let fresh = mint_form_nonce();
             if let Ok(mut guard) = form_nonce.lock() {
                 *guard = Some(fresh.clone());
@@ -256,7 +252,6 @@ pub fn handle_connection(
         } else if let Ok(json) = serde_json::from_slice(&body_bytes) {
             json
         } else {
-            // form-urlencoded fallback
             let raw = String::from_utf8_lossy(&body_bytes);
             let mut title = String::new();
             let mut body = String::new();
@@ -300,7 +295,7 @@ pub fn handle_connection(
             return;
         }
 
-        match create_inbox_note(app, &parsed.title, &text) {
+        match inbox.create_note(&parsed.title, &text) {
             Ok(created) => {
                 if let Ok(mut last) = last_activity.lock() {
                     *last = Instant::now();

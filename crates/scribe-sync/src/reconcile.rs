@@ -1,10 +1,11 @@
 use rusqlite::{params, Connection, OptionalExtension};
-use tauri::AppHandle;
+use std::path::Path;
 
-use super::{
-    collect_scribe_files, get_documents_dir, read_scribe_file, write_document_file_if_changed,
+use crate::disk::{
+    collect_scribe_files, document_file_is_current, read_scribe_file, write_document_file_if_changed,
     DiskDocument,
 };
+use crate::hooks::ReconcileHooks;
 
 #[derive(Debug, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -16,10 +17,13 @@ pub struct ReconcileResult {
     pub conflict_count: u32,
 }
 
-pub fn reconcile_storage(app: &AppHandle, conn: &Connection) -> Result<ReconcileResult, String> {
-    let dir = get_documents_dir(app, conn)?;
+pub fn reconcile_storage(
+    conn: &Connection,
+    documents_dir: &Path,
+    hooks: &dyn ReconcileHooks,
+) -> Result<ReconcileResult, String> {
     let mut paths = Vec::new();
-    collect_scribe_files(&dir, &mut paths)?;
+    collect_scribe_files(documents_dir, &mut paths)?;
 
     let mut result = ReconcileResult {
         scanned_count: 0,
@@ -61,26 +65,24 @@ pub fn reconcile_storage(app: &AppHandle, conn: &Connection) -> Result<Reconcile
                             path_str,
                             disk.created_at,
                             disk.updated_at,
-                            crate::libraries::active_library_id(conn)
+                            hooks.active_library_id(conn)
                         ],
                     )
                     .map_err(|error| error.to_string())?;
-                    crate::db::sync_document_fts(&conn, &disk.id, &disk.title, &disk.content_json)?;
+                    hooks.sync_document_fts(conn, &disk.id, &disk.title, &disk.content_json)?;
                     result.imported_count += 1;
                 }
                 Some((_, db_title, db_content, db_updated_at)) if disk.updated_at > db_updated_at => {
                     let content_diverged =
                         db_content != disk.content_json || db_title != disk.title;
                     if content_diverged {
-                        let _ = crate::db::save_revision(
+                        let _ = hooks.save_revision_before_conflict(
                             conn,
                             &disk.id,
                             &db_title,
                             &db_content,
-                            Some("Before sync conflict"),
-                            true,
                         )?;
-                        let _ = crate::libraries::record_conflict(
+                        let _ = hooks.record_conflict(
                             conn,
                             &disk.id,
                             &disk.title,
@@ -101,7 +103,7 @@ pub fn reconcile_storage(app: &AppHandle, conn: &Connection) -> Result<Reconcile
                         ],
                     )
                     .map_err(|error| error.to_string())?;
-                    crate::db::sync_document_fts(&conn, &disk.id, &disk.title, &disk.content_json)?;
+                    hooks.sync_document_fts(conn, &disk.id, &disk.title, &disk.content_json)?;
                     result.updated_from_disk_count += 1;
                 }
                 Some((_, _, _, _)) => {
@@ -129,7 +131,7 @@ pub fn reconcile_storage(app: &AppHandle, conn: &Connection) -> Result<Reconcile
             )
             .map_err(|error| error.to_string())?;
 
-        let library_id = crate::libraries::active_library_id(conn);
+        let library_id = hooks.active_library_id(conn);
         let rows = stmt
             .query_map([library_id], |row| {
                 Ok((
@@ -147,7 +149,7 @@ pub fn reconcile_storage(app: &AppHandle, conn: &Connection) -> Result<Reconcile
             let (id, title, content_json, created_at, updated_at, file_path) =
                 row.map_err(|error| error.to_string())?;
 
-            if super::document_file_is_current(file_path.as_deref(), updated_at, &content_json)? {
+            if document_file_is_current(file_path.as_deref(), updated_at, &content_json)? {
                 continue;
             }
 
@@ -161,7 +163,7 @@ pub fn reconcile_storage(app: &AppHandle, conn: &Connection) -> Result<Reconcile
             };
 
             if let Some(path) =
-                write_document_file_if_changed(&dir, &disk_doc, file_path.as_deref())?
+                write_document_file_if_changed(documents_dir, &disk_doc, file_path.as_deref())?
             {
                 result.synced_to_disk_count += 1;
                 let path_str = path.to_string_lossy().to_string();
