@@ -4020,7 +4020,12 @@
     "updatesChecking": "Otváram…",
     "updatesOpened": "Stránka s release otvorená",
     "updatesOpenedHint": "Aktuálna verzia: {{version}}",
-    "updatesError": "Nepodarilo sa otvoriť stránku s aktualizáciami"
+    "updatesError": "Nepodarilo sa otvoriť stránku s aktualizáciami",
+    "feDebugEnable": "Zapnúť FE debug logy",
+    "feDebugDisable": "Vypnúť FE debug logy",
+    "feDebugOn": "FE verbose logy zapnuté",
+    "feDebugOff": "FE verbose logy vypnuté",
+    "feDebugHint": "IPC/save stopy v DevTools konzole · alebo scribeLog.setEnabled(true)"
   },
   "toasts": {
     "reconcileSuccess": "Synchronizácia dokončená",

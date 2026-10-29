@@ -1,4 +1,4 @@
-import { Activity, Copy, RefreshCw } from 'lucide-react'
+import { Activity, Copy, RefreshCw, Terminal } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getVersion } from '@tauri-apps/api/app'
@@ -13,6 +13,7 @@ import {
   getBackendStats,
   type BackendStats,
 } from '@/lib/db/api'
+import { isFrontendDebug, setFrontendDebug } from '@/lib/debug'
 import { toast } from '@/lib/toast'
 import { useAppDispatch } from '@/store/hooks'
 import { applyDiskPersistResult, runFolderReconcile } from '@/lib/disk-sync'
@@ -37,6 +38,7 @@ export function DiagnosticsSection() {
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
   const [checkingUpdates, setCheckingUpdates] = useState(false)
+  const [feVerbose, setFeVerbose] = useState(() => isFrontendDebug())
 
   async function refresh() {
     setLoading(true)
@@ -92,6 +94,16 @@ export function DiagnosticsSection() {
     } catch (error) {
       toast.error(t('diagnostics.copyError'), String(error))
     }
+  }
+
+  function toggleFeVerbose() {
+    const next = !feVerbose
+    setFrontendDebug(next)
+    setFeVerbose(next)
+    toast.success(
+      next ? t('diagnostics.feDebugOn') : t('diagnostics.feDebugOff'),
+      t('diagnostics.feDebugHint'),
+    )
   }
 
   async function handleCheckUpdates() {
@@ -160,6 +172,15 @@ export function DiagnosticsSection() {
           onClick={() => void handleCheckUpdates()}
         >
           {checkingUpdates ? t('diagnostics.updatesChecking') : t('diagnostics.checkUpdates')}
+        </Button>
+        <Button
+          variant={feVerbose ? 'default' : 'outline'}
+          size="sm"
+          onClick={toggleFeVerbose}
+          title={t('diagnostics.feDebugHint')}
+        >
+          <Terminal className="h-3.5 w-3.5" />
+          {feVerbose ? t('diagnostics.feDebugDisable') : t('diagnostics.feDebugEnable')}
         </Button>
       </div>
     </SettingsSection>

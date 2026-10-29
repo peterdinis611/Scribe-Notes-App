@@ -3,6 +3,9 @@ import {
   invoke as tauriInvoke,
   isTauri,
 } from '@tauri-apps/api/core'
+import { createLogger, isFrontendDebug } from '@/lib/debug'
+
+const ipcLog = createLogger('ipc')
 
 type TauriInternals = {
   invoke: typeof tauriInvoke
@@ -45,7 +48,25 @@ export async function invoke<T>(
   options?: Parameters<typeof tauriInvoke>[2],
 ): Promise<T> {
   await waitForTauri()
-  return tauriInvoke<T>(cmd, args, options)
+  const trace = isFrontendDebug()
+  const started = trace ? performance.now() : 0
+  if (trace) {
+    ipcLog.debug(`→ ${cmd}`, args && Object.keys(args).length > 0 ? args : undefined)
+  }
+  try {
+    const result = await tauriInvoke<T>(cmd, args, options)
+    if (trace) {
+      ipcLog.debug(`← ${cmd}`, `${(performance.now() - started).toFixed(1)}ms`)
+    }
+    return result
+  } catch (error) {
+    ipcLog.error(`✗ ${cmd}`, {
+      ms: trace ? Number((performance.now() - started).toFixed(1)) : undefined,
+      error: error instanceof Error ? error.message : String(error),
+      args,
+    })
+    throw error
+  }
 }
 
 export function convertFileSrc(filePath: string, protocol?: string): string {

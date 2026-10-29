@@ -4012,7 +4012,12 @@
     "updatesChecking": "Opening…",
     "updatesOpened": "Releases page opened",
     "updatesOpenedHint": "Current version: {{version}}",
-    "updatesError": "Could not open the updates page"
+    "updatesError": "Could not open the updates page",
+    "feDebugEnable": "Enable FE debug logs",
+    "feDebugDisable": "Disable FE debug logs",
+    "feDebugOn": "Frontend verbose logs on",
+    "feDebugOff": "Frontend verbose logs off",
+    "feDebugHint": "IPC/save traces in DevTools console · or scribeLog.setEnabled(true)"
   },
   "toasts": {
     "reconcileSuccess": "Sync completed",

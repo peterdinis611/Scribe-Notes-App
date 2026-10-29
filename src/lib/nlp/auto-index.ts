@@ -1,5 +1,8 @@
+import { createLogger } from '@/lib/debug'
 import { Debouncer } from '@/lib/pacer'
 import { nlpIndexDocument, nlpStatus, type NlpStatus } from '@/lib/db/nlp-api'
+
+const nlpLog = createLogger('sync')
 
 /** Debounce after save — longer for heavier embed backends. */
 export const INDEX_DELAY_HASH_MS = 2500
@@ -44,8 +47,28 @@ export function invalidateNlpAutoIndexStatus() {
 
 async function indexDocument(documentId: string) {
   const status = await getStatus()
-  if (!status.enabled || !status.sidecarOk) return
-  await nlpIndexDocument(documentId)
+  if (!status.enabled || !status.sidecarOk) {
+    nlpLog.debug('index:skip', {
+      documentId,
+      enabled: status.enabled,
+      sidecarOk: status.sidecarOk,
+    })
+    return
+  }
+  const started = performance.now()
+  try {
+    await nlpIndexDocument(documentId)
+    nlpLog.info('index:ok', {
+      documentId,
+      backend: status.embedBackend,
+      ms: Number((performance.now() - started).toFixed(1)),
+    })
+  } catch (error) {
+    nlpLog.warn('index:fail', {
+      documentId,
+      error: error instanceof Error ? error.message : String(error),
+    })
+  }
 }
 
 function getDebouncer(documentId: string, wait: number): Debouncer<() => void> {

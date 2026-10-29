@@ -58,6 +58,42 @@ fn rust_debug_level() -> log::LevelFilter {
     log::LevelFilter::Info
 }
 
+fn install_dev_logger(app: &tauri::App) -> tauri::Result<()> {
+    let level = rust_debug_level();
+    let colors = tauri_plugin_log::fern::colors::ColoredLevelConfig::default()
+        .info(tauri_plugin_log::fern::colors::Color::Green)
+        .debug(tauri_plugin_log::fern::colors::Color::Blue)
+        .trace(tauri_plugin_log::fern::colors::Color::BrightBlack);
+
+    app.handle().plugin(
+        tauri_plugin_log::Builder::default()
+            .level(level)
+            // Keep framework chatter out of the way while developing.
+            .level_for("tao", log::LevelFilter::Warn)
+            .level_for("wry", log::LevelFilter::Warn)
+            .level_for("hyper", log::LevelFilter::Warn)
+            .level_for("reqwest", log::LevelFilter::Warn)
+            .level_for("tracing", log::LevelFilter::Warn)
+            .with_colors(colors)
+            .build(),
+    )?;
+
+    let nlp_debug = std::env::var("SCRIBE_NLP_DEBUG")
+        .map(|v| {
+            let v = v.to_ascii_lowercase();
+            v == "1" || v == "true" || v == "yes" || v == "on" || v == "debug"
+        })
+        .unwrap_or(false);
+
+    log::info!(
+        "Scribe Rust logger ready · level={level} · nlp_debug={nlp_debug} · set SCRIBE_RUST_LOG / SCRIBE_DEBUG"
+    );
+    if level >= log::LevelFilter::Debug {
+        log::debug!("Verbose Rust logging on — noisy crates filtered to warn");
+    }
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -86,15 +122,7 @@ pub fn run() {
             }
 
             if cfg!(debug_assertions) {
-                let level = rust_debug_level();
-                app.handle().plugin(
-                    tauri_plugin_log::Builder::default()
-                        .level(level)
-                        .build(),
-                )?;
-                if level == log::LevelFilter::Debug || level == log::LevelFilter::Trace {
-                    log::debug!("Scribe Rust debug logging enabled (level={level})");
-                }
+                install_dev_logger(app)?;
             }
 
             #[cfg(mobile)]
