@@ -18,6 +18,8 @@ export type AgentRecipeId =
   | 'canvas_board'
   | 'files_learn'
   | 'files_to_library'
+  | 'code_pass'
+  | 'code_audit'
 
 export type AgentRecipe = {
   id: AgentRecipeId
@@ -122,6 +124,18 @@ export const AGENT_RECIPES: AgentRecipe[] = [
     id: 'canvas_board',
     labelKey: 'agent.recipes.canvasBoard',
     tools: ['canvas_summarize', 'canvas_to_note'],
+    documentPreferred: true,
+  },
+  {
+    id: 'code_pass',
+    labelKey: 'agent.recipes.codePass',
+    tools: ['code_brief', 'explain', 'outline', 'keywords'],
+    documentPreferred: true,
+  },
+  {
+    id: 'code_audit',
+    labelKey: 'agent.recipes.codeAudit',
+    tools: ['code_brief', 'pii', 'glossary'],
     documentPreferred: true,
   },
 ]

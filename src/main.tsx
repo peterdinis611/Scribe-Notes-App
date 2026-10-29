@@ -1,15 +1,16 @@
 import { createRoot } from 'react-dom/client'
-import { feDebug, isFrontendDebug } from '@/lib/debug'
+import { createLogger, installDebugGlobals, isFrontendDebug } from '@/lib/debug'
 import { hydrateKvStore } from '@/lib/storage/kv'
 import './index.css'
 
+const bootLog = createLogger('boot')
+
 async function bootstrap() {
-  if (isFrontendDebug()) {
-    feDebug('bootstrap:start', { mode: import.meta.env.MODE })
-    ;(window as Window & { __SCRIBEDebug?: boolean }).__SCRIBEDebug = true
-  }
+  installDebugGlobals()
+  bootLog.info('bootstrap:start', { mode: import.meta.env.MODE, debug: isFrontendDebug() })
 
   await hydrateKvStore()
+  bootLog.debug('kv:hydrated')
 
   // Non-critical: vault auto-lock, custom fonts, syntax theme — never block first paint.
   void import('@/lib/vault/session').then(({ installVaultAutoLock }) => {
@@ -27,9 +28,7 @@ async function bootstrap() {
       effectiveDirective: event.effectiveDirective,
       disposition: event.disposition,
     }
-    if (isFrontendDebug()) {
-      feDebug('csp:violation', detail)
-    }
+    bootLog.warn('csp:violation', detail)
     void import('@/lib/tauri').then(({ invoke, isTauriRuntime }) => {
       if (!isTauriRuntime()) return
       void invoke('audit_security_event', {
@@ -70,17 +69,22 @@ async function bootstrap() {
     </Provider>,
   )
 
-  feDebug('bootstrap:ready')
+  bootLog.info('bootstrap:ready')
 
   // After first paint: plugins + agent prefs.
   void import('@/lib/schedule-idle').then(({ scheduleIdle }) => {
     scheduleIdle(() => {
       void import('@/lib/plugins').then(async ({ bootstrapPlugins }) => {
+        const done = bootLog.time('plugins:bootstrap')
         await bootstrapPlugins()
+        done()
       })
       void import('@/lib/library/agent-backend').then(async ({ loadAgentPrefsFromBackend }) => {
         const prefs = await loadAgentPrefsFromBackend()
-        if (prefs) store.dispatch(hydrateAgentPrefs(prefs))
+        if (prefs) {
+          store.dispatch(hydrateAgentPrefs(prefs))
+          bootLog.debug('agent-prefs:hydrated')
+        }
       })
     }, 2000)
   })

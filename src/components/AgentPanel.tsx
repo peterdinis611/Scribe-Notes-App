@@ -525,8 +525,8 @@ export function AgentPanel({
   const slashSuggestions = useMemo(() => {
     void slashCatalogTick
     if (!isAgentSlashMenuOpen(input)) return [] as AgentSlashCommand[]
-    return filterAgentSlashCommands(agentSlashQuery(input), scope)
-  }, [input, scope, slashCatalogTick])
+    return filterAgentSlashCommands(agentSlashQuery(input), scope, 10, roleId)
+  }, [input, scope, slashCatalogTick, roleId])
 
   useEffect(() => {
     setSlashHighlight(0)
@@ -742,6 +742,17 @@ export function AgentPanel({
         setMoodBriefly('done')
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
+        if (
+          (message === 'agent.compareNeedsOther' || message.includes('compareNeedsOther')) &&
+          scope === 'document' &&
+          activeDocumentId
+        ) {
+          setPendingCompareGoal(trimmed || displayGoal)
+          setCompareOpen(true)
+          patchAssistant(streamingId, { text: t('agent.compareNeedsOther') })
+          setMoodBriefly('done')
+          return
+        }
         if (message === 'agent.filesApiOffline' || message.includes('FilesApiOffline')) {
           setFilesOfflineHint(true)
           patchAssistant(streamingId, { text: t('agent.filesApiOffline') })

@@ -621,6 +621,30 @@ fn slash_catalog() -> &'static [SlashDef] {
             default_goal_key: Some("agent.quickPrompts.askFiles"),
         },
         SlashDef {
+            id: "filesdigest",
+            name: "filesdigest",
+            aliases: &["fdigest"],
+            label_key: "agent.slash.filesdigest.label",
+            hint_key: "agent.slash.filesdigest.hint",
+            scopes: &[Library, Any],
+            tools: &[],
+            recipe_id: Some("files_digest"),
+            pass_args: false,
+            default_goal_key: None,
+        },
+        SlashDef {
+            id: "tolibrary",
+            name: "tolibrary",
+            aliases: &["filestolib", "importlib"],
+            label_key: "agent.slash.tolibrary.label",
+            hint_key: "agent.slash.tolibrary.hint",
+            scopes: &[Library, Any],
+            tools: &[],
+            recipe_id: Some("files_to_library"),
+            pass_args: false,
+            default_goal_key: None,
+        },
+        SlashDef {
             id: "code",
             name: "code",
             aliases: &["codebrief"],
@@ -631,6 +655,30 @@ fn slash_catalog() -> &'static [SlashDef] {
             recipe_id: None,
             pass_args: false,
             default_goal_key: Some("agent.tools.code_brief"),
+        },
+        SlashDef {
+            id: "codepass",
+            name: "codepass",
+            aliases: &["codereview"],
+            label_key: "agent.slash.codepass.label",
+            hint_key: "agent.slash.codepass.hint",
+            scopes: &[Document, Any],
+            tools: &[],
+            recipe_id: Some("code_pass"),
+            pass_args: false,
+            default_goal_key: None,
+        },
+        SlashDef {
+            id: "codeaudit",
+            name: "codeaudit",
+            aliases: &["codesec"],
+            label_key: "agent.slash.codeaudit.label",
+            hint_key: "agent.slash.codeaudit.hint",
+            scopes: &[Document, Any],
+            tools: &[],
+            recipe_id: Some("code_audit"),
+            pass_args: false,
+            default_goal_key: None,
         },
         SlashDef {
             id: "canvas",
@@ -655,6 +703,78 @@ fn slash_catalog() -> &'static [SlashDef] {
             recipe_id: Some("privacy_pass"),
             pass_args: false,
             default_goal_key: None,
+        },
+        SlashDef {
+            id: "handoff",
+            name: "handoff",
+            aliases: &["posli"],
+            label_key: "agent.slash.handoff.label",
+            hint_key: "agent.slash.handoff.hint",
+            scopes: &[Document, Library, Folder, Any],
+            tools: &["handoff"],
+            recipe_id: None,
+            pass_args: true,
+            default_goal_key: Some("agent.tools.handoff"),
+        },
+        SlashDef {
+            id: "wikihealth",
+            name: "wikihealth",
+            aliases: &["wiki_health"],
+            label_key: "agent.slash.wikihealth.label",
+            hint_key: "agent.slash.wikihealth.hint",
+            scopes: &[Library, Document, Any],
+            tools: &["wiki_health"],
+            recipe_id: None,
+            pass_args: false,
+            default_goal_key: Some("agent.tools.wiki_health"),
+        },
+        SlashDef {
+            id: "template",
+            name: "template",
+            aliases: &["sablona"],
+            label_key: "agent.slash.template.label",
+            hint_key: "agent.slash.template.hint",
+            scopes: &[Document, Any],
+            tools: &[],
+            recipe_id: Some("note_to_template"),
+            pass_args: false,
+            default_goal_key: None,
+        },
+        SlashDef {
+            id: "wikiclean",
+            name: "wikiclean",
+            aliases: &["wikicleanup"],
+            label_key: "agent.slash.wikiclean.label",
+            hint_key: "agent.slash.wikiclean.hint",
+            scopes: &[Document, Library, Any],
+            tools: &[],
+            recipe_id: Some("wiki_cleanup"),
+            pass_args: false,
+            default_goal_key: None,
+        },
+        SlashDef {
+            id: "ingest",
+            name: "ingest",
+            aliases: &["import"],
+            label_key: "agent.slash.ingest.label",
+            hint_key: "agent.slash.ingest.hint",
+            scopes: &[Library, Any],
+            tools: &[],
+            recipe_id: Some("files_learn"),
+            pass_args: false,
+            default_goal_key: None,
+        },
+        SlashDef {
+            id: "revision",
+            name: "revision",
+            aliases: &["rev"],
+            label_key: "agent.slash.revision.label",
+            hint_key: "agent.slash.revision.hint",
+            scopes: &[Document, Any],
+            tools: &["revision"],
+            recipe_id: None,
+            pass_args: false,
+            default_goal_key: Some("agent.tools.revision"),
         },
     ]
 }
@@ -845,6 +965,55 @@ mod tests {
             }
             other => panic!("unexpected {other:?}"),
         }
+        match parse_agent_slash("/ingest", "library") {
+            ParsedAgentSlash::Ok { recipe_id, .. } => {
+                assert_eq!(recipe_id.as_deref(), Some("files_learn"));
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+        match parse_agent_slash("/filesdigest", "library") {
+            ParsedAgentSlash::Ok { recipe_id, .. } => {
+                assert_eq!(recipe_id.as_deref(), Some("files_digest"));
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+        match parse_agent_slash("/tolibrary", "library") {
+            ParsedAgentSlash::Ok { recipe_id, .. } => {
+                assert_eq!(recipe_id.as_deref(), Some("files_to_library"));
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+        match parse_agent_slash("/codepass", "document") {
+            ParsedAgentSlash::Ok { recipe_id, .. } => {
+                assert_eq!(recipe_id.as_deref(), Some("code_pass"));
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+        match parse_agent_slash("/codeaudit", "document") {
+            ParsedAgentSlash::Ok { recipe_id, .. } => {
+                assert_eq!(recipe_id.as_deref(), Some("code_audit"));
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+        match parse_agent_slash("/template", "document") {
+            ParsedAgentSlash::Ok { recipe_id, .. } => {
+                assert_eq!(recipe_id.as_deref(), Some("note_to_template"));
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+        match parse_agent_slash("/posli organizer: triage inbox", "document") {
+            ParsedAgentSlash::Ok {
+                command_id,
+                force_tools,
+                args,
+                ..
+            } => {
+                assert_eq!(command_id, "handoff");
+                assert_eq!(force_tools, vec!["handoff"]);
+                assert_eq!(args, "organizer: triage inbox");
+            }
+            other => panic!("unexpected {other:?}"),
+        }
     }
 
     #[test]
@@ -864,5 +1033,72 @@ mod tests {
         let hits = filter_agent_slash_commands("mee", "document", 10);
         assert!(hits.iter().any(|c| c.id == "meeting"));
         assert!(!list_agent_slash_commands(Some("document")).is_empty());
+    }
+
+    #[test]
+    fn new_slash_entries_parse() {
+        match parse_agent_slash("/wikihealth", "library") {
+            ParsedAgentSlash::Ok { force_tools, .. } => {
+                assert_eq!(force_tools, vec!["wiki_health"]);
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+        match parse_agent_slash("/wikicleanup", "document") {
+            ParsedAgentSlash::Ok { recipe_id, .. } => {
+                assert_eq!(recipe_id.as_deref(), Some("wiki_cleanup"));
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+        match parse_agent_slash("/rev", "document") {
+            ParsedAgentSlash::Ok { force_tools, .. } => {
+                assert_eq!(force_tools, vec!["revision"]);
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+        match parse_agent_slash("/sablona", "document") {
+            ParsedAgentSlash::Ok { recipe_id, .. } => {
+                assert_eq!(recipe_id.as_deref(), Some("note_to_template"));
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+        match parse_agent_slash("/import", "library") {
+            ParsedAgentSlash::Ok { recipe_id, .. } => {
+                assert_eq!(recipe_id.as_deref(), Some("files_learn"));
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+    }
+
+    #[test]
+    fn catalog_includes_expanded_commands() {
+        let all = list_agent_slash_commands(None);
+        for id in [
+            "handoff",
+            "wikihealth",
+            "template",
+            "wikiclean",
+            "ingest",
+            "revision",
+            "filesdigest",
+            "tolibrary",
+            "codepass",
+            "codeaudit",
+        ] {
+            assert!(
+                all.iter().any(|c| c.id == id),
+                "missing slash command {id}"
+            );
+        }
+        let library = list_agent_slash_commands(Some("library"));
+        assert!(library.iter().any(|c| c.id == "ingest"));
+        assert!(library.iter().any(|c| c.id == "filesdigest"));
+        assert!(library.iter().any(|c| c.id == "tolibrary"));
+        // `revision` includes `Any` so it still appears in library scope (documentPreferred at run time).
+        assert!(library.iter().any(|c| c.id == "revision"));
+        let document = list_agent_slash_commands(Some("document"));
+        assert!(document.iter().any(|c| c.id == "revision"));
+        assert!(document.iter().any(|c| c.id == "template"));
+        assert!(document.iter().any(|c| c.id == "codepass"));
+        assert!(document.iter().any(|c| c.id == "codeaudit"));
     }
 }

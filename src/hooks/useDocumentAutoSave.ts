@@ -23,6 +23,9 @@ import i18n from '@/i18n'
 import { editorRefs } from '@/store/editorRefs'
 import type { Document } from '@/lib/db/api'
 import { isOpenLibraryDocumentId } from '@/lib/trash-document'
+import { createLogger } from '@/lib/debug'
+
+const saveLog = createLogger('save')
 
 const AUTO_SAVE_DELAY_MS = 600
 
@@ -79,8 +82,10 @@ export function useDocumentAutoSave({
         ? activeDocumentRef.current?.title ?? extractTitleFromContent(contentJson)
         : extractTitleFromContent(contentJson)
 
+      const started = performance.now()
       try {
         dispatch(setSaveStatus('saving'))
+        saveLog.debug('persist:start', { docId, bytes: contentJson.length })
         const updated = cacheDocument(
           await updateDocument({
             id: docId,
@@ -121,8 +126,18 @@ export function useDocumentAutoSave({
         const { scheduleAgentAutoBrief } = await import('@/lib/library/agent-autorun')
         scheduleAgentAutoBrief(docId)
 
+        saveLog.info('persist:ok', {
+          docId,
+          title: updated.title,
+          ms: Number((performance.now() - started).toFixed(1)),
+        })
         return true
-      } catch {
+      } catch (error) {
+        saveLog.error('persist:fail', {
+          docId,
+          ms: Number((performance.now() - started).toFixed(1)),
+          error: error instanceof Error ? error.message : String(error),
+        })
         if (latestDocIdRef.current === docId) {
           dispatch(setSaveStatus('error'))
           toast.error(i18n.t('toasts.saveError'))

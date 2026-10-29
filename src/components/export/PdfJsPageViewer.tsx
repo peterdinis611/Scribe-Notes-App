@@ -22,9 +22,11 @@ export function PdfJsPageViewer({ url, title, className }: PdfJsPageViewerProps)
 
   const [pageCount, setPageCount] = useState(0)
   const [page, setPage] = useState(1)
+  const [pageTurn, setPageTurn] = useState<'idle' | 'next' | 'prev'>('idle')
   const [loadingDoc, setLoadingDoc] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [stageWidth, setStageWidth] = useState(0)
+  const pageRef = useRef(1)
 
   useEffect(() => {
     ensurePdfjsWorker()
@@ -77,10 +79,24 @@ export function PdfJsPageViewer({ url, title, className }: PdfJsPageViewerProps)
   const goToPage = useCallback(
     (next: number) => {
       if (pageCount < 1) return
-      setPage(Math.min(pageCount, Math.max(1, next)))
+      const clamped = Math.min(pageCount, Math.max(1, next))
+      if (clamped === pageRef.current) return
+      setPageTurn(clamped > pageRef.current ? 'next' : 'prev')
+      pageRef.current = clamped
+      setPage(clamped)
     },
     [pageCount],
   )
+
+  useEffect(() => {
+    pageRef.current = page
+  }, [page])
+
+  useEffect(() => {
+    if (pageTurn === 'idle') return
+    const timer = window.setTimeout(() => setPageTurn('idle'), 280)
+    return () => window.clearTimeout(timer)
+  }, [pageTurn, page])
 
   useEffect(() => {
     const pdf = pdfRef.current
@@ -193,7 +209,12 @@ export function PdfJsPageViewer({ url, title, className }: PdfJsPageViewerProps)
 
           <canvas
             ref={canvasRef}
-            className="pdf-js-viewer-canvas"
+            className={cn(
+              'pdf-js-viewer-canvas',
+              pageTurn !== 'idle' && 'pdf-js-viewer-canvas--turn',
+              pageTurn === 'next' && 'is-next',
+              pageTurn === 'prev' && 'is-prev',
+            )}
             aria-label={t('pdfPreview.pageAria', { page, total: pageCount || 1, title })}
           />
 
@@ -230,7 +251,13 @@ export function PdfJsPageViewer({ url, title, className }: PdfJsPageViewerProps)
               <ChevronLeft className="h-4 w-4" />
             </Button>
           </IconTooltip>
-          <span className="pdf-js-viewer-page-label">
+          <span
+            key={page}
+            className={cn(
+              'pdf-js-viewer-page-label',
+              pageTurn !== 'idle' && 'pdf-js-viewer-page-label--tick',
+            )}
+          >
             {t('pagination.summary', { current: page, total: pageCount })}
           </span>
           <IconTooltip label={t('pagination.nextPage')}>

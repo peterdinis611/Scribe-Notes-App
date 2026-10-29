@@ -6,7 +6,7 @@ import { closeScribeUiSurface } from '@/lib/scribe-ui-host'
 import { isTauriRuntime } from '@/lib/tauri'
 import { persistWhatsNewVersion } from '@/store/persistence'
 
-/** Edition 5.0 release notes — keep in sync with `scribe_ui::WHATS_NEW_50_*`. */
+/** Edition 5.1 release notes — keep in sync with `scribe_ui::WHATS_NEW_50_*`. */
 export const WHATS_NEW_50_HIGHLIGHTS = [
   'nativeCore',
   'wikiNative',
@@ -19,11 +19,6 @@ export const WHATS_NEW_50_HIGHLIGHTS = [
 export const WHATS_NEW_50_TAG_KEYS = ['native', 'library', 'editor'] as const
 
 export type WhatsNew50HighlightId = (typeof WHATS_NEW_50_HIGHLIGHTS)[number]
-
-/** @deprecated Alias for older catalogs — prefer WHATS_NEW_50_*. */
-export const WHATS_NEW_40_HIGHLIGHTS = WHATS_NEW_50_HIGHLIGHTS
-/** @deprecated Alias for older catalogs — prefer WHATS_NEW_50_*. */
-export const WHATS_NEW_40_TAG_KEYS = WHATS_NEW_50_TAG_KEYS
 
 type WhatsNewDialogProps = {
   open: boolean
@@ -57,7 +52,7 @@ export function WhatsNewDialog({ open, onClose }: WhatsNewDialogProps) {
         aria-label={t('whatsNew.gotIt')}
         onClick={handleClose}
       />
-      <div className="setup-folio setup-folio--news setup-folio--edition-50">
+      <div className="setup-folio setup-folio--news setup-folio--edition-51">
         <aside className="setup-folio-margin" aria-hidden="true">
           <p className="setup-folio-brand">
             {t('welcome.brandWithEdition', { version: APP_SHORT_VERSION })}
@@ -131,6 +126,3 @@ export function WhatsNew50Highlights() {
     </ol>
   )
 }
-
-/** @deprecated Prefer WhatsNew50Highlights. */
-export const WhatsNew40Highlights = WhatsNew50Highlights

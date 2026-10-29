@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
-import { Focus, Loader2, Maximize2, Tags, Trash2 } from 'lucide-react'
+import { Focus, Loader2, Maximize2, Tags } from 'lucide-react'
 import {
   listLinkGraph,
   type LinkGraphEdge,
@@ -10,7 +10,7 @@ import {
 } from '@/lib/db/api'
 import { nlpSimilarDocuments, nlpStatus, nlpSuggestTags, type NlpEntity } from '@/lib/db/nlp-api'
 import { degreeById, type ForceNodeKind } from '@/lib/link-graph/force-layout'
-import { isUntitledOrphanTitle, partitionOrphans } from '@/lib/link-graph/orphan-cleanup'
+import { partitionOrphans } from '@/lib/link-graph/orphan-cleanup'
 import { ROUTES } from '@/lib/routes'
 import { toast } from '@/lib/toast'
 import { trashDocuments } from '@/lib/trash-document'
@@ -20,6 +20,7 @@ import { setActiveDocumentId } from '@/store/documentsSlice'
 import { Button } from '@/components/ui/button'
 import { LinkGraphEmptyState } from '@/components/LinkGraphEmptyState'
 import { LinkGraphFlow } from '@/components/link-graph/LinkGraphFlow'
+import { OrphanCleanupPanel } from '@/components/link-graph/OrphanCleanupPanel'
 
 const NLP_ENTITY_DOC_CAP = 24
 
@@ -831,84 +832,41 @@ export function LibraryLinkGraphView({
       )}
 
       {showOrphans && (orphanSimilar.length > 0 || untitledOrphans.length > 0) ? (
-        <div className="library-orphan-cleanup mb-2">
-          {untitledOrphans.length > 0 ? (
-            <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
-              <span className="text-[10.5px] font-semibold uppercase tracking-wide text-[var(--color-muted-foreground)]">
-                {t('linkGraph.orphanCleanupTitle')}
-              </span>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-6 gap-1 text-[10.5px]"
-                onClick={() => void archiveOrphans(untitledOrphans.map((item) => item.id))}
-              >
-                <Trash2 className="h-3 w-3" />
-                {t('linkGraph.orphanArchiveUntitled', { count: untitledOrphans.length })}
-              </Button>
-            </div>
-          ) : null}
-          {orphanSimilar.length > 0 ? (
-            <ul className="library-orphan-rail">
-              {orphanSimilar.map((row) => {
-                const top = row.similar[0]
-                return (
-                  <li key={row.id}>
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <button type="button" onClick={() => openDocument(row.id)}>
-                        {row.title || t('libraryChat.untitled')}
-                        {isUntitledOrphanTitle(row.title) ? (
-                          <span className="ml-1 text-[10px] text-[var(--color-muted-foreground)]">
-                            · {t('linkGraph.orphanUntitledBadge')}
-                          </span>
-                        ) : null}
-                      </button>
-                      {top ? (
-                        <button
-                          type="button"
-                          className="text-[10.5px] text-[var(--color-accent)]"
-                          onClick={() => openDocument(row.id)}
-                          title={t('linkGraph.orphanSuggestHint', {
-                            titles: row.similar
-                              .slice(0, 2)
-                              .map((hit) => hit.title)
-                              .join(' · '),
-                          })}
-                        >
-                          {t('linkGraph.orphanSuggestLink')} → {top.title}
-                        </button>
-                      ) : null}
-                      <button
-                        type="button"
-                        className="text-[10.5px] text-[var(--color-muted-foreground)]"
-                        onClick={() => void archiveOrphans([row.id])}
-                      >
-                        {t('linkGraph.orphanArchiveOne')}
-                      </button>
-                    </div>
-                    <span>
-                      {row.similar
-                        .slice(0, 2)
-                        .map((hit) => hit.title)
-                        .join(' · ')}
-                    </span>
-                  </li>
-                )
-              })}
-            </ul>
-          ) : null}
-        </div>
+        <OrphanCleanupPanel
+          className="mb-3"
+          untitledOrphans={untitledOrphans}
+          rows={orphanSimilar}
+          onOpen={openDocument}
+          onArchive={(ids) => void archiveOrphans(ids)}
+          filterHint={
+            seedNodes.length === 0 && orphans.length > 0
+              ? t('linkGraph.emptyOrphansFiltered')
+              : null
+          }
+          onClearFilters={
+            seedNodes.length === 0 && orphans.length > 0
+              ? () => {
+                  setFavoritesOnly(false)
+                  setAroundActive(false)
+                  setLocalCenterId(null)
+                  setTagFilter(null)
+                }
+              : undefined
+          }
+        />
       ) : null}
 
       {seedNodes.length === 0 ? (
-        <p className="rounded-xl border border-[var(--color-border)] bg-[var(--color-canvas)] px-3 py-10 text-center text-[12px] text-[var(--color-muted-foreground)]">
-          {aroundActive
-            ? t('linkGraph.emptyAround')
-            : showOrphans
-              ? t('linkGraph.emptyOrphans')
-              : t('linkGraph.empty')}
-        </p>
+        // When cleanup already explains a filter clash, skip the contradictory empty banner.
+        showOrphans && orphans.length > 0 ? null : (
+          <p className="rounded-xl border border-[var(--color-border)] bg-[var(--color-canvas)] px-3 py-10 text-center text-[12px] text-[var(--color-muted-foreground)]">
+            {aroundActive
+              ? t('linkGraph.emptyAround')
+              : showOrphans
+                ? t('linkGraph.emptyOrphans')
+                : t('linkGraph.empty')}
+          </p>
+        )
       ) : (
         <div
           className={cn(

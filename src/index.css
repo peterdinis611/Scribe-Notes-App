@@ -12737,7 +12737,17 @@ html.dark .link-graph-toolbar--overlay {
   box-shadow:
     0 0 0 2px color-mix(in srgb, var(--link-graph-node-active) 55%, transparent),
     0 0 18px color-mix(in srgb, var(--link-graph-node-active) 45%, transparent);
-  transform: scale(1.06);
+  transform: scale(1.12);
+}
+
+.link-graph-rf-node.is-hovered .link-graph-rf-core {
+  animation: link-graph-node-pulse 720ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.link-graph-rf-edge.is-active,
+.link-graph-rf-edge.is-hot {
+  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--link-graph-edge-hot) 55%, transparent));
+  animation: link-graph-edge-draw 720ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .link-graph-rf-node.is-tag .link-graph-rf-core {
@@ -12747,6 +12757,12 @@ html.dark .link-graph-toolbar--overlay {
 .link-graph-rf-node.is-entity .link-graph-rf-core {
   border-radius: 3px;
   transform: rotate(45deg) scale(0.86);
+}
+
+.link-graph-rf-node.is-entity.is-active .link-graph-rf-core,
+.link-graph-rf-node.is-entity.is-hovered .link-graph-rf-core {
+  transform: rotate(45deg) scale(0.96);
+  animation: none;
 }
 
 .link-graph-rf-node.is-orphan .link-graph-rf-core {
@@ -15977,7 +15993,8 @@ html:not([data-ui-skin]) .folder-tree-row--doc.is-selected {
 .setup-folio--edition-38,
 .setup-folio--edition-39,
 .setup-folio--edition-40,
-.setup-folio--edition-50 {
+.setup-folio--edition-50,
+.setup-folio--edition-51 {
   min-height: 560px;
 }
 
@@ -15987,7 +16004,8 @@ html:not([data-ui-skin]) .folder-tree-row--doc.is-selected {
 .welcome-desk--edition-38 .welcome-edition-note,
 .welcome-desk--edition-39 .welcome-edition-note,
 .welcome-desk--edition-40 .welcome-edition-note,
-.welcome-desk--edition-50 .welcome-edition-note {
+.welcome-desk--edition-50 .welcome-edition-note,
+.welcome-desk--edition-51 .welcome-edition-note {
   margin: 10px 0 0;
   max-width: 42ch;
   padding: 8px 12px;
@@ -16672,7 +16690,6 @@ html:not([data-ui-skin]) .folder-tree-row--doc.is-selected {
 .selection-ai__primary,
 .library-duplicates__titles button,
 .library-duplicates__actions button,
-.library-orphan-rail button,
 .wiki-ghost-hint {
   border: none;
   background: transparent;
@@ -16692,7 +16709,6 @@ html:not([data-ui-skin]) .folder-tree-row--doc.is-selected {
 
 .selection-ai__mode:hover,
 .library-duplicates__titles button:hover,
-.library-orphan-rail button:hover,
 .wiki-ghost-hint:hover {
   background: color-mix(in srgb, var(--color-accent) 10%, transparent);
 }
@@ -16897,27 +16913,6 @@ html:not([data-ui-skin]) .folder-tree-row--doc.is-selected {
   font-weight: 500;
   letter-spacing: 0.01em;
   opacity: 0.78;
-}
-
-.library-orphan-rail {
-  margin: 0 0 10px;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.library-orphan-rail li {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-size: 12px;
-}
-
-.library-orphan-rail span {
-  color: var(--color-muted-foreground);
-  font-size: 10.5px;
 }
 
 /* ── Error folio (runtime crash screen) ───────────────────────────────────── */
@@ -20673,3 +20668,342 @@ html {
   }
 }
 
+
+/* —— UI motion pack (library / slash / save / theme / toast / pdf / blocks) —— */
+
+@keyframes library-doc-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes suggestion-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slash-suggestion-item-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes save-status-dirty-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.72;
+  }
+}
+
+@keyframes block-insert-flash {
+  0% {
+    outline-color: color-mix(in srgb, var(--color-accent) 70%, transparent);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-accent) 28%, transparent);
+  }
+  100% {
+    outline-color: transparent;
+    box-shadow: 0 0 0 6px transparent;
+  }
+}
+
+@keyframes pdf-page-turn {
+  from {
+    opacity: 0.35;
+    transform: translateY(6px) scale(0.992);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes pdf-page-label-tick {
+  from {
+    opacity: 0.4;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes toast-item-in {
+  from {
+    opacity: 0;
+    transform: translate3d(12px, 10px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes toast-item-out {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(14px, 8px, 0);
+  }
+}
+
+@keyframes link-graph-node-pulse {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.12);
+  }
+}
+
+@keyframes link-graph-edge-draw {
+  from {
+    opacity: 0.35;
+  }
+  45% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes empty-state-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.library-doc-list > li {
+  animation: library-doc-rise 380ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.library-doc-list > li:nth-child(1) {
+  animation-delay: 0ms;
+}
+.library-doc-list > li:nth-child(2) {
+  animation-delay: 28ms;
+}
+.library-doc-list > li:nth-child(3) {
+  animation-delay: 56ms;
+}
+.library-doc-list > li:nth-child(4) {
+  animation-delay: 84ms;
+}
+.library-doc-list > li:nth-child(5) {
+  animation-delay: 112ms;
+}
+.library-doc-list > li:nth-child(6) {
+  animation-delay: 140ms;
+}
+.library-doc-list > li:nth-child(7) {
+  animation-delay: 168ms;
+}
+.library-doc-list > li:nth-child(8) {
+  animation-delay: 196ms;
+}
+.library-doc-list > li:nth-child(9) {
+  animation-delay: 224ms;
+}
+.library-doc-list > li:nth-child(10) {
+  animation-delay: 252ms;
+}
+.library-doc-list > li:nth-child(11) {
+  animation-delay: 280ms;
+}
+.library-doc-list > li:nth-child(12) {
+  animation-delay: 308ms;
+}
+
+.folder-tree-row--doc {
+  animation: library-doc-rise 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(min(var(--folder-depth, 0), 6) * 24ms);
+}
+
+.library-empty-state {
+  animation: empty-state-rise 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.suggestion-menu-in {
+  animation: suggestion-menu-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.slash-suggestion-item-in {
+  animation: slash-suggestion-item-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.save-status-pill--dirty {
+  animation: save-status-dirty-pulse 1.6s ease-in-out 3;
+}
+
+.save-status-pill--saving {
+  animation: save-status-dirty-pulse 1.1s ease-in-out infinite;
+}
+
+.document-tab-dirty {
+  animation: save-status-dirty-pulse 1.6s ease-in-out 3;
+}
+
+html.theme-transition,
+html.theme-transition body,
+html.theme-transition .app-shell,
+html.theme-transition .app-sidebar,
+html.theme-transition .editor-toolbar,
+html.theme-transition .editor-status-bar {
+  transition:
+    background-color 180ms ease,
+    color 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease !important;
+}
+
+.library-desk-section-in {
+  animation: library-doc-rise 400ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.library-desk-item-in {
+  animation: library-doc-rise 340ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.tiptap
+  > *:is(
+    p,
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6,
+    ul,
+    ol,
+    blockquote,
+    pre,
+    table,
+    hr,
+    .details-block,
+    .table-of-contents-block,
+    .image-block,
+    .lottie-block,
+    .model-3d-block,
+    .paint-block,
+    li
+  ).is-block-insert-flash {
+  outline: 2px solid color-mix(in srgb, var(--color-accent) 55%, transparent);
+  outline-offset: 3px;
+  border-radius: 4px;
+  animation: block-insert-flash 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.pdf-js-viewer-canvas--turn {
+  animation: pdf-page-turn 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.pdf-js-viewer-canvas--turn.is-prev {
+  animation-name: pdf-page-turn;
+}
+
+.pdf-js-viewer-page-label--tick {
+  display: inline-block;
+  animation: pdf-page-label-tick 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.toast-item-in {
+  animation: toast-item-in 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.toast-item-out {
+  animation: toast-item-out 200ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.link-graph-canvas {
+  animation: empty-state-rise 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .library-doc-list > li,
+  .folder-tree-row--doc,
+  .library-empty-state,
+  .suggestion-menu-in,
+  .slash-suggestion-item-in,
+  .save-status-pill--dirty,
+  .save-status-pill--saving,
+  .document-tab-dirty,
+  .library-desk-section-in,
+  .library-desk-item-in,
+  .tiptap > *.is-block-insert-flash,
+  .pdf-js-viewer-canvas--turn,
+  .pdf-js-viewer-page-label--tick,
+  .toast-item-in,
+  .toast-item-out,
+  .link-graph-canvas,
+  .link-graph-rf-node.is-hovered .link-graph-rf-core,
+  .link-graph-rf-edge.is-active,
+  .link-graph-rf-edge.is-hot {
+    animation: none !important;
+  }
+
+  html.theme-transition,
+  html.theme-transition body,
+  html.theme-transition .app-shell,
+  html.theme-transition .app-sidebar,
+  html.theme-transition .editor-toolbar,
+  html.theme-transition .editor-status-bar {
+    transition: none !important;
+  }
+}
+
+/* —— Toast host positions (scribe-toast settings) —— */
+.toast-host--bottom-right {
+  bottom: 1rem;
+  right: 1rem;
+}
+.toast-host--bottom-left {
+  bottom: 1rem;
+  left: 1rem;
+}
+.toast-host--top-right {
+  top: 1rem;
+  right: 1rem;
+}
+.toast-host--top-left {
+  top: 1rem;
+  left: 1rem;
+}
+.toast-host--dense .toast-item {
+  padding: 0.55rem 0.7rem;
+  gap: 0.45rem;
+}
+.toast-host--dense .toast-item p {
+  font-size: 12px;
+}
+.toast-host--reduced-motion .toast-item-in,
+.toast-host--reduced-motion .toast-item-out {
+  animation: none !important;
+}

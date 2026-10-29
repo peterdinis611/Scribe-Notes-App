@@ -22,6 +22,7 @@ import { insertBulletList, insertOrderedList, insertTaskList } from '@/lib/edito
 import { createCommentForSelection } from '@/lib/editor/comments'
 import { createCustomBlockFromEditor, insertBlockSnippet } from '@/lib/editor/block-snippets'
 import { validateBlockDefinition } from '@/lib/editor/block-snippet-validation'
+import { flashInsertedBlock } from '@/lib/editor/block-insert-flash'
 import { promptInput } from '@/lib/input-dialog'
 import i18n from '@/i18n'
 
@@ -404,6 +405,7 @@ export function insertBlock(
   }
 
   void def.insert(editor, ctx)
+  flashInsertedBlock(editor)
   return true
 }
 

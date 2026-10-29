@@ -1120,7 +1120,37 @@
       "advancedDescription": "Celkové priblíženie rozhrania. Zoom print layoutu ostáva oddelený.",
       "uiZoom": "Veľkosť priblíženia",
       "uiZoomHint": "Škála celého UI od 85 % do 125 %.",
-      "uiZoomReset": "Obnoviť zoom na 100 %"
+      "uiZoomReset": "Obnoviť zoom na 100 %",
+      "toastsTitle": "Notifikácie",
+      "toastsDescription": "Pozícia toastov, časovanie, veľkosť zásobníka a hustota. Logika je zdieľaná so Scribe toast engine.",
+      "toastsEnabled": "Zobrazovať toasty",
+      "toastsEnabledHint": "Hlavný vypínač toast notifikácií v aplikácii.",
+      "toastsPosition": "Roh",
+      "toastsPositionHint": "Kde sa na obrazovke zobrazí zásobník toastov.",
+      "toastsPosBottomRight": "Vpravo dole",
+      "toastsPosBottomLeft": "Vľavo dole",
+      "toastsPosTopRight": "Vpravo hore",
+      "toastsPosTopLeft": "Vľavo hore",
+      "toastsDuration": "Automatické zatvorenie",
+      "toastsDurationHint": "Ako dlho ostanú bežné toasty viditeľné (s akciou dlhšie).",
+      "toastsMax": "Maximum naraz",
+      "toastsMaxHint": "Koľko toastov môže byť v zásobníku naraz.",
+      "toastsStack": "Keď je plný",
+      "toastsStackHint": "Čo sa stane, keď príde nový toast ponad limit.",
+      "toastsStackOldest": "Zahodiť najstarší",
+      "toastsStackNewest": "Ignorovať nový",
+      "toastsStackReplace": "Nahradiť rovnaký názov",
+      "toastsDense": "Kompaktné toasty",
+      "toastsDenseHint": "Menší padding a o niečo menší text.",
+      "toastsReducedMotion": "Rešpektovať reduced motion",
+      "toastsReducedMotionHint": "Vypnúť vstupnú/výstupnú animáciu, keď to systém vyžaduje.",
+      "toastsPreview": "Náhľad",
+      "toastsPreviewHint": "Vystreliť ukážkový toast s aktuálnymi nastaveniami.",
+      "toastsPreviewSuccess": "Nastavenia vyzerajú dobre",
+      "toastsPreviewInfo": "Náhľad toastu",
+      "toastsPreviewSuccessBtn": "Úspech",
+      "toastsPreviewInfoBtn": "Info",
+      "toastsResetDone": "Obnovené predvolené toasty"
     },
     "language": {
       "title": "Jazyk",
@@ -2359,7 +2389,7 @@
             "Voliteľné lokálne LLM (Ollama na localhote) môže vylepšiť vybrané heuristiky — zhrnutie, writing coach, prepis, vysvetlenie, zjednodušenie — keď zapnete Enhance heuristics. Výber modelu a test spojenia sú na tej istej stránke.",
             "Storage Files API sprístupní sandbox files/ z priečinka dokumentov na loopbacku. Keď API beží, Lokálna AI vie súbory listovať, hľadať, sumarizovať a odpovedať s citáciami ciest — stále bez cloudu.",
             "Po zapnutí sa dokumenty indexujú do vektorov (model scribe-hash-v4). Ak Scribe aktualizujete a model sa zmení, zobrazí sa upozornenie na preindexovanie — staré a nové vektory by inak dávali nekonzistentné výsledky.",
-            "V chate dokumentu a Local Agent môžete spustiť študijné a štýlové akcie: kartičky, závery, slovník, vysvetlenie, zjednodušenie, akčné body, terminológiu a štýlový kouč — plus recept Hĺbkové čítanie (osnova → slovník → závery → kartičky)."
+            "V chate dokumentu a Local Agent môžete spustiť študijné a štýlové akcie: kartičky, závery, slovník, vysvetlenie, zjednodušenie, akčné body, terminológiu a štýlový kouč — plus recept Hĺbkové čítanie (súhrny sekcií → tón → závery → kartičky)."
           ],
           "points": [
             "Súčasť Scribe — zapnite raz v Nastaveniach → Lokálna AI, bez účtu tretej strany",
@@ -3180,9 +3210,19 @@
       "digest": { "label": "Denný digest", "hint": "Brief knižnice" },
       "report": { "label": "Týždenný review", "hint": "Report + terminológia + termíny" },
       "files": { "label": "Opýtať sa files/", "hint": "Dotaz na sandbox files/", "defaultGoal": "Čo je v sandboxe files/?" },
+      "filesdigest": { "label": "Files digest", "hint": "Zhrnúť sandbox files/" },
+      "tolibrary": { "label": "Files → knižnica", "hint": "Importovať súbory do poznámok" },
       "code": { "label": "Code brief", "hint": "Review kódu v poznámke" },
+      "codepass": { "label": "Code pass", "hint": "Brief + vysvetlenie + osnova + kľúčové slová" },
+      "codeaudit": { "label": "Code audit", "hint": "Brief + sken tajomstiev + glossár" },
       "canvas": { "label": "Canvas board", "hint": "Canvas → poznámka" },
-      "privacy": { "label": "Privacy pass", "hint": "PII + upratanie" }
+      "privacy": { "label": "Privacy pass", "hint": "PII + upratanie" },
+      "handoff": { "label": "Handoff", "hint": "Poslať prácu inej roli agenta" },
+      "wikihealth": { "label": "Wiki health", "hint": "Report orphan / stub / hub" },
+      "template": { "label": "Poznámka → šablóna", "hint": "Hinty + osnova + uložiť šablónu" },
+      "wikiclean": { "label": "Wiki upratanie", "hint": "Health + odkazy + organizácia" },
+      "ingest": { "label": "Učiť sa z files/", "hint": "Opýtať sandbox a importovať poznámky" },
+      "revision": { "label": "Revision AI", "hint": "Prehľad nedávnych zmien poznámky" }
     },
     "send": "Spustiť",
     "thinking": "Agent spúšťa lokálne nástroje…",
@@ -3339,7 +3379,9 @@
       "privacyPass": "Privacy pass",
       "polish": "Vylepšiť poznámku",
       "wikiCleanup": "Wiki upratanie",
-      "canvasBoard": "Canvas → poznámka"
+      "canvasBoard": "Canvas → poznámka",
+      "codePass": "Code pass",
+      "codeAudit": "Code audit"
     },
     "quickPrompts": {
       "explain": "Vysvetli túto poznámku",
@@ -3825,6 +3867,8 @@
     "emptyHintLinked": "Každý dokument už je súčasťou mapy. Ďalšími odkazmi hviezdokopu zahustíte.",
     "emptyTipWiki": "Napíšte [[Názov]] v poznámke a mapa narastie.",
     "emptyOrphans": "Žiadne osirolené dokumenty — všetky sú prepojené.",
+    "emptyOrphansFiltered": "Osirolené sú skryté aktuálnymi filtrami mapy.",
+    "clearMapFilters": "Zrušiť filtre",
     "emptyAround": "Aktívny dokument nemá susedov. Vypnite Okolie, alebo zapnite Osirotelé.",
     "summary": "{{nodes}} dokumentov · {{edges}} odkazov",
     "showOrphans": "Osirolené",
@@ -3976,7 +4020,12 @@
     "updatesChecking": "Otváram…",
     "updatesOpened": "Stránka s release otvorená",
     "updatesOpenedHint": "Aktuálna verzia: {{version}}",
-    "updatesError": "Nepodarilo sa otvoriť stránku s aktualizáciami"
+    "updatesError": "Nepodarilo sa otvoriť stránku s aktualizáciami",
+    "feDebugEnable": "Zapnúť FE debug logy",
+    "feDebugDisable": "Vypnúť FE debug logy",
+    "feDebugOn": "FE verbose logy zapnuté",
+    "feDebugOff": "FE verbose logy vypnuté",
+    "feDebugHint": "IPC/save stopy v DevTools konzole · alebo scribeLog.setEnabled(true)"
   },
   "toasts": {
     "reconcileSuccess": "Synchronizácia dokončená",

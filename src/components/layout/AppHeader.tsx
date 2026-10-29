@@ -75,7 +75,7 @@ function SaveStatus() {
 
   if (status === 'saving') {
     return (
-      <Badge className="status-pill h-6 gap-1 bg-[var(--color-hover)] px-2 text-[11px] font-medium text-[var(--color-muted-foreground)]">
+      <Badge className="status-pill save-status-pill save-status-pill--saving h-6 gap-1 bg-[var(--color-hover)] px-2 text-[11px] font-medium text-[var(--color-muted-foreground)]">
         <Loader2 className="h-3 w-3 animate-spin" />
         {t('common.saving')}
       </Badge>
@@ -84,7 +84,7 @@ function SaveStatus() {
 
   if (status === 'dirty') {
     return (
-      <Badge className="status-pill h-6 gap-1 border-transparent bg-[color-mix(in_srgb,#ff9500_14%,transparent)] px-2 text-[11px] font-medium text-[#c93400] dark:text-[#ff9f0a]">
+      <Badge className="status-pill save-status-pill save-status-pill--dirty h-6 gap-1 border-transparent bg-[color-mix(in_srgb,#ff9500_14%,transparent)] px-2 text-[11px] font-medium text-[#c93400] dark:text-[#ff9f0a]">
         <Circle className="h-2.5 w-2.5 fill-current" />
         {t('common.unsaved')}
       </Badge>
@@ -93,7 +93,7 @@ function SaveStatus() {
 
   if (status === 'error') {
     return (
-      <Badge className="status-pill h-6 border-transparent bg-[color-mix(in_srgb,var(--color-destructive)_14%,transparent)] px-2 text-[11px] font-medium text-[var(--color-destructive)]">
+      <Badge className="status-pill save-status-pill save-status-pill--error h-6 border-transparent bg-[color-mix(in_srgb,var(--color-destructive)_14%,transparent)] px-2 text-[11px] font-medium text-[var(--color-destructive)]">
         {t('common.saveError')}
       </Badge>
     )
@@ -114,7 +114,7 @@ function SaveStatus() {
       ) : null}
       <Badge
         className={cn(
-          'status-pill h-6 gap-1 border-transparent px-2 text-[11px] font-medium',
+          'status-pill save-status-pill save-status-pill--saved h-6 gap-1 border-transparent px-2 text-[11px] font-medium',
           diskSyncWarning
             ? 'bg-[color-mix(in_srgb,#ff9500_14%,transparent)] text-[#c93400] dark:text-[#ff9f0a]'
             : 'bg-[color-mix(in_srgb,#34c759_14%,transparent)] text-[#248a3d] dark:text-[#30d158]',

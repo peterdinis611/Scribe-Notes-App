@@ -117,7 +117,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-24.04, windows-latest]
+        # Pin macOS image — macos-latest (arm64) often cancels after ~15m waiting for a runner.
+        os: [macos-14, ubuntu-24.04, windows-latest]
     steps:
       - uses: actions/checkout@v4
 

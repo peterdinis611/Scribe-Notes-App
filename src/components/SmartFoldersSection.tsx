@@ -114,7 +114,7 @@ export default function SmartFoldersSection({
   }
 
   return (
-    <div className="smart-folders px-1.5 pb-2 pt-1">
+    <div className="smart-folders library-desk-section-in px-1.5 pb-2 pt-1">
       <div className="flex items-center justify-between gap-1 border-b border-[color-mix(in_srgb,var(--color-border)_55%,transparent)] px-1 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--color-muted-foreground)]">
         <div className="flex min-w-0 items-center gap-1.5">
           <FolderKanban className="h-3 w-3 shrink-0 text-[var(--color-accent)]" aria-hidden />
@@ -175,15 +175,16 @@ export default function SmartFoldersSection({
 
       <div className="mt-0.5 flex flex-col gap-0.5">
         {folders.length === 0 && !isOpen ? null : (
-          folders.map((folder) => {
+          folders.map((folder, index) => {
             const isActive = activeId === folder.id
             return (
               <div
                 key={folder.id}
                 className={cn(
-                  'group flex items-center gap-1 rounded-md',
+                  'group library-desk-item-in flex items-center gap-1 rounded-md',
                   isActive && 'bg-[var(--color-selection)]',
                 )}
+                style={{ animationDelay: `${Math.min(index, 10) * 28}ms` }}
               >
                 <button
                   type="button"

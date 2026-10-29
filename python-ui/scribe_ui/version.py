@@ -11,7 +11,7 @@ def _package_version() -> str:
         return metadata.version("scribe-python-ui")
     except metadata.PackageNotFoundError:
         # Editable / PYTHONPATH checkout without install.
-        return "3.9.0"
+        return "5.1.0"
 
 
 APP_VERSION: str = _package_version()

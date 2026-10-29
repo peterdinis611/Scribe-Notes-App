@@ -67,7 +67,8 @@ export const SlashSuggestionList = forwardRef<
         <button
           key={item.id}
           type="button"
-          className={suggestionItemClass(index === selectedIndex)}
+          className={`${suggestionItemClass(index === selectedIndex)} slash-suggestion-item-in`}
+          style={{ animationDelay: `${Math.min(index, 12) * 18}ms` }}
           onClick={() => command(item)}
         >
           {item.icon && <span className={suggestionIconClass}>{item.icon}</span>}

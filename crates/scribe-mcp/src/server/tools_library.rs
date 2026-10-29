@@ -506,4 +506,45 @@ impl ScribeMcp {
             )?))
         })
     }
+
+    #[tool(
+        description = "LAN capture endpoint hint (detected IP + default port + Inbox folder name). Does not start the capture HTTP server — use the Scribe app for that."
+    )]
+    fn capture_endpoint_hint(&self) -> Result<String, String> {
+        Ok(tools::json(&serde_json::json!({
+            "lanIp": scribe_capture::detect_lan_ip(),
+            "defaultPort": scribe_capture::DEFAULT_PORT,
+            "inboxFolderName": scribe_capture::INBOX_FOLDER_NAME,
+        })))
+    }
+
+    #[tool(
+        description = "Disk sync defaults: Documents/Scribe path, .scribe extension, and meta keys used by folder sync."
+    )]
+    fn disk_sync_info(&self) -> Result<String, String> {
+        Ok(tools::json(&serde_json::json!({
+            "defaultDocumentsDir": scribe_sync::default_documents_dir().display().to_string(),
+            "fileExtension": scribe_sync::FILE_EXTENSION,
+            "metaDocumentsDir": scribe_sync::META_DOCUMENTS_DIR,
+            "metaDocumentsDirGranted": scribe_sync::META_DOCUMENTS_DIR_GRANTED,
+        })))
+    }
+
+    #[tool(
+        description = "Default toast notification settings (position, durations, stack behavior). Canonical from scribe-toast."
+    )]
+    fn toast_defaults(&self) -> Result<String, String> {
+        Ok(tools::json(&scribe_toast::default_toast_settings()))
+    }
+
+    #[tool(
+        description = "Normalize / clamp a toast settings JSON object (partial OK). Returns safe settings the app would apply."
+    )]
+    fn normalize_toast_settings_mcp(
+        &self,
+        Parameters(params): Parameters<tools::NormalizeToastSettingsParams>,
+    ) -> Result<String, String> {
+        let settings = scribe_toast::toast_settings_from_json(&params.raw)?;
+        Ok(tools::json(&settings))
+    }
 }

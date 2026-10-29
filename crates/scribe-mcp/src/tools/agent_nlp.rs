@@ -105,15 +105,25 @@ pub struct LibraryAnswerParams {
 #[serde(rename_all = "camelCase")]
 pub struct RunAgentParams {
     /// Natural-language goal for the local agent (same planner as the Scribe app).
-    pub goal: String,
+    /// Optional when `recipeId` or `forceTools` is set (defaults to the recipe id / "run").
+    pub goal: Option<String>,
     /// library | document
     pub scope: Option<String>,
     /// Required for most document tools.
     pub document_id: Option<String>,
+    /// Second note for compare_notes / contradictions.
+    pub document_id_b: Option<String>,
+    /// Saved revision id for the `revision` tool.
+    pub revision_id: Option<String>,
     /// Cap tool steps (1–6). Default 3 (or agent prefs maxSteps).
     pub max_tools: Option<i64>,
-    /// Agent persona: `general` (default) or `spellcheck` (Spellcheck Agent).
+    /// Agent persona: `general` (default), `spellcheck`/`proofreader`, or any role id
+    /// (`librarian`, `meeting`, `study`, `organizer`, `developer`).
     pub persona: Option<String>,
+    /// Built-in or known recipe id (`code_pass`, `meeting_wrap`, …) — skips the planner.
+    pub recipe_id: Option<String>,
+    /// Explicit tool ids to run in order (overrides planner; applied before recipeId).
+    pub force_tools: Option<Vec<String>>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]

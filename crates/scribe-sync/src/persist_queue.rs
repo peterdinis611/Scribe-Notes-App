@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 use rusqlite::Connection;
 use serde::Serialize;
 
-use super::{write_document_file_if_changed, DiskDocument};
+use crate::disk::{write_document_file_if_changed, DiskDocument};
 
 const DEBOUNCE_MS: u64 = 1200;
 const POLL_MS: u64 = 400;

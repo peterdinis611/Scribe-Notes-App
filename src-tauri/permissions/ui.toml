@@ -144,6 +144,11 @@ description = "Allow current_week_range_ui"
 commands.allow = ["current_week_range_ui"]
 
 [[permission]]
+identifier = "allow-default-toast-settings"
+description = "Allow default_toast_settings"
+commands.allow = ["default_toast_settings"]
+
+[[permission]]
 identifier = "allow-document-highlight-css-ui"
 description = "Allow document_highlight_css_ui"
 commands.allow = ["document_highlight_css_ui"]
@@ -364,6 +369,11 @@ description = "Allow normalize_locale_code_ui"
 commands.allow = ["normalize_locale_code_ui"]
 
 [[permission]]
+identifier = "allow-normalize-toast-settings"
+description = "Allow normalize_toast_settings"
+commands.allow = ["normalize_toast_settings"]
+
+[[permission]]
 identifier = "allow-normalize-ui-skin"
 description = "Allow normalize_ui_skin"
 commands.allow = ["normalize_ui_skin"]
@@ -459,6 +469,11 @@ description = "Allow resolve_theme_colors_ui"
 commands.allow = ["resolve_theme_colors_ui"]
 
 [[permission]]
+identifier = "allow-resolve-toast-duration"
+description = "Allow resolve_toast_duration"
+commands.allow = ["resolve_toast_duration"]
+
+[[permission]]
 identifier = "allow-sanitize-file-name-ui"
 description = "Allow sanitize_file_name_ui"
 commands.allow = ["sanitize_file_name_ui"]
@@ -519,6 +534,16 @@ description = "Allow to_global_shortcut_accelerator_ui"
 commands.allow = ["to_global_shortcut_accelerator_ui"]
 
 [[permission]]
+identifier = "allow-toast-position-class"
+description = "Allow toast_position_class"
+commands.allow = ["toast_position_class"]
+
+[[permission]]
+identifier = "allow-toast-settings-from-json"
+description = "Allow toast_settings_from_json"
+commands.allow = ["toast_settings_from_json"]
+
+[[permission]]
 identifier = "allow-ui-font-presets-ui"
 description = "Allow ui_font_presets_ui"
 commands.allow = ["ui_font_presets_ui"]
@@ -561,6 +586,7 @@ permissions = [
   "allow-count-words-ui",
   "allow-create-custom-template-ui",
   "allow-current-week-range-ui",
+  "allow-default-toast-settings",
   "allow-document-highlight-css-ui",
   "allow-document-matches-meta-filters-ui",
   "allow-document-matches-smart-filter",
@@ -605,6 +631,7 @@ permissions = [
   "allow-next-editor-panel-width-on-double-click",
   "allow-normalize-compare-pair-ui",
   "allow-normalize-locale-code-ui",
+  "allow-normalize-toast-settings",
   "allow-normalize-ui-skin",
   "allow-parse-canvas-document-ui",
   "allow-parse-custom-locale-pack-ui",
@@ -624,6 +651,7 @@ permissions = [
   "allow-resolve-page-layout-ui",
   "allow-resolve-panel-widths-ui",
   "allow-resolve-theme-colors-ui",
+  "allow-resolve-toast-duration",
   "allow-sanitize-file-name-ui",
   "allow-sanitize-snippet",
   "allow-serialize-canvas-document-ui",
@@ -636,6 +664,8 @@ permissions = [
   "allow-title-from-html-ui",
   "allow-title-from-markdown-ui",
   "allow-to-global-shortcut-accelerator-ui",
+  "allow-toast-position-class",
+  "allow-toast-settings-from-json",
   "allow-ui-font-presets-ui",
   "allow-validate-snippet-input-ui",
 ]

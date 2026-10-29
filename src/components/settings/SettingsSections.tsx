@@ -1,9 +1,10 @@
-import { confirm, open } from '@tauri-apps/plugin-dialog'
+import { open } from '@tauri-apps/plugin-dialog'
 import { Archive, ArchiveRestore, FileJson, FolderOpen, FolderSearch, Languages, Shuffle, Trash2, Upload } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
 import { requestStorageAccessDialog } from '@/components/StorageAccessDialogHost'
+import { requestConfirmDialog } from '@/lib/confirm-dialog'
 import { LocaleSelect, useCustomLocaleRefresh } from '@/components/LocaleSelect'
 import { Button } from '@/components/ui/button'
 import { IconTooltip } from '@/components/ui/tooltip'
@@ -505,11 +506,12 @@ export function StorageSection() {
   }
 
   async function handleImportBackup() {
-    const confirmed = await confirm(t('settings.storage.backupImportConfirm'), {
+    const confirmed = await requestConfirmDialog({
       title: t('settings.storage.backupImportConfirmTitle'),
-      kind: 'warning',
+      description: t('settings.storage.backupImportConfirm'),
       okLabel: t('settings.storage.backupImportConfirmOk'),
       cancelLabel: t('common.cancel'),
+      destructive: true,
     })
     if (!confirmed) return
 
@@ -550,11 +552,12 @@ export function StorageSection() {
   }
 
   async function handleClearAll() {
-    const confirmed = await confirm(t('settings.storage.clearConfirm'), {
+    const confirmed = await requestConfirmDialog({
       title: t('settings.storage.clearConfirmTitle'),
-      kind: 'warning',
+      description: t('settings.storage.clearConfirm'),
       okLabel: t('settings.storage.clearConfirmOk'),
       cancelLabel: t('common.cancel'),
+      destructive: true,
     })
     if (!confirmed) return
 

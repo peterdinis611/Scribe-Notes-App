@@ -5,6 +5,7 @@ import {
   isAgentSlashMenuOpen,
   parseAgentSlash,
   seedAgentSlashCatalogForTests,
+  slashCommandAllowedForRole,
   type AgentSlashCommand,
 } from '@/lib/library/agent-slash'
 
@@ -50,6 +51,67 @@ const FIXTURE: AgentSlashCommand[] = [
     tools: ['forward_plan'],
     defaultGoalKey: 'agent.tools.forward_plan',
   },
+  {
+    id: 'handoff',
+    name: 'handoff',
+    aliases: ['posli'],
+    labelKey: 'agent.slash.handoff.label',
+    hintKey: 'agent.slash.handoff.hint',
+    scopes: ['any'],
+    tools: ['handoff'],
+    passArgs: true,
+  },
+  {
+    id: 'ingest',
+    name: 'ingest',
+    aliases: ['import'],
+    labelKey: 'agent.slash.ingest.label',
+    hintKey: 'agent.slash.ingest.hint',
+    scopes: ['library', 'any'],
+    recipeId: 'files_learn',
+  },
+  {
+    id: 'code',
+    name: 'code',
+    labelKey: 'agent.slash.code.label',
+    hintKey: 'agent.slash.code.hint',
+    scopes: ['document', 'any'],
+    tools: ['code_brief'],
+  },
+  {
+    id: 'codepass',
+    name: 'codepass',
+    aliases: ['codereview'],
+    labelKey: 'agent.slash.codepass.label',
+    hintKey: 'agent.slash.codepass.hint',
+    scopes: ['document', 'any'],
+    recipeId: 'code_pass',
+  },
+  {
+    id: 'codeaudit',
+    name: 'codeaudit',
+    aliases: ['codesec'],
+    labelKey: 'agent.slash.codeaudit.label',
+    hintKey: 'agent.slash.codeaudit.hint',
+    scopes: ['document', 'any'],
+    recipeId: 'code_audit',
+  },
+  {
+    id: 'filesdigest',
+    name: 'filesdigest',
+    labelKey: 'agent.slash.filesdigest.label',
+    hintKey: 'agent.slash.filesdigest.hint',
+    scopes: ['library', 'any'],
+    recipeId: 'files_digest',
+  },
+  {
+    id: 'tolibrary',
+    name: 'tolibrary',
+    labelKey: 'agent.slash.tolibrary.label',
+    hintKey: 'agent.slash.tolibrary.hint',
+    scopes: ['library', 'any'],
+    recipeId: 'files_to_library',
+  },
 ]
 
 describe('agent-slash (TS thin layer over cached Rust catalog)', () => {
@@ -81,5 +143,50 @@ describe('agent-slash (TS thin layer over cached Rust catalog)', () => {
     expect(isAgentSlashMenuOpen('/mee')).toBe(true)
     expect(isAgentSlashMenuOpen('/meeting more')).toBe(false)
     expect(agentSlashQuery('/plan ahead')).toBe('plan')
+  })
+
+  it('scopes slash suggestions to the active dock role', () => {
+    seedAgentSlashCatalogForTests(FIXTURE)
+    const meetingOnly = filterAgentSlashCommands('', 'document', 20, 'meeting')
+    expect(meetingOnly.some((c) => c.id === 'meeting')).toBe(true)
+    expect(meetingOnly.some((c) => c.id === 'wrap')).toBe(true)
+    expect(meetingOnly.some((c) => c.id === 'talk')).toBe(false)
+    const studyOnly = filterAgentSlashCommands('', 'document', 20, 'study')
+    expect(studyOnly.some((c) => c.id === 'meeting')).toBe(false)
+  })
+
+  it('allows handoff and code for developer; ingest for librarian', () => {
+    seedAgentSlashCatalogForTests(FIXTURE)
+    const handoff = FIXTURE.find((c) => c.id === 'handoff')!
+    const code = FIXTURE.find((c) => c.id === 'code')!
+    const ingest = FIXTURE.find((c) => c.id === 'ingest')!
+    expect(slashCommandAllowedForRole(handoff, 'developer')).toBe(true)
+    expect(slashCommandAllowedForRole(code, 'developer')).toBe(true)
+    expect(slashCommandAllowedForRole(ingest, 'developer')).toBe(false)
+    expect(slashCommandAllowedForRole(ingest, 'librarian')).toBe(true)
+    expect(slashCommandAllowedForRole(code, 'general')).toBe(true)
+  })
+
+  it('parses expanded slash aliases from seeded catalog', () => {
+    seedAgentSlashCatalogForTests(FIXTURE)
+    expect(parseAgentSlash('/posli organizer: triage', 'document', t)).toMatchObject({
+      forceTools: ['handoff'],
+      goal: 'organizer: triage',
+    })
+    expect(parseAgentSlash('/import', 'library', t)).toMatchObject({
+      recipeId: 'files_learn',
+    })
+    expect(parseAgentSlash('/codepass', 'document', t)).toMatchObject({
+      recipeId: 'code_pass',
+    })
+    expect(parseAgentSlash('/codesec', 'document', t)).toMatchObject({
+      recipeId: 'code_audit',
+    })
+    expect(parseAgentSlash('/filesdigest', 'library', t)).toMatchObject({
+      recipeId: 'files_digest',
+    })
+    expect(parseAgentSlash('/tolibrary', 'library', t)).toMatchObject({
+      recipeId: 'files_to_library',
+    })
   })
 })

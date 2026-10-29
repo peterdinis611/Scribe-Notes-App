@@ -11,6 +11,8 @@ import {
 } from '@/components/settings/SettingsPrimitives'
 import { TokenExpiryCountdown } from '@/components/security/TokenExpiryCountdown'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
 import {
   captureStart,
   captureStatus,
@@ -153,14 +155,13 @@ export function CaptureSection() {
       <SettingsGroup>
         <SettingsRow title={t('capture.lanTitle')} description={t('capture.lanDescription')}>
           {!running ? (
-            <label className="mr-2 flex items-center gap-2 text-[12px] text-[var(--color-muted-foreground)]">
-              <input
-                type="checkbox"
+            <Label className="mr-2 flex items-center gap-2 text-[12px] font-normal text-[var(--color-muted-foreground)]">
+              <Checkbox
                 checked={allowLan}
-                onChange={(e) => setAllowLan(e.target.checked)}
+                onCheckedChange={(checked) => setAllowLan(checked === true)}
               />
               {t('capture.allowLan')}
-            </label>
+            </Label>
           ) : null}
           {!running ? (
             <Button type="button" size="sm" disabled={busy} onClick={() => void handleStart()}>
@@ -227,10 +228,9 @@ export function CaptureSection() {
                     className="flex items-center justify-between gap-2 rounded-[var(--radius-sm)] border border-[var(--color-border)] px-2.5 py-1.5"
                   >
                     <label className="flex min-w-0 flex-1 items-center gap-2">
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         checked={selectedInbox.has(item.documentId)}
-                        onChange={() => {
+                        onCheckedChange={() => {
                           setSelectedInbox((prev) => {
                             const next = new Set(prev)
                             if (next.has(item.documentId)) next.delete(item.documentId)

@@ -754,3 +754,32 @@ pub fn build_agent_tool_options_ui(
 ) -> Vec<String> {
     scribe_ui::build_agent_tool_options(analysis.as_ref(), &tasks)
 }
+
+#[tauri::command]
+pub fn default_toast_settings() -> scribe_toast::ToastSettings {
+    scribe_toast::default_toast_settings()
+}
+
+#[tauri::command]
+pub fn normalize_toast_settings(settings: scribe_toast::ToastSettings) -> scribe_toast::ToastSettings {
+    scribe_toast::normalize_toast_settings(settings)
+}
+
+#[tauri::command]
+pub fn toast_settings_from_json(raw: String) -> Result<scribe_toast::ToastSettings, String> {
+    scribe_toast::toast_settings_from_json(&raw)
+}
+
+#[tauri::command]
+pub fn resolve_toast_duration(
+    settings: scribe_toast::ToastSettings,
+    has_action: bool,
+    override_ms: Option<u32>,
+) -> u32 {
+    scribe_toast::resolve_duration(&settings, has_action, override_ms)
+}
+
+#[tauri::command]
+pub fn toast_position_class(settings: scribe_toast::ToastSettings) -> String {
+    scribe_toast::position_class(&settings).to_string()
+}

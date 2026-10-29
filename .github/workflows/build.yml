@@ -8,40 +8,29 @@ on:
     tags: ['v*']
 
 concurrency:
+  # Do not cancel a queued/running macOS job when the same tag is moved —
+  # GitHub arm64 capacity already cancels enough of these after ~15m.
   group: build-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: write
 
+env:
+  BUN_VERSION: latest
+  NODE_VERSION: '22'
+
 jobs:
-  tauri:
-    name: Tauri (${{ matrix.name }})
-    runs-on: ${{ matrix.os }}
+  tauri-linux:
+    name: Tauri (Linux)
+    runs-on: ubuntu-24.04
     timeout-minutes: 90
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: macOS
-            os: macos-latest
-            args: ''
-            release: true
-          - name: Linux
-            os: ubuntu-24.04
-            args: --no-bundle
-            release: false
-          - name: Windows
-            os: windows-latest
-            args: --no-bundle
-            release: false
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Install Linux WebKit / GTK deps
-        if: runner.os == 'Linux'
         run: |
           set -euo pipefail
           sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list
@@ -58,17 +47,18 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: ${{ env.BUN_VERSION }}
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: ${{ env.NODE_VERSION }}
 
       - uses: dtolnay/rust-toolchain@stable
 
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri -> target
+          prefix-key: build-linux
 
       - name: Install frontend dependencies
         run: bun install --frozen-lockfile
@@ -79,8 +69,93 @@ jobs:
           GITHUB_REF_TYPE: ${{ github.ref_type }}
           GITHUB_REF_NAME: ${{ github.ref_name }}
 
-      - name: Build Tauri app (release draft on tag / macOS)
-        if: matrix.release && startsWith(github.ref, 'refs/tags/v')
+      - name: Build Tauri app (compile check, no bundle)
+        uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: .
+          args: --no-bundle
+
+  tauri-windows:
+    name: Tauri (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+          prefix-key: build-windows
+
+      - name: Install frontend dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Version sync
+        run: bun run version:check
+        env:
+          GITHUB_REF_TYPE: ${{ github.ref_type }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+
+      - name: Build Tauri app (compile check, no bundle)
+        uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: .
+          args: --no-bundle
+
+  # Public macOS arm64 runners often fail with:
+  # "The job was not acquired by Runner of type hosted even after multiple attempts"
+  # Primary + fallback on a different image improves odds without racing one release.
+  tauri-macos:
+    name: Tauri (macOS)
+    runs-on: macos-14
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+          prefix-key: build-macos-14
+
+      - name: Install frontend dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Version sync
+        run: bun run version:check
+        env:
+          GITHUB_REF_TYPE: ${{ github.ref_type }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+
+      - name: Build Tauri app (release draft on tag)
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -96,14 +171,92 @@ jobs:
           releaseDraft: true
           prerelease: false
           includeUpdaterJson: false
-          args: ${{ matrix.args }}
 
-      - name: Build Tauri app (no release upload)
-        if: ${{ !(matrix.release && startsWith(github.ref, 'refs/tags/v')) }}
+      - name: Build Tauri app (manual dispatch / no tag)
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
         uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: .
-          args: ${{ matrix.args }}
-          uploadWorkflowArtifacts: ${{ matrix.release }}
+          uploadWorkflowArtifacts: true
+
+  tauri-macos-fallback:
+    name: Tauri (macOS fallback)
+    needs: tauri-macos
+    if: ${{ always() && (needs.tauri-macos.result == 'failure' || needs.tauri-macos.result == 'cancelled') }}
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+          prefix-key: build-macos-15
+
+      - name: Install frontend dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Version sync
+        run: bun run version:check
+        env:
+          GITHUB_REF_TYPE: ${{ github.ref_type }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+
+      - name: Build Tauri app (release draft on tag)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: .
+          tagName: v__VERSION__
+          releaseName: 'Scribe v__VERSION__'
+          releaseBody: |
+            Draft release for Scribe __VERSION__.
+
+            - macOS: `.dmg` / `.app` attached when the Build workflow finishes
+            - Linux / Windows: compile-checked in CI (`--no-bundle`); ship packages from a signed runner when ready
+          releaseDraft: true
+          prerelease: false
+          includeUpdaterJson: false
+
+      - name: Build Tauri app (manual dispatch / no tag)
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: .
+          uploadWorkflowArtifacts: true
+
+  tauri-macos-ok:
+    name: Tauri (macOS gate)
+    needs: [tauri-macos, tauri-macos-fallback]
+    runs-on: ubuntu-24.04
+    if: always()
+    steps:
+      - name: Require a successful macOS build
+        run: |
+          set -euo pipefail
+          primary='${{ needs.tauri-macos.result }}'
+          fallback='${{ needs.tauri-macos-fallback.result }}'
+          echo "primary=${primary} fallback=${fallback}"
+          if [ "${primary}" = "success" ] || [ "${fallback}" = "success" ]; then
+            exit 0
+          fi
+          echo "::error::macOS Tauri build failed (often GitHub hosted runner capacity). Re-run failed jobs from the Actions tab."
+          exit 1

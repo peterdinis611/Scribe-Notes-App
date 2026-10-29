@@ -1,6 +1,6 @@
 [package]
 name = "app"
-version = "5.0.0"
+version = "5.1.0"
 description = "A Tauri App"
 authors = ["Peter Dinis"]
 license = "MIT"
@@ -22,7 +22,7 @@ serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 log = "0.4"
 tauri = { version = "2.12", features = ["protocol-asset", "macos-private-api", "tray-icon"] }
-tauri-plugin-log = "2"
+tauri-plugin-log = { version = "2", features = ["colored"] }
 tauri-plugin-dialog = "2"
 tauri-plugin-fs = "2"
 tauri-plugin-opener = "2"
@@ -41,6 +41,9 @@ scribe-agent = { path = "../crates/scribe-agent" }
 scribe-audit = { path = "../crates/scribe-audit" }
 scribe-ui = { path = "../crates/scribe-ui", features = ["dioxus"] }
 scribe-video = { path = "../crates/scribe-video" }
+scribe-sync = { path = "../crates/scribe-sync" }
+scribe-capture = { path = "../crates/scribe-capture" }
+scribe-toast = { path = "../crates/scribe-toast" }
 sha2 = "0.10"
 tauri-plugin-persisted-scope = { version = "2.3.7", features = ["protocol-asset"] }
 tauri-plugin-positioner = { version = "2.4.0", features = ["tray-icon"] }

@@ -69,26 +69,40 @@ impl ScribeMcp {
     }
 
     #[tool(
-        description = "Run the same local agent planner used in the Scribe app: plan_agent_goal then execute tools (library/document Q&A, summarize, tasks, spellcheck, rewrite, glossary, …). Set persona=spellcheck for the Spellcheck Agent (grammar teachings + spellcheck only). Requires Local AI."
+        description = "Run the same local agent as the Scribe app. Pass goal and/or recipeId/forceTools. persona=general|spellcheck|proofreader|librarian|meeting|study|organizer|developer. For compare_notes/contradictions pass documentIdB; for revision pass revisionId. recipeId skips the planner (e.g. code_pass, meeting_wrap). forceTools runs an explicit tool list. Requires Local AI."
     )]
     fn run_agent(
         &self,
         Parameters(params): Parameters<tools::RunAgentParams>,
     ) -> Result<String, String> {
-        let goal = params.goal.trim();
-        if goal.is_empty() {
-            return Err("goal is required".to_string());
-        }
-        let persona = match params
-            .persona
+        let force_tools: Vec<String> = params
+            .force_tools
+            .unwrap_or_default()
+            .into_iter()
+            .map(|tool| tool.trim().to_string())
+            .filter(|tool| !tool.is_empty())
+            .collect();
+        let recipe_id = params
+            .recipe_id
             .as_deref()
             .map(str::trim)
-            .map(|value| value.to_ascii_lowercase())
+            .filter(|value| !value.is_empty())
+            .map(|value| value.to_string());
+        let goal_raw = params
+            .goal
             .as_deref()
-        {
-            Some("spellcheck") | Some("spell") | Some("grammar") => "spellcheck",
-            _ => "general",
-        };
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(|value| value.to_string());
+        if goal_raw.is_none() && recipe_id.is_none() && force_tools.is_empty() {
+            return Err("goal is required (or pass recipeId / forceTools)".to_string());
+        }
+        let goal = goal_raw.unwrap_or_else(|| {
+            recipe_id
+                .clone()
+                .unwrap_or_else(|| "run".to_string())
+        });
+        let persona = normalize_run_agent_persona(params.persona.as_deref());
         let scope = params
             .scope
             .as_deref()
@@ -105,8 +119,34 @@ impl ScribeMcp {
             .map(str::trim)
             .filter(|value| !value.is_empty())
             .map(|value| value.to_string());
+        let document_id_b = params
+            .document_id_b
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(|value| value.to_string());
+        let revision_id = params
+            .revision_id
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(|value| value.to_string());
 
-        self.run_agent_with_persona(goal, scope, document_id, params.max_tools, persona)
+        self.run_agent_with_persona(
+            &goal,
+            scope,
+            document_id,
+            document_id_b,
+            revision_id,
+            params.max_tools,
+            &persona,
+            recipe_id.as_deref(),
+            if force_tools.is_empty() {
+                None
+            } else {
+                Some(force_tools.as_slice())
+            },
+        )
     }
 
     #[tool(
@@ -131,8 +171,12 @@ impl ScribeMcp {
             goal,
             "document",
             Some(document_id.to_string()),
+            None,
+            None,
             Some(1),
             "spellcheck",
+            None,
+            None,
         )
     }
 
@@ -441,5 +485,50 @@ impl ScribeMcp {
                 params.enhance_heuristics,
             )?))
         })
+    }
+}
+
+/// Map MCP persona aliases onto in-app role ids (`spellcheck` → proofreader path).
+pub(crate) fn normalize_run_agent_persona(raw: Option<&str>) -> String {
+    let folded = raw
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(|value| value.to_ascii_lowercase())
+        .unwrap_or_else(|| "general".into());
+    match folded.as_str() {
+        "spellcheck" | "spell" | "grammar" | "proofreader" => "spellcheck".into(),
+        id if scribe_ui::is_agent_role_id(id) => id.to_string(),
+        _ => "general".into(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::normalize_run_agent_persona;
+
+    #[test]
+    fn persona_defaults_to_general() {
+        assert_eq!(normalize_run_agent_persona(None), "general");
+        assert_eq!(normalize_run_agent_persona(Some("")), "general");
+        assert_eq!(normalize_run_agent_persona(Some("  ")), "general");
+        assert_eq!(normalize_run_agent_persona(Some("unknown-role")), "general");
+    }
+
+    #[test]
+    fn persona_spellcheck_aliases() {
+        for raw in ["spellcheck", "spell", "grammar", "proofreader", " SPELL "] {
+            assert_eq!(normalize_run_agent_persona(Some(raw)), "spellcheck");
+        }
+    }
+
+    #[test]
+    fn persona_accepts_all_role_ids() {
+        for id in scribe_ui::AGENT_ROLE_IDS {
+            if *id == "proofreader" {
+                assert_eq!(normalize_run_agent_persona(Some(id)), "spellcheck");
+            } else {
+                assert_eq!(normalize_run_agent_persona(Some(id)), *id);
+            }
+        }
     }
 }

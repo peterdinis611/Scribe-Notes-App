@@ -3,6 +3,66 @@
 use crate::server::ScribeMcp;
 use crate::tools;
 
+/// Pick up to `limit` sandbox paths for `files_ingest` (mirrors FE agent-files-ingest).
+pub(crate) fn select_files_ingest_paths(
+    entries: &[serde_json::Value],
+    goal: &str,
+    limit: usize,
+) -> Vec<String> {
+    let needle = goal.trim().to_ascii_lowercase();
+    let candidates: Vec<(String, String)> = entries
+        .iter()
+        .filter_map(|entry| {
+            let kind = entry.get("kind").and_then(|v| v.as_str()).unwrap_or("");
+            if kind == "dir" {
+                return None;
+            }
+            let path = entry.get("path").and_then(|v| v.as_str())?.to_string();
+            let name = entry
+                .get("name")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            let text_like = entry
+                .get("textLike")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false);
+            let looks_code = path.rsplit('.').next().is_some_and(|ext| {
+                matches!(
+                    ext.to_ascii_lowercase().as_str(),
+                    "rs" | "py" | "ts" | "tsx" | "js" | "jsx" | "go" | "java"
+                        | "kt" | "swift" | "c" | "h" | "cpp" | "cs" | "rb" | "php"
+                        | "lua" | "sql" | "toml" | "yml" | "yaml" | "xml" | "css"
+                        | "scss" | "sh" | "bash" | "json" | "md" | "txt" | "csv"
+                        | "html" | "htm" | "log"
+                )
+            });
+            if text_like || looks_code {
+                Some((path, name))
+            } else {
+                None
+            }
+        })
+        .collect();
+    let matched: Vec<(String, String)> = if needle.is_empty() {
+        candidates.clone()
+    } else {
+        candidates
+            .iter()
+            .filter(|(path, name)| {
+                format!("{path} {name}")
+                    .to_ascii_lowercase()
+                    .contains(&needle)
+            })
+            .cloned()
+            .collect()
+    };
+    if matched.is_empty() {
+        candidates.into_iter().map(|(path, _)| path).take(limit).collect()
+    } else {
+        matched.into_iter().map(|(path, _)| path).take(limit).collect()
+    }
+}
 
 impl ScribeMcp {
     /// Map planner tool ids to store methods (mirrors the in-app Local Agent).
@@ -11,6 +71,8 @@ impl ScribeMcp {
         tool: &str,
         goal: &str,
         document_id: Option<&str>,
+        document_id_b: Option<&str>,
+        revision_id: Option<&str>,
     ) -> Result<(String, Option<String>), String> {
         let tool = tool.trim().to_ascii_lowercase();
         let grammar_rules = if tool == "grammar" || tool == "grammar_check" {
@@ -239,17 +301,65 @@ impl ScribeMcp {
                 let result = store.check_terminology_library(&self.sidecar, Some(16), Some(40))?;
                 Ok(("terminology_library".into(), Some(tools::json(&result))))
             }
-            "compare_notes" => Err(
-                "compare_notes needs two documents — call the compare_notes MCP tool with documentIdA/documentIdB"
-                    .into(),
-            ),
-            "contradictions" | "contradiction_hints" => Err(
-                "contradictions needs two documents — call the contradiction_hints MCP tool with idA/idB"
-                    .into(),
-            ),
-            "revision" => Err(
-                "revision needs a revisionId — call analyze_revision_diff_for_document".into(),
-            ),
+            "forward_plan" => {
+                let id =
+                    document_id.ok_or_else(|| "documentId required for forward_plan".to_string())?;
+                let result = store.forward_plan(&self.sidecar, Some(id), None, Some(12))?;
+                Ok(("forward_plan".into(), Some(tools::json(&result))))
+            }
+            "compare_notes" => {
+                let id_a =
+                    document_id.ok_or_else(|| "documentId required for compare_notes".to_string())?;
+                let id_b = document_id_b.ok_or_else(|| {
+                    "documentIdB required for compare_notes — pass RunAgentParams.documentIdB"
+                        .to_string()
+                })?;
+                let result = store.compare_notes(
+                    &self.sidecar,
+                    Some(id_a),
+                    Some(id_b),
+                    None,
+                    None,
+                    None,
+                    None,
+                )?;
+                Ok(("compare_notes".into(), Some(tools::json(&result))))
+            }
+            "contradictions" | "contradiction_hints" => {
+                let id_a = document_id
+                    .ok_or_else(|| "documentId required for contradictions".to_string())?;
+                let id_b = document_id_b.ok_or_else(|| {
+                    "documentIdB required for contradictions — pass RunAgentParams.documentIdB"
+                        .to_string()
+                })?;
+                let result = store.contradiction_hints(
+                    &self.sidecar,
+                    Some(id_a),
+                    Some(id_b),
+                    None,
+                    None,
+                    None,
+                    None,
+                    Some(8),
+                )?;
+                Ok(("contradictions".into(), Some(tools::json(&result))))
+            }
+            "revision" => {
+                let id =
+                    document_id.ok_or_else(|| "documentId required for revision".to_string())?;
+                let rev = revision_id.ok_or_else(|| {
+                    "revisionId required for revision — pass RunAgentParams.revisionId".to_string()
+                })?;
+                let result = store.analyze_revision_diff_for_document(
+                    &self.sidecar,
+                    id,
+                    rev,
+                    Some(12),
+                    None,
+                    None,
+                )?;
+                Ok(("revision".into(), Some(tools::json(&result))))
+            }
             "keywords" => {
                 let id = document_id.ok_or_else(|| "documentId required for keywords".to_string())?;
                 let result = store.extract_document_keywords(&self.sidecar, id, Some(16))?;
@@ -330,10 +440,79 @@ impl ScribeMcp {
                 let sent = agent.send_handoff("general", to, summary, document_id, None)?;
                 Ok(("handoff".into(), Some(tools::json(&sent))))
             }
-            "files_ingest" => Err(
-                "files_ingest runs in the Scribe app (sandbox → notes). Use files_answer from MCP, or open the app agent."
-                    .into(),
-            ),
+            "files_ingest" => {
+                if !self.writable {
+                    return Err("files_ingest requires SCRIBE_MCP_WRITE=1".into());
+                }
+                let listed = store.files_list(&self.sidecar, "", true, None)?;
+                let entries = listed
+                    .get("entries")
+                    .and_then(|v| v.as_array())
+                    .cloned()
+                    .unwrap_or_default();
+                let paths = select_files_ingest_paths(&entries, goal, 5);
+                if paths.is_empty() {
+                    return Ok((
+                        "files_ingest".into(),
+                        Some(
+                            "No text/code files found in the sandbox to import. Put files under `files/` and start the Local Files API."
+                                .into(),
+                        ),
+                    ));
+                }
+                let mut lines = Vec::new();
+                let mut created = Vec::new();
+                for path in &paths {
+                    match store.files_read_text(&self.sidecar, path, None) {
+                        Ok(read) => {
+                            let text = read
+                                .get("text")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("")
+                                .trim();
+                            if text.is_empty() {
+                                lines.push(format!("- Skipped `{path}` (empty)"));
+                                continue;
+                            }
+                            let title = path
+                                .rsplit(['/', '\\'])
+                                .next()
+                                .unwrap_or(path)
+                                .trim()
+                                .to_string();
+                            let body = format!("<!-- imported from files/{path} -->\n\n{text}");
+                            match store.create_note(&title, Some(&body), None) {
+                                Ok(note) => {
+                                    lines.push(format!("- [[{}]] ← `{path}`", note.title));
+                                    created.push(serde_json::json!({
+                                        "id": note.id,
+                                        "title": note.title,
+                                        "path": path,
+                                    }));
+                                }
+                                Err(error) => {
+                                    lines.push(format!("- Failed `{path}`: {error}"));
+                                }
+                            }
+                        }
+                        Err(error) => {
+                            lines.push(format!("- Failed `{path}`: {error}"));
+                        }
+                    }
+                }
+                Ok((
+                    "files_ingest".into(),
+                    Some(tools::json(&serde_json::json!({
+                        "imported": created.len(),
+                        "created": created,
+                        "answer": format!(
+                            "**Imported {} file(s) into the library**\n\n{}",
+                            created.len(),
+                            lines.join("\n")
+                        ),
+                    }))),
+                ))
+            }
             "canvas_summarize" => {
                 let id = document_id
                     .ok_or_else(|| "documentId required for canvas_summarize".to_string())?;
@@ -416,9 +595,40 @@ impl ScribeMcp {
                 let created = store.create_note(&title, Some(&body), None)?;
                 Ok(("canvas_to_note".into(), Some(tools::json(&created))))
             }
-            "canvas_template" => Err(
-                "canvas_template applies built-in board layouts in the Scribe app only".into(),
-            ),
+            "canvas_template" => {
+                let id = document_id
+                    .ok_or_else(|| "documentId required for canvas_template".to_string())?;
+                if !self.writable {
+                    return Err("canvas_template requires SCRIBE_MCP_WRITE=1".into());
+                }
+                let doc = store
+                    .get_document(id, true)?
+                    .ok_or_else(|| format!("document not found: {id}"))?;
+                let content = doc
+                    .content_json
+                    .as_deref()
+                    .ok_or_else(|| "document has no content".to_string())?;
+                if scribe_ui::parse_canvas_document(content).is_none() {
+                    return Err("document is not a canvas".into());
+                }
+                let template_id = scribe_ui::pick_canvas_template_id(goal);
+                let next = scribe_ui::build_canvas_template(template_id);
+                let content_json = scribe_ui::serialize_canvas_document(&next);
+                let updated = store.replace_document_content_json(id, &content_json)?;
+                Ok((
+                    "canvas_template".into(),
+                    Some(tools::json(&serde_json::json!({
+                        "id": updated.id,
+                        "title": updated.title,
+                        "templateId": template_id,
+                        "objectCount": next.objects.len(),
+                        "answer": format!(
+                            "Applied canvas template **{template_id}** ({} objects).",
+                            next.objects.len()
+                        ),
+                    }))),
+                ))
+            }
             other => Err(format!("unsupported agent tool: {other}")),
         })
     }
@@ -428,8 +638,12 @@ impl ScribeMcp {
         goal: &str,
         scope: &str,
         document_id: Option<String>,
+        document_id_b: Option<String>,
+        revision_id: Option<String>,
         max_tools: Option<i64>,
         persona: &str,
+        recipe_id: Option<&str>,
+        force_tools: Option<&[String]>,
     ) -> Result<String, String> {
         let spellcheck = persona == "spellcheck";
         if spellcheck && document_id.as_deref().map(str::trim).filter(|v| !v.is_empty()).is_none()
@@ -453,7 +667,22 @@ impl ScribeMcp {
             return Err("Local agent is disabled in Scribe settings".into());
         }
 
-        let scope = if spellcheck { "document" } else { scope };
+        let scope = if spellcheck {
+            "document"
+        } else if recipe_id
+            .and_then(scribe_ui::get_agent_recipe)
+            .map(|recipe| recipe.document_preferred)
+            .unwrap_or(false)
+            && document_id
+                .as_deref()
+                .map(str::trim)
+                .filter(|v| !v.is_empty())
+                .is_some()
+        {
+            "document"
+        } else {
+            scope
+        };
         let max_tools = if spellcheck {
             1
         } else {
@@ -488,8 +717,44 @@ impl ScribeMcp {
                 (Vec::new(), Vec::new(), None)
             };
 
+        let filter_disabled = |tools: Vec<String>| -> Vec<String> {
+            tools
+                .into_iter()
+                .filter(|tool| {
+                    !disabled_tools
+                        .iter()
+                        .any(|disabled| disabled.eq_ignore_ascii_case(tool))
+                })
+                .collect()
+        };
+        let apply_role = |tools: Vec<String>| -> Vec<String> {
+            if role_id == "general" {
+                tools
+            } else {
+                scribe_ui::filter_tools_by_agents(&tools, &[role_id.to_string()])
+            }
+        };
+
         let tools_list: Vec<String> = if spellcheck {
             vec!["spellcheck".into()]
+        } else if let Some(forced) = force_tools.filter(|tools| !tools.is_empty()) {
+            apply_role(filter_disabled(forced.to_vec()))
+                .into_iter()
+                .take(max_tools as usize)
+                .collect()
+        } else if let Some(recipe) = recipe_id.and_then(scribe_ui::get_agent_recipe) {
+            if !scribe_ui::is_recipe_allowed_by_agents(&recipe.id, &[role_id.to_string()])
+                && role_id != "general"
+            {
+                return Err(format!(
+                    "recipe `{rid}` is not allowed for persona `{role_id}`",
+                    rid = recipe.id
+                ));
+            }
+            apply_role(filter_disabled(recipe.tools))
+                .into_iter()
+                .take(max_tools as usize)
+                .collect()
         } else {
             let handoffs = if handoff_summaries.is_empty() {
                 None
@@ -521,11 +786,10 @@ impl ScribeMcp {
                 .unwrap_or_default()
                 .into_iter()
                 .filter_map(|value| value.as_str().map(|s| s.to_string()))
-                .filter(|tool| {
-                    !disabled_tools
-                        .iter()
-                        .any(|disabled| disabled.eq_ignore_ascii_case(tool))
-                })
+                .collect::<Vec<_>>();
+
+            let planned = apply_role(filter_disabled(planned))
+                .into_iter()
                 .take(max_tools as usize)
                 .collect::<Vec<_>>();
 
@@ -539,7 +803,10 @@ impl ScribeMcp {
                     "goal": goal,
                     "scope": scope,
                     "documentId": document_id,
+                    "documentIdB": document_id_b,
+                    "revisionId": revision_id,
                     "persona": persona,
+                    "recipeId": recipe_id,
                     "needsClarification": true,
                     "clarifyOptions": plan.get("clarifyOptions").cloned().unwrap_or(serde_json::json!([])),
                     "steps": [],
@@ -561,7 +828,13 @@ impl ScribeMcp {
         }
 
         for tool_name in &tools_list {
-            match self.execute_agent_tool(tool_name, goal, document_id.as_deref()) {
+            match self.execute_agent_tool(
+                tool_name,
+                goal,
+                document_id.as_deref(),
+                document_id_b.as_deref(),
+                revision_id.as_deref(),
+            ) {
                 Ok((detail, answer)) => {
                     if let Some(text) = answer.as_ref().filter(|s| !s.trim().is_empty()) {
                         answers.push(text.clone());
@@ -589,7 +862,7 @@ impl ScribeMcp {
         };
 
         if let Some(store) = self.open_agent_store() {
-            let agent_id = if spellcheck { "proofreader" } else { "general" };
+            let agent_id = if spellcheck { "proofreader" } else { role_id };
             let _ = store.append_run(
                 scope,
                 document_id.as_deref(),
@@ -609,6 +882,8 @@ impl ScribeMcp {
                 "persona": persona,
                 "scope": scope,
                 "documentId": document_id,
+                "documentIdB": document_id_b,
+                "revisionId": revision_id,
                 "toolCount": tools_list.len(),
             })),
             "ok",
@@ -618,9 +893,65 @@ impl ScribeMcp {
             "goal": goal,
             "scope": scope,
             "documentId": document_id,
+            "documentIdB": document_id_b,
+            "revisionId": revision_id,
             "persona": persona,
             "steps": steps,
             "answer": answer,
         })))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::select_files_ingest_paths;
+    use serde_json::json;
+
+    #[test]
+    fn files_ingest_skips_dirs_and_binaries() {
+        let entries = vec![
+            json!({"kind": "dir", "path": "src", "name": "src", "textLike": false}),
+            json!({"kind": "file", "path": "src/main.rs", "name": "main.rs", "textLike": true}),
+            json!({"kind": "file", "path": "logo.png", "name": "logo.png", "textLike": false}),
+            json!({"kind": "file", "path": "notes.md", "name": "notes.md", "textLike": true}),
+        ];
+        let paths = select_files_ingest_paths(&entries, "", 5);
+        assert_eq!(paths, vec!["src/main.rs", "notes.md"]);
+    }
+
+    #[test]
+    fn files_ingest_filters_by_goal_needle() {
+        let entries = vec![
+            json!({"kind": "file", "path": "inbox/a.md", "name": "a.md", "textLike": true}),
+            json!({"kind": "file", "path": "inbox/b.py", "name": "b.py", "textLike": true}),
+            json!({"kind": "file", "path": "other/c.md", "name": "c.md", "textLike": true}),
+        ];
+        let paths = select_files_ingest_paths(&entries, "inbox", 5);
+        assert_eq!(paths, vec!["inbox/a.md", "inbox/b.py"]);
+    }
+
+    #[test]
+    fn files_ingest_falls_back_when_needle_misses() {
+        let entries = vec![
+            json!({"kind": "file", "path": "readme.md", "name": "readme.md", "textLike": true}),
+        ];
+        let paths = select_files_ingest_paths(&entries, "zzzz-missing", 5);
+        assert_eq!(paths, vec!["readme.md"]);
+    }
+
+    #[test]
+    fn files_ingest_caps_at_limit() {
+        let entries: Vec<_> = (0..8)
+            .map(|i| {
+                json!({
+                    "kind": "file",
+                    "path": format!("f{i}.md"),
+                    "name": format!("f{i}.md"),
+                    "textLike": true,
+                })
+            })
+            .collect();
+        let paths = select_files_ingest_paths(&entries, "", 5);
+        assert_eq!(paths.len(), 5);
     }
 }

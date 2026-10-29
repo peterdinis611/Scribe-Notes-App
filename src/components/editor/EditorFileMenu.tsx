@@ -66,7 +66,7 @@ export function EditorFileMenu({
           <ChevronDown className="h-3 w-3 shrink-0 opacity-60" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="min-w-[220px]">
+      <DropdownMenuContent align="start" className="editor-file-menu-content min-w-[220px]">
         <DropdownMenuItem onClick={onImport}>
           <FolderInput className="h-3.5 w-3.5 shrink-0" />
           {t('fileMenu.import')}

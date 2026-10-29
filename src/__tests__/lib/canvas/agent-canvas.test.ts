@@ -12,6 +12,13 @@ describe('agent canvas helpers', () => {
     expect(doc.objects.some((obj) => obj.parentId)).toBe(true)
   })
 
+  it('builds blank and roadmap templates', () => {
+    expect(buildCanvasTemplate('blank').objects).toEqual([])
+    const roadmap = buildCanvasTemplate('roadmap')
+    expect(roadmap.objects.some((obj) => obj.kind === 'frame' && obj.label === 'Now')).toBe(true)
+    expect(roadmap.objects.some((obj) => obj.kind === 'frame' && obj.label === 'Later')).toBe(true)
+  })
+
   it('serializes template and converts objects to TipTap', () => {
     const doc = buildCanvasTemplate('roadmap')
     const json = serializeCanvasDocument(doc)

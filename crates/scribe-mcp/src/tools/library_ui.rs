@@ -169,3 +169,10 @@ pub struct AgentDocumentBriefParams {
     pub tools: Option<Vec<String>>,
     pub limit: Option<i64>,
 }
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct NormalizeToastSettingsParams {
+    /// Raw JSON object (partial toast settings OK).
+    pub raw: String,
+}

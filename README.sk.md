@@ -429,7 +429,7 @@ Schéma SQLite je verzovaná v `src-tauri/src/db/migrations.rs` (a zdieľané he
 
 ## Verzia
 
-Aktuálna verzia: **5.0.0**
+Aktuálna verzia: **5.1.0**
 
 ## Súkromie
 

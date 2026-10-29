@@ -1,11 +1,14 @@
-import { describe, expect, it } from 'vitest'
-import { toast } from '@/lib/toast'
+import { describe, expect, it, beforeEach } from 'vitest'
+import { getToastState, resetToastStore, toast } from '@/lib/toast'
 import { runManualSave } from '@/lib/manual-save'
-import { store } from '@/store/index'
 
 describe('manual save toast integration', () => {
-  it('pushes a success toast into the store when save succeeds', async () => {
-    const before = store.getState().ui.toasts.length
+  beforeEach(() => {
+    resetToastStore()
+  })
+
+  it('pushes a success toast into the toast store when save succeeds', async () => {
+    const before = getToastState().items.length
 
     const ok = await runManualSave({
       flush: async () => true,
@@ -14,7 +17,7 @@ describe('manual save toast integration', () => {
     })
 
     expect(ok).toBe(true)
-    const toasts = store.getState().ui.toasts
+    const toasts = getToastState().items
     expect(toasts.length).toBeGreaterThan(before)
 
     const latest = toasts[toasts.length - 1]

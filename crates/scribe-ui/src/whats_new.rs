@@ -1,6 +1,6 @@
 //! Whats New edition highlights (i18n keys live in FE locales).
 
-/// Edition 5.0 highlight ids — must match `whatsNew.*` keys in en/sk.json.
+/// Edition 5.x highlight ids — must match `whatsNew.*` keys in en/sk.json.
 pub const WHATS_NEW_50_HIGHLIGHTS: &[&str] = &[
     "nativeCore",
     "wikiNative",
@@ -9,7 +9,7 @@ pub const WHATS_NEW_50_HIGHLIGHTS: &[&str] = &[
     "stillLocal",
 ];
 
-/// Folio tag keys under `whatsNew.tags.*` for the 5.0 edition.
+/// Folio tag keys under `whatsNew.tags.*` for the 5.x edition.
 pub const WHATS_NEW_50_TAG_KEYS: &[&str] = &["native", "library", "editor"];
 
 /// Deprecated alias — prefer [`WHATS_NEW_50_HIGHLIGHTS`].

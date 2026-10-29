@@ -1120,7 +1120,37 @@
       "advancedDescription": "Overall interface scale. Print layout zoom stays separate.",
       "uiZoom": "Zoom level",
       "uiZoomHint": "Scale the whole app UI from 85% to 125%.",
-      "uiZoomReset": "Reset zoom to 100%"
+      "uiZoomReset": "Reset zoom to 100%",
+      "toastsTitle": "Notifications",
+      "toastsDescription": "Toast position, timing, stack size, and density. Logic is shared with the Scribe toast engine.",
+      "toastsEnabled": "Show toasts",
+      "toastsEnabledHint": "Master switch for in-app toast notifications.",
+      "toastsPosition": "Corner",
+      "toastsPositionHint": "Where toast stacks appear on screen.",
+      "toastsPosBottomRight": "Bottom right",
+      "toastsPosBottomLeft": "Bottom left",
+      "toastsPosTopRight": "Top right",
+      "toastsPosTopLeft": "Top left",
+      "toastsDuration": "Auto-dismiss",
+      "toastsDurationHint": "How long ordinary toasts stay visible (actions stay longer).",
+      "toastsMax": "Max visible",
+      "toastsMaxHint": "How many toasts can stack at once.",
+      "toastsStack": "When full",
+      "toastsStackHint": "What happens when a new toast arrives over the limit.",
+      "toastsStackOldest": "Drop oldest",
+      "toastsStackNewest": "Ignore newest",
+      "toastsStackReplace": "Replace same title",
+      "toastsDense": "Compact toasts",
+      "toastsDenseHint": "Tighter padding and slightly smaller type.",
+      "toastsReducedMotion": "Respect reduced motion",
+      "toastsReducedMotionHint": "Skip enter/exit animation when the system asks for less motion.",
+      "toastsPreview": "Preview",
+      "toastsPreviewHint": "Fire a sample toast with the current settings.",
+      "toastsPreviewSuccess": "Settings look good",
+      "toastsPreviewInfo": "Toast preview",
+      "toastsPreviewSuccessBtn": "Success",
+      "toastsPreviewInfoBtn": "Info",
+      "toastsResetDone": "Toast defaults restored"
     },
     "language": {
       "title": "Language",
@@ -2355,7 +2385,7 @@
             "Optional Local LLM (Ollama on localhost) can polish selected heuristics — summarize, writing coach, rewrite, explain, simplify — when you turn on Enhance heuristics in Settings. Model picker and a connectivity test live on the same page.",
             "Storage Files API exposes your documents folder’s files/ sandbox on loopback. With the API running, Local AI can list, search, summarize, and answer questions over those text files with path citations — still never leaving this Mac.",
             "After enabling, documents are indexed into vectors (model scribe-hash-v4). If you update Scribe and the model changes, a reindex banner appears — mixing old and new vectors would give inconsistent results.",
-            "In document chat and the Local Agent you can run study and style actions: flashcards, takeaways, glossary, explain, simplify, action items, terminology, and a writing coach — plus the Deep read recipe (outline → glossary → takeaways → flashcards)."
+            "In document chat and the Local Agent you can run study and style actions: flashcards, takeaways, glossary, explain, simplify, action items, terminology, and a writing coach — plus the Deep read recipe (section summaries → tone → takeaways → flashcards)."
           ],
           "points": [
             "Built into Scribe — enable once in Settings → Local AI, no third-party account",
@@ -3176,9 +3206,19 @@
       "digest": { "label": "Daily digest", "hint": "Library brief" },
       "report": { "label": "Weekly review", "hint": "Report + terminology + dates" },
       "files": { "label": "Ask files/", "hint": "Query the files sandbox", "defaultGoal": "What's in my files/ sandbox?" },
+      "filesdigest": { "label": "Files digest", "hint": "Summarize the files/ sandbox" },
+      "tolibrary": { "label": "Files → library", "hint": "Ingest sandbox files into notes" },
       "code": { "label": "Code brief", "hint": "Review code in this note" },
+      "codepass": { "label": "Code pass", "hint": "Brief + explain + outline + keywords" },
+      "codeaudit": { "label": "Code audit", "hint": "Brief + secrets scan + glossary" },
       "canvas": { "label": "Canvas board", "hint": "Canvas → note recipe" },
-      "privacy": { "label": "Privacy pass", "hint": "PII + cleanup recipe" }
+      "privacy": { "label": "Privacy pass", "hint": "PII + cleanup recipe" },
+      "handoff": { "label": "Handoff", "hint": "Pass work to another agent role" },
+      "wikihealth": { "label": "Wiki health", "hint": "Orphan / stub / hub report" },
+      "template": { "label": "Note → template", "hint": "Hints + outline + save template" },
+      "wikiclean": { "label": "Wiki cleanup", "hint": "Health + links + organize" },
+      "ingest": { "label": "Learn from files/", "hint": "Ask sandbox then import notes" },
+      "revision": { "label": "Revision AI", "hint": "Review recent changes to this note" }
     },
     "send": "Run",
     "thinking": "Agent is running local tools…",
@@ -3335,7 +3375,9 @@
       "privacyPass": "Privacy pass",
       "polish": "Polish note",
       "wikiCleanup": "Wiki cleanup",
-      "canvasBoard": "Canvas → note"
+      "canvasBoard": "Canvas → note",
+      "codePass": "Code pass",
+      "codeAudit": "Code audit"
     },
     "quickPrompts": {
       "explain": "Explain this note",
@@ -3817,6 +3859,8 @@
     "emptyHintLinked": "Every document is already part of the map. Keep linking to densify the constellation.",
     "emptyTipWiki": "Write [[Title]] in a note to grow the map.",
     "emptyOrphans": "No orphan documents — every document is linked.",
+    "emptyOrphansFiltered": "Orphans are hidden by the current map filters.",
+    "clearMapFilters": "Clear filters",
     "emptyAround": "No neighbors for the active document. Turn off Around, or enable Orphans.",
     "summary": "{{nodes}} documents · {{edges}} links",
     "showOrphans": "Orphans",
@@ -3968,7 +4012,12 @@
     "updatesChecking": "Opening…",
     "updatesOpened": "Releases page opened",
     "updatesOpenedHint": "Current version: {{version}}",
-    "updatesError": "Could not open the updates page"
+    "updatesError": "Could not open the updates page",
+    "feDebugEnable": "Enable FE debug logs",
+    "feDebugDisable": "Disable FE debug logs",
+    "feDebugOn": "Frontend verbose logs on",
+    "feDebugOff": "Frontend verbose logs off",
+    "feDebugHint": "IPC/save traces in DevTools console · or scribeLog.setEnabled(true)"
   },
   "toasts": {
     "reconcileSuccess": "Sync completed",

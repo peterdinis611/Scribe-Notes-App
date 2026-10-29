@@ -7,6 +7,8 @@ import {
 } from '@/lib/db/api'
 import type { AgentToolId } from '@/lib/library/agent-prefs'
 import type { AgentRecipeId } from '@/lib/library/agent-recipes'
+import type { AgentRoleId } from '@/lib/library/agent-roles'
+import { getAgentRole } from '@/lib/library/agent-roles'
 import type { ChatScope } from '@/lib/library/library-chat'
 
 /** Where a slash command is offered / allowed. */
@@ -93,12 +95,6 @@ export function getCachedAgentSlashCommands(): AgentSlashCommand[] {
 export function seedAgentSlashCatalogForTests(rows: AgentSlashCommand[]) {
   catalogCache = rows
 }
-
-/**
- * @deprecated Prefer ensureAgentSlashCatalog — kept as empty export for gradual migration.
- * Autocomplete should call filterAgentSlashCommands after ensure.
- */
-export const AGENT_SLASH_COMMANDS: AgentSlashCommand[] = []
 
 function toolsForSlashCommand(
   cmd: AgentSlashCommand,
@@ -222,16 +218,36 @@ export async function filterAgentSlashCommandsAsync(
   }
 }
 
+/** Whether a slash command fits the active dock role (tools / recipe ownership). */
+export function slashCommandAllowedForRole(
+  cmd: AgentSlashCommand,
+  roleId: AgentRoleId | null | undefined,
+): boolean {
+  if (!roleId || roleId === 'general') return true
+  const role = getAgentRole(roleId)
+  if (cmd.recipeId) {
+    if (role.recipeIds.includes(cmd.recipeId as AgentRecipeId)) return true
+    // Recipe owned by another role — hide unless this role has every tool in the recipe.
+  }
+  const tools = cmd.tools ?? []
+  if (tools.length === 0) {
+    return Boolean(cmd.recipeId && role.recipeIds.includes(cmd.recipeId as AgentRecipeId))
+  }
+  return tools.every((tool) => role.tools.includes(tool as AgentToolId))
+}
+
 /** Sync filter over cached catalog (after ensureAgentSlashCatalog). */
 export function filterAgentSlashCommands(
   query: string,
   scope: ChatScope,
   limit = 10,
+  roleId?: AgentRoleId | null,
 ): AgentSlashCommand[] {
   const q = fold(query.replace(/^\//, ''))
   const out: AgentSlashCommand[] = []
   for (const cmd of catalogCache ?? []) {
     if (!scopeAllowed(cmd, scope)) continue
+    if (!slashCommandAllowedForRole(cmd, roleId)) continue
     if (!q) {
       out.push(cmd)
     } else {

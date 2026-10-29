@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Dialog,
   DialogContent,
@@ -230,22 +232,20 @@ export function CreatePluginDialog({ open, onOpenChange, onCreated }: CreatePlug
             </select>
           </label>
 
-          <label className="flex items-center gap-2 text-[12px] text-[var(--color-foreground)]">
-            <input
-              type="checkbox"
+          <Label className="flex items-center gap-2 text-[12px] font-normal text-[var(--color-foreground)]">
+            <Checkbox
               checked={enableAfter}
-              onChange={(event) => setEnableAfter(event.target.checked)}
+              onCheckedChange={(checked) => setEnableAfter(checked === true)}
             />
             {t('settings.plugins.create.enableAfter')}
-          </label>
-          <label className="flex items-center gap-2 text-[12px] text-[var(--color-foreground)]">
-            <input
-              type="checkbox"
+          </Label>
+          <Label className="flex items-center gap-2 text-[12px] font-normal text-[var(--color-foreground)]">
+            <Checkbox
               checked={downloadPackage}
-              onChange={(event) => setDownloadPackage(event.target.checked)}
+              onCheckedChange={(checked) => setDownloadPackage(checked === true)}
             />
             {t('settings.plugins.create.downloadPackage')}
-          </label>
+          </Label>
 
           {preview && (
             <div className="rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-background)] p-3">

@@ -516,19 +516,23 @@ Configure opt-in Local LLM (writable MCP only): `enabled`, `baseUrl` (localhost)
 
 ## `run_agent`
 
-Same local agent planner as the Scribe app (`plan_agent_goal` + tool execution). Optional LLM planner when Local LLM + plan is enabled. Respects agent prefs (disabled tools, max steps) and injects teachings from `scribe-agent.db`.
+Same local agent as the Scribe app (`plan_agent_goal` + tool execution, or a fixed recipe / tool list). Optional LLM planner when Local LLM + plan is enabled. Respects agent prefs (disabled tools, max steps) and injects teachings from `scribe-agent.db`.
 
 | Arg | Type | Required | Notes |
 |-----|------|----------|--------|
-| `goal` | string | yes | Natural-language goal |
+| `goal` | string | no* | Natural-language goal. Required unless `recipeId` or `forceTools` is set (then defaults to the recipe id / `"run"`) |
 | `scope` | string | no | `library` or `document` |
 | `documentId` | string | no | Required for most document tools |
+| `documentIdB` | string | no | Second note for `compare_notes` / `contradictions` |
+| `revisionId` | string | no | Snapshot id for the `revision` tool |
 | `maxTools` | number | no | 1–6; defaults to agent prefs `maxSteps` |
-| `persona` | string | no | `general` (default) or `spellcheck` (Spellcheck Agent) |
+| `persona` | string | no | `general` (default), `spellcheck`/`proofreader`, or role id (`librarian`, `meeting`, `study`, `organizer`, `developer`) |
+| `recipeId` | string | no | Built-in recipe (`code_pass`, `code_audit`, `meeting_wrap`, `files_digest`, …) — skips the planner |
+| `forceTools` | string[] | no | Explicit tool ids in order; overrides the planner (and takes precedence over `recipeId`) |
 
-When `persona` is `spellcheck`, the run forces the `spellcheck` tool, requires `documentId`, and injects **grammar** teachings only.
+When `persona` is `spellcheck` (or `proofreader`/`spell`/`grammar`), the run forces the `spellcheck` tool, requires `documentId`, and injects **grammar** teachings only. Other role personas filter planned / forced tools to that role’s allow-list.
 
-Executed tools (parity with the in-app agent) include library/document NLP tools plus `keywords`, `wiki_health`, `note_pulse`, `continuation`, `mentions`, `handoff`, `save_template` (requires `SCRIBE_MCP_WRITE=1`), and `canvas_summarize` / `canvas_to_note` (write). `canvas_template` and `files_ingest` remain app-only.
+Executed tools (parity with the in-app agent) include library/document NLP tools plus `forward_plan`, `keywords`, `wiki_health`, `note_pulse`, `continuation`, `mentions`, `handoff`, `compare_notes` / `contradictions` (need `documentIdB`), `revision` (needs `revisionId`), `save_template` / `files_ingest` / `canvas_template` / `canvas_to_note` (require `SCRIBE_MCP_WRITE=1`), and `canvas_summarize`.
 
 ---
 

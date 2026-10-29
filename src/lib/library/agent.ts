@@ -346,6 +346,8 @@ export function suggestFollowupRecipes(
   if (ok.has('files_answer') || ok.has('files_ingest')) {
     out.push('files_learn', 'files_to_library', 'files_digest')
   }
+  if (ok.has('code_brief') || ok.has('explain') || ok.has('outline')) out.push('code_pass')
+  if (ok.has('code_brief') || ok.has('pii') || ok.has('glossary')) out.push('code_audit')
   if (ok.has('spellcheck')) out.push('spellcheck', 'polish')
   if (ok.has('style') || ok.has('terminology')) out.push('polish')
   if (scope === 'document' && out.length === 0) out.push('spellcheck', 'polish', 'study_pass')
@@ -878,7 +880,7 @@ async function runTool(
     return {
       answer: result.answer || result.brief || 'No code brief produced.',
       citations: [],
-      followups: ['recipe:files_learn', 'teach:code'],
+      followups: ['recipe:code_pass', 'recipe:code_audit', 'recipe:files_learn', 'teach:code'],
     }
   }
 

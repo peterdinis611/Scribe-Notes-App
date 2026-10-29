@@ -7,6 +7,9 @@ members = [
   "crates/scribe-audit",
   "crates/scribe-ui",
   "crates/scribe-video",
+  "crates/scribe-sync",
+  "crates/scribe-capture",
+  "crates/scribe-toast",
 ]
 resolver = "2"
 

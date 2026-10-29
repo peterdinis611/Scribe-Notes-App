@@ -27,6 +27,54 @@ const debugRequested =
 
 const passthroughArgs = argv.filter((arg) => arg !== '--debug')
 
+const c = {
+  reset: '\x1b[0m',
+  dim: '\x1b[2m',
+  bold: '\x1b[1m',
+  cyan: '\x1b[36m',
+  green: '\x1b[32m',
+  yellow: '\x1b[33m',
+  magenta: '\x1b[35m',
+  blue: '\x1b[34m',
+}
+
+function banner(): void {
+  const mode = debugRequested ? `${c.yellow}DEBUG${c.reset}` : `${c.green}DEV${c.reset}`
+  console.log('')
+  console.log(`${c.bold}${c.cyan}┌─ Scribe tauri:dev${c.reset}  (${mode})`)
+  console.log(
+    `${c.cyan}│${c.reset}  ${c.dim}webview hot-reload · keep this process running${c.reset}`,
+  )
+  console.log(
+    `${c.cyan}│${c.reset}  ${c.dim}force reload: npm run dev:reload${c.reset}`,
+  )
+  if (debugRequested) {
+    console.log(`${c.cyan}│${c.reset}`)
+    console.log(`${c.cyan}│${c.reset}  ${c.bold}Verbose flags${c.reset}`)
+    for (const [key, value] of [
+      ['SCRIBE_DEBUG', '1'],
+      ['SCRIBE_NLP_DEBUG', process.env.SCRIBE_NLP_DEBUG ?? '1'],
+      ['SCRIBE_RUST_LOG', process.env.SCRIBE_RUST_LOG ?? 'debug'],
+      ['RUST_LOG', process.env.RUST_LOG ?? 'debug'],
+      ['VITE_DEBUG', process.env.VITE_DEBUG ?? '1'],
+      ['TAURI_DEBUG', process.env.TAURI_DEBUG ?? '1'],
+    ] as const) {
+      console.log(
+        `${c.cyan}│${c.reset}    ${c.magenta}${key}${c.reset}=${c.yellow}${value}${c.reset}`,
+      )
+    }
+    console.log(
+      `${c.cyan}│${c.reset}  ${c.dim}FE console: [boot]/[ipc]/[save]  ·  Rust: colored [LEVEL][target]${c.reset}`,
+    )
+  } else {
+    console.log(
+      `${c.cyan}│${c.reset}  ${c.dim}soft FE logs on · verbose: npm run tauri:dev:debug${c.reset}`,
+    )
+  }
+  console.log(`${c.cyan}└${c.reset}`)
+  console.log('')
+}
+
 const debugEnv: NodeJS.ProcessEnv = debugRequested
   ? {
       ...process.env,
@@ -83,32 +131,27 @@ function shutdown(code = 0): void {
 process.on('SIGINT', () => shutdown(0))
 process.on('SIGTERM', () => shutdown(0))
 
+banner()
+
 const hadBinary = existsSync(binary)
 console.log(
   hadBinary
-    ? `[dev] starting tauri + refreshing MCP release binary${debugRequested ? ' (debug)' : ''}…`
-    : `[dev] MCP binary missing — building scribe-mcp (release) in parallel with tauri${debugRequested ? ' (debug)' : ''}…`,
+    ? `${c.blue}[dev]${c.reset} starting tauri + refreshing MCP release binary…`
+    : `${c.blue}[dev]${c.reset} MCP binary missing — building scribe-mcp (release) in parallel with tauri…`,
 )
-console.log('[dev] editor file changes reload the webview — keep this process running (npm run dev:reload to force)')
 
-if (debugRequested) {
-  console.log(
-    '[dev] debug flags: SCRIBE_DEBUG SCRIBE_NLP_DEBUG RUST_LOG=debug VITE_DEBUG TAURI_DEBUG',
-  )
-}
-
-const mcp = spawnLogged('cargo', ['build', '--release', '-p', 'scribe-mcp'], '[mcp] ', {
+const mcp = spawnLogged('cargo', ['build', '--release', '-p', 'scribe-mcp'], `${c.magenta}[mcp]${c.reset} `, {
   env: debugEnv,
 })
 
 mcp.on('exit', (code, signal) => {
   if (shuttingDown) return
   if (code === 0) {
-    console.log(`[mcp] ready → ${binary}`)
+    console.log(`${c.green}[mcp]${c.reset} ready → ${binary}`)
     return
   }
   console.warn(
-    `[mcp] build exited (${signal ?? code}). Tauri keeps running; fix MCP with: npm run mcp:install`,
+    `${c.yellow}[mcp]${c.reset} build exited (${signal ?? code}). Tauri keeps running; fix MCP with: npm run mcp:install`,
   )
 })
 
