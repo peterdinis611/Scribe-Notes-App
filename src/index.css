@@ -20978,3 +20978,32 @@ html.theme-transition .editor-status-bar {
     transition: none !important;
   }
 }
+
+/* —— Toast host positions (scribe-toast settings) —— */
+.toast-host--bottom-right {
+  bottom: 1rem;
+  right: 1rem;
+}
+.toast-host--bottom-left {
+  bottom: 1rem;
+  left: 1rem;
+}
+.toast-host--top-right {
+  top: 1rem;
+  right: 1rem;
+}
+.toast-host--top-left {
+  top: 1rem;
+  left: 1rem;
+}
+.toast-host--dense .toast-item {
+  padding: 0.55rem 0.7rem;
+  gap: 0.45rem;
+}
+.toast-host--dense .toast-item p {
+  font-size: 12px;
+}
+.toast-host--reduced-motion .toast-item-in,
+.toast-host--reduced-motion .toast-item-out {
+  animation: none !important;
+}

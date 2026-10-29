@@ -1,15 +1,17 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import { CheckCircle2, Info, X, XCircle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { dismissToast, runToastAction } from '@/lib/toast/api'
 import {
-  dismissToast,
-  runToastAction,
+  getToastSettings,
+  getToastState,
+  subscribeToasts,
   TOAST_EXIT_EVENT,
-  type ToastVariant,
-} from '@/lib/toast'
+} from '@/lib/toast/store'
+import { toastPositionClass } from '@/lib/toast/settings'
+import type { ToastVariant } from '@/lib/toast/types'
 import { cn } from '@/lib/utils'
 import { IconTooltip } from '@/components/ui/tooltip'
-import { useAppSelector } from '@/store/hooks'
 
 function ToastIcon({ variant }: { variant: ToastVariant }) {
   const className = 'h-4 w-4 shrink-0'
@@ -32,10 +34,28 @@ const toastVariantClass: Record<ToastVariant, string> = {
   info: 'toast-item--info border-[color-mix(in_srgb,var(--color-accent)_28%,var(--color-border))]',
 }
 
+function useToastItems() {
+  return useSyncExternalStore(
+    subscribeToasts,
+    () => getToastState().items,
+    () => getToastState().items,
+  )
+}
+
+function useLiveToastSettings() {
+  return useSyncExternalStore(subscribeToasts, getToastSettings, getToastSettings)
+}
+
+function prefersReducedMotion(): boolean {
+  return window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false
+}
+
 export function ToastHost() {
   const { t } = useTranslation()
-  const toasts = useAppSelector((state) => state.ui.toasts)
+  const toasts = useToastItems()
+  const settings = useLiveToastSettings()
   const [exitingIds, setExitingIds] = useState(() => new Set<string>())
+  const reduceMotion = settings.respectReducedMotion && prefersReducedMotion()
 
   useEffect(() => {
     function onExit(event: Event) {
@@ -73,7 +93,12 @@ export function ToastHost() {
 
   return (
     <div
-      className="toast-host pointer-events-none fixed bottom-4 right-4 z-[60] flex w-[min(360px,calc(100vw-32px))] flex-col gap-2 titlebar-no-drag"
+      className={cn(
+        'toast-host pointer-events-none fixed z-[60] flex w-[min(360px,calc(100vw-32px))] flex-col gap-2 titlebar-no-drag',
+        toastPositionClass(settings),
+        settings.dense && 'toast-host--dense',
+        reduceMotion && 'toast-host--reduced-motion',
+      )}
       aria-live="polite"
       aria-relevant="additions"
     >
@@ -87,12 +112,9 @@ export function ToastHost() {
               'toast-item pointer-events-auto flex items-start gap-2.5 rounded-[var(--radius-md)] border bg-[var(--color-background)] p-3 shadow-[0_8px_24px_rgba(15,15,15,0.12)]',
               toastVariantClass[item.variant],
               exiting ? 'toast-item-out' : 'toast-item-in',
+              settings.pauseOnHover && 'toast-item--pause-hover',
             )}
-            style={
-              exiting
-                ? undefined
-                : { animationDelay: `${Math.min(index, 6) * 40}ms` }
-            }
+            style={exiting || reduceMotion ? undefined : { animationDelay: `${Math.min(index, 6) * 40}ms` }}
             role="status"
           >
             <ToastIcon variant={item.variant} />

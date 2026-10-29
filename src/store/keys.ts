@@ -35,6 +35,7 @@ const SHOW_EDITOR_TOOLBAR_KEY = 'scribe-show-editor-toolbar'
 const SHOW_STATUS_BAR_KEY = 'scribe-show-status-bar'
 const SHOW_PANEL_RAIL_KEY = 'scribe-show-panel-rail'
 const UI_ZOOM_KEY = 'scribe-ui-zoom'
+const TOAST_SETTINGS_KEY = 'scribe-toast-settings'
 
 export {
     ACTIVE_DOCUMENT_ID_KEY,
@@ -44,6 +45,7 @@ export {
     SHOW_STATUS_BAR_KEY,
     SHOW_PANEL_RAIL_KEY,
     UI_ZOOM_KEY,
+    TOAST_SETTINGS_KEY,
     COMMENT_AUTHOR_KEY,
     CUSTOM_TEMPLATE_CATEGORIES_KEY,
     CUSTOM_TEMPLATES_KEY,

@@ -154,6 +154,7 @@ dependencies = [
  "scribe-capture",
  "scribe-core",
  "scribe-sync",
+ "scribe-toast",
  "scribe-ui",
  "scribe-video",
  "serde",
@@ -4572,6 +4573,7 @@ dependencies = [
  "scribe-capture",
  "scribe-core",
  "scribe-sync",
+ "scribe-toast",
  "scribe-ui",
  "serde",
  "serde_json",
@@ -4591,6 +4593,14 @@ dependencies = [
  "serde",
  "serde_json",
  "uuid",
+]
+
+[[package]]
+name = "scribe-toast"
+version = "5.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

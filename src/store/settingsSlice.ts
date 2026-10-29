@@ -58,11 +58,13 @@ import {
   readShowStatusBar,
   readShowPanelRail,
   readUiZoom,
+  readToastSettings,
   persistShowDocumentTabs,
   persistShowEditorToolbar,
   persistShowStatusBar,
   persistShowPanelRail,
   persistUiZoom,
+  persistToastSettings,
   applyUiZoom,
   clampUiZoom,
   persistShortcutOverrides,
@@ -75,6 +77,7 @@ import {
   saveAgentPrefsToBackend,
   teachAgentBackend,
 } from '@/lib/library/agent-backend'
+import { applyToastSettings, normalizeToastSettings, type ToastSettings } from '@/lib/toast'
 
 export type EditorViewMode = 'rich' | 'markdown'
 export type PrintLayoutColumns = 1 | 2
@@ -110,6 +113,7 @@ export interface SettingsState {
   showStatusBar: boolean
   showPanelRail: boolean
   uiZoom: number
+  toastSettings: ToastSettings
 }
 
 const initialState: SettingsState = {
@@ -137,6 +141,7 @@ const initialState: SettingsState = {
   showStatusBar: readShowStatusBar(),
   showPanelRail: readShowPanelRail(),
   uiZoom: readUiZoom(),
+  toastSettings: readToastSettings(),
 }
 
 const settingsSlice = createSlice({
@@ -344,6 +349,18 @@ const settingsSlice = createSlice({
       persistUiZoom(value)
       applyUiZoom(value)
     },
+    setToastSettings(state, action: PayloadAction<ToastSettings>) {
+      const next = normalizeToastSettings(action.payload)
+      state.toastSettings = next
+      persistToastSettings(next)
+      applyToastSettings(next)
+    },
+    patchToastSettings(state, action: PayloadAction<Partial<ToastSettings>>) {
+      const next = normalizeToastSettings({ ...state.toastSettings, ...action.payload })
+      state.toastSettings = next
+      persistToastSettings(next)
+      applyToastSettings(next)
+    },
   },
 })
 
@@ -380,6 +397,8 @@ export const {
   setShowStatusBar,
   setShowPanelRail,
   setUiZoom,
+  setToastSettings,
+  patchToastSettings,
 } = settingsSlice.actions
 
 export default settingsSlice.reducer
@@ -387,4 +406,5 @@ export default settingsSlice.reducer
 export function bootstrapTheme() {
   applyThemeSettings(readThemeSettings(), readUiSkin())
   applyUiZoom(readUiZoom())
+  applyToastSettings(readToastSettings())
 }

@@ -529,4 +529,22 @@ impl ScribeMcp {
             "metaDocumentsDirGranted": scribe_sync::META_DOCUMENTS_DIR_GRANTED,
         })))
     }
+
+    #[tool(
+        description = "Default toast notification settings (position, durations, stack behavior). Canonical from scribe-toast."
+    )]
+    fn toast_defaults(&self) -> Result<String, String> {
+        Ok(tools::json(&scribe_toast::default_toast_settings()))
+    }
+
+    #[tool(
+        description = "Normalize / clamp a toast settings JSON object (partial OK). Returns safe settings the app would apply."
+    )]
+    fn normalize_toast_settings_mcp(
+        &self,
+        Parameters(params): Parameters<tools::NormalizeToastSettingsParams>,
+    ) -> Result<String, String> {
+        let settings = scribe_toast::toast_settings_from_json(&params.raw)?;
+        Ok(tools::json(&settings))
+    }
 }
