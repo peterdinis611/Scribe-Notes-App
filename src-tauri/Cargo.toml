@@ -53,7 +53,7 @@ objc2 = "0.6"
 objc2-foundation = { version = "0.3", features = ["NSString", "NSURL", "NSGeometry", "NSObject", "NSValue", "NSArray", "NSDictionary", "NSData"] }
 objc2-app-kit = { version = "0.3", features = ["NSPrintInfo", "NSPrintOperation", "NSWindow", "NSView", "NSResponder"] }
 objc2-vision = { version = "0.3", default-features = false, features = ["std", "VNRecognizeTextRequest", "VNRequest", "VNRequestHandler", "VNObservation", "VNTypes"] }
-notify = { version = "7", default-features = false, features = ["macos_fsevent"] }
+notify = { version = "8", default-features = false, features = ["macos_fsevent"] }
 
 [target.'cfg(any(target_os = "linux", target_os = "windows"))'.dependencies]
 notify = { version = "7", default-features = true }
