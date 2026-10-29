@@ -20,7 +20,7 @@ axum = { version = "0.8", default-features = false, features = [
   "tokio",
   "tower-log",
 ] }
-base64 = "0.22"
+base64 = "0.23"
 rmcp = { version = "3.2", features = [
   "server",
   "transport-io",
