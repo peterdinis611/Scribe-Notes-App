@@ -70,11 +70,13 @@ impl ScribeMcp {
         &self,
         tool: &str,
         goal: &str,
+        scope: &str,
         document_id: Option<&str>,
         document_id_b: Option<&str>,
         revision_id: Option<&str>,
     ) -> Result<(String, Option<String>), String> {
         let tool = tool.trim().to_ascii_lowercase();
+        let scope_norm = scope.trim().to_ascii_lowercase();
         let grammar_rules = if tool == "grammar" || tool == "grammar_check" {
             self.grammar_rules_from_agent()
         } else {
@@ -96,10 +98,145 @@ impl ScribeMcp {
                     Some(result.answer),
                 ))
             }
-            "summarize" | "brief" => {
+            "summarize" => {
                 let id = document_id.ok_or_else(|| "documentId required for summarize".to_string())?;
                 let summary = store.summarize_document(&self.sidecar, id, Some(5))?;
                 Ok(("summarize".into(), Some(summary.summary)))
+            }
+            "brief" => {
+                // Parity with FE `runTool('brief')`: library/folder digests are not summarize.
+                let want_library = scope_norm == "library"
+                    || (scope_norm != "document" && document_id.is_none());
+                if want_library {
+                    let period_week = goal.to_ascii_lowercase().contains("week")
+                        || goal.to_ascii_lowercase().contains("týžd")
+                        || goal.to_ascii_lowercase().contains("tyzd")
+                        || goal == "weekly_review";
+                    let window_ms: i64 = if period_week {
+                        7 * 24 * 60 * 60 * 1000
+                    } else {
+                        24 * 60 * 60 * 1000
+                    };
+                    let now_ms = std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .map(|d| d.as_millis() as i64)
+                        .unwrap_or(0);
+                    let since = now_ms - window_ms;
+                    let label = if period_week {
+                        "Weekly digest"
+                    } else {
+                        "Daily digest"
+                    };
+                    let docs = store.list_documents(None, Some(48))?;
+                    let recent: Vec<_> = docs
+                        .into_iter()
+                        .filter(|d| d.updated_at >= since)
+                        .take(16)
+                        .collect();
+                    let tasks = store
+                        .list_open_tasks(&self.sidecar, None, 36, false)
+                        .unwrap_or_default();
+                    let mut sections = vec![format!("**{label}**")];
+                    if recent.is_empty() {
+                        sections.push(if period_week {
+                            "**Updated notes**\n\nNothing changed in the last 7 days.".into()
+                        } else {
+                            "**Updated notes**\n\nNothing changed in the last 24 hours.".into()
+                        });
+                    } else {
+                        let lines = recent
+                            .iter()
+                            .map(|d| {
+                                format!(
+                                    "- {}",
+                                    if d.title.trim().is_empty() {
+                                        "Untitled"
+                                    } else {
+                                        d.title.trim()
+                                    }
+                                )
+                            })
+                            .collect::<Vec<_>>()
+                            .join("\n");
+                        sections.push(format!(
+                            "**Updated notes ({})**\n\n{lines}",
+                            recent.len()
+                        ));
+                    }
+                    if tasks.is_empty() {
+                        sections
+                            .push("**Open tasks**\n\nNo open checklist tasks in the library.".into());
+                    } else {
+                        let lines = tasks
+                            .iter()
+                            .take(16)
+                            .map(|t| {
+                                let due = t
+                                    .due_hint
+                                    .as_deref()
+                                    .filter(|s| !s.is_empty())
+                                    .map(|s| format!(" _(due {s})_"))
+                                    .unwrap_or_default();
+                                let where_ = t
+                                    .document_title
+                                    .as_deref()
+                                    .filter(|s| !s.is_empty())
+                                    .map(|s| format!(" — {s}"))
+                                    .unwrap_or_default();
+                                format!("- {}{due}{where_}", t.text)
+                            })
+                            .collect::<Vec<_>>()
+                            .join("\n");
+                        sections.push(format!("**Open tasks ({})**\n\n{lines}", tasks.len()));
+                    }
+                    if let Ok(events) =
+                        store.calendar_events(&self.sidecar, Some(12), None, None)
+                    {
+                        let nonempty = events
+                            .as_array()
+                            .map(|a| !a.is_empty())
+                            .unwrap_or(!events.is_null());
+                        if nonempty {
+                            sections.push(format!(
+                                "**Upcoming dates**\n\n{}",
+                                tools::json(&events)
+                            ));
+                        }
+                    }
+                    Ok(("brief".into(), Some(sections.join("\n\n"))))
+                } else if let Some(id) = document_id {
+                    let tools_value = serde_json::json!(["summarize", "tasks", "takeaways"]);
+                    match store.agent_document_brief(
+                        &self.sidecar,
+                        Some(id),
+                        None,
+                        Some(goal),
+                        Some(&tools_value),
+                        Some(5),
+                    ) {
+                        Ok(result) => {
+                            let answer = result
+                                .get("answer")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("")
+                                .to_string();
+                            if answer.trim().is_empty() {
+                                let summary =
+                                    store.summarize_document(&self.sidecar, id, Some(5))?;
+                                Ok(("brief".into(), Some(summary.summary)))
+                            } else {
+                                Ok(("brief".into(), Some(answer)))
+                            }
+                        }
+                        Err(_) => {
+                            let summary = store.summarize_document(&self.sidecar, id, Some(5))?;
+                            Ok(("brief".into(), Some(summary.summary)))
+                        }
+                    }
+                } else {
+                    let report = store.library_report(&self.sidecar)?;
+                    Ok(("brief".into(), Some(tools::json(&report))))
+                }
             }
             "outline" => {
                 let id = document_id.ok_or_else(|| "documentId required for outline".to_string())?;
@@ -629,6 +766,66 @@ impl ScribeMcp {
                     }))),
                 ))
             }
+            "translate" => {
+                let id =
+                    document_id.ok_or_else(|| "documentId required for translate".to_string())?;
+                let doc = store
+                    .get_document(id, false)?
+                    .ok_or_else(|| format!("document not found: {id}"))?;
+                let target = if goal.to_ascii_lowercase().contains("sk")
+                    || goal.to_ascii_lowercase().contains("sloven")
+                {
+                    "Slovak"
+                } else {
+                    "English"
+                };
+                let instruction = format!(
+                    "Translate the following text into {target}. Keep meaning; do not add commentary."
+                );
+                let result = store.rewrite_selection(
+                    &self.sidecar,
+                    &doc.plain_text,
+                    Some("clarity"),
+                    Some(&instruction),
+                )?;
+                Ok(("translate".into(), Some(tools::json(&result))))
+            }
+            "timeline" => {
+                let events = store.calendar_events(&self.sidecar, Some(40), None, None)?;
+                Ok(("timeline".into(), Some(tools::json(&events))))
+            }
+            "research_pack" => {
+                let id = document_id
+                    .ok_or_else(|| "documentId required for research_pack".to_string())?;
+                let claim = if goal.trim().is_empty() {
+                    "key claims in this note"
+                } else {
+                    goal
+                };
+                let citations = store.citation_pack(&self.sidecar, claim, Some(8))?;
+                let similar = store.similar_documents_for(id, 6)?;
+                let takeaways = store.extract_takeaways(&self.sidecar, Some(id), None, Some(8))?;
+                Ok((
+                    "research_pack".into(),
+                    Some(tools::json(&serde_json::json!({
+                        "citations": citations,
+                        "similar": similar,
+                        "takeaways": takeaways,
+                    }))),
+                ))
+            }
+            "export_snippet" => {
+                let id = document_id
+                    .ok_or_else(|| "documentId required for export_snippet".to_string())?;
+                let doc = store
+                    .get_document(id, false)?
+                    .ok_or_else(|| format!("document not found: {id}"))?;
+                let body = doc.plain_text.chars().take(8000).collect::<String>();
+                Ok((
+                    "export_snippet".into(),
+                    Some(format!("**Export snippet** (Markdown)\n\n```markdown\n{body}\n```")),
+                ))
+            }
             other => Err(format!("unsupported agent tool: {other}")),
         })
     }
@@ -831,6 +1028,7 @@ impl ScribeMcp {
             match self.execute_agent_tool(
                 tool_name,
                 goal,
+                scope,
                 document_id.as_deref(),
                 document_id_b.as_deref(),
                 revision_id.as_deref(),

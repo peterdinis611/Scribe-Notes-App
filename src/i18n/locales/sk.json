@@ -2049,6 +2049,10 @@
         "developer": {
           "label": "Vývojár",
           "hint": "Code brief pre Rust/Python, hľadanie v sandboxe a import zdrojov."
+        },
+        "researcher": {
+          "label": "Výskumník",
+          "hint": "Citácie, súvisiace poznámky, timeline a preklady."
         }
       },
       "optimizeTitle": "Optimalizácia práce",
@@ -2084,12 +2088,20 @@
       "dailyBudgetHint": "Dnes {{used}} / {{max}}. 0 = bez limitu.",
       "autoRunOnSave": "Brief po uložení",
       "autoRunOnSaveHint": "Po uložení poznámky spustí ľahký brief: zhrnutie → úlohy → závery.",
+      "autoApplyOnSave": "Automatický zápis briefu",
+      "autoApplyOnSave_off": "Len toast",
+      "autoApplyOnSave_callout": "Callout",
+      "autoApplyOnSave_section": "Sekcia",
       "digestSchedule": "Plánovaný digest",
       "digestScheduleHint": "Kým je Scribe otvorený, spustí denný alebo týždenný digest knižnice v lokálnom čase.",
       "digestScheduleTime": "Čas",
       "digestSchedulePeriod": "Frekvencia",
       "digestScheduleDaily": "Denne",
       "digestScheduleWeekly": "Týždenne",
+      "digestWriteMode": "Zápis digestu",
+      "digestWriteMode_toast": "Toast",
+      "digestWriteMode_spawn": "Nová poznámka",
+      "digestWriteMode_append_journal": "Denník",
       "customRecipesTitle": "Vlastné recepty",
       "customRecipesHint": "Poskladaj vlastné reťazce nástrojov (max. 3). Zobrazia sa ako chipy v paneli agenta.",
       "customRecipesEmpty": "Zatiaľ žiadne vlastné recepty.",
@@ -3125,6 +3137,10 @@
       "developer": {
         "dock": "Kód",
         "dockTitle": "Review Rust & Python"
+      },
+      "researcher": {
+        "dock": "Výskum",
+        "dockTitle": "Citácie, porovnanie, timeline"
       }
     },
     "spellAgent": {
@@ -3222,7 +3238,14 @@
       "template": { "label": "Poznámka → šablóna", "hint": "Hinty + osnova + uložiť šablónu" },
       "wikiclean": { "label": "Wiki upratanie", "hint": "Health + odkazy + organizácia" },
       "ingest": { "label": "Učiť sa z files/", "hint": "Opýtať sandbox a importovať poznámky" },
-      "revision": { "label": "Revision AI", "hint": "Prehľad nedávnych zmien poznámky" }
+      "revision": { "label": "Revision AI", "hint": "Prehľad nedávnych zmien poznámky" },
+      "translate": {
+        "label": "Preložiť",
+        "hint": "Preklad výberu alebo poznámky (en/sk)",
+        "defaultGoal": "Preložiť do angličtiny"
+      },
+      "timeline": { "label": "Timeline", "hint": "Chronológia dátumov v poznámke" },
+      "research": { "label": "Research pass", "hint": "Citácie + súvisiace + timeline" }
     },
     "send": "Spustiť",
     "thinking": "Agent spúšťa lokálne nástroje…",
@@ -3251,33 +3274,49 @@
     "clarifyUncertainBadge": "Treba výber",
     "applyToNote": "Vložiť do poznámky",
     "applySmart": "Aplikovať do poznámky",
+    "applyAndContinue": "Aplikovať a pokračovať",
     "applyCallout": "Callout",
     "applyChecklist": "Checklist",
+    "applyCursor": "Na kurzor",
+    "applySection": "Ako sekciu",
     "applyFrontmatter": "Hore do poznámky",
     "applyUndo": "Vrátiť vloženie",
     "applyUndone": "Vloženie vrátené",
     "applyOrganizeDone": "Pridané tagy: {{tags}}",
-    "applyOrganizeFolder": "Navrhovaný priečinok: {{folder}}",
+    "applyOrganizeDoneWithFolder": "Pridané tagy {{tags}} a presunuté do {{folder}}",
+    "applyOrganizeFolder": "Presunuté do priečinka: {{folder}}",
     "applyOrganizeNone": "Žiadne nové tagy na aplikovanie",
     "applyWikiDone": "Prepojené [[{{title}}]]",
+    "applyWikiDoneCount": "Použitých {{count}} wiki odkazov",
     "applyWikiFailed": "Wiki odkaz sa nepodarilo použiť — otvorte poznámku v editore",
+    "applyTitleDone": "Poznámka premenovaná",
+    "applyGrammarDone": "Použitých {{count}} gramatických opráv",
+    "applyGrammarFailed": "Gramatické opravy sa nepodarilo použiť",
+    "applyGrammarNone": "Žiadne gramatické opravy",
     "applyPreviewTitle": "Náhľad vloženia",
     "applyPreviewHint": "Skontroluj, čo sa zapíše do otvorenej poznámky.",
     "applyPreviewCallout": "Vložiť ako callout",
     "applyPreviewChecklist": "Vložiť ako checklist",
     "applyPreviewFrontmatter": "Vložiť hore",
+    "applyPreviewCursor": "Vložiť na kurzor",
+    "applyPreviewSection": "Vložiť ako sekciu",
     "applyPreviewReplace": "Nahradiť výber",
     "applyPreviewBefore": "Pred",
     "applyPreviewAfter": "Po",
     "applyPreviewOrganize": "Aplikovať organize návrhy",
-    "applyPreviewWiki": "Aplikovať wiki odkaz",
+    "applyPreviewWiki": "Aplikovať wiki odkazy",
     "applyPreviewTags": "Nové tagy",
-    "applyPreviewFolder": "Návrh priečinka",
+    "applyPreviewFolder": "Priečinok",
     "applyPreviewWikiBody": "Prepojiť „{{phrase}}“ → [[{{title}}]]",
     "applyPreviewConfirm": "Vložiť do poznámky",
     "applyPreviewConfirmReplace": "Použiť prepis",
     "applyPreviewSpellcheck": "Použiť pravopisné opravy",
+    "applyPreviewGrammar": "Použiť gramatické opravy",
+    "applyPreviewTitleRename": "Premenovať poznámku",
     "applyPreviewConfirmSpellcheck": "Nahradiť v poznámke",
+    "applyPreviewConfirmTitle": "Premenovať",
+    "sectionMeeting": "Zápis zo stretnutia",
+    "sectionBrief": "Brief",
     "applySpellcheck": "Použiť pravopisné opravy",
     "applySpellcheckDone": "Použitých {{count}} pravopisných opráv",
     "applySpellcheckFailed": "Opravy sa nepodarilo použiť — otvor poznámku v editore",
@@ -3353,6 +3392,10 @@
     "ingestFilesEmpty": "Žiadne cesty zo sandboxu na import",
     "ingestEmpty": "Súbor bol prázdny",
     "digestScheduleDone": "Plánovaný digest je hotový",
+    "digestSpawnDaily": "Denný digest",
+    "digestSpawnWeekly": "Týždenný prehľad",
+    "digestJournalDaily": "Denný digest",
+    "digestJournalWeekly": "Týždenný prehľad",
     "digestScheduleCatchUp": "Digest hotový (dobehnuté pri otvorení)",
     "starters": {
       "themes": "Aké témy sa objavujú v mojich poznámkach?",
@@ -3381,7 +3424,11 @@
       "wikiCleanup": "Wiki upratanie",
       "canvasBoard": "Canvas → poznámka",
       "codePass": "Code pass",
-      "codeAudit": "Code audit"
+      "codeAudit": "Code audit",
+      "morningBrief": "Ranný brief",
+      "polishAndApply": "Vyhladiť a aplikovať",
+      "researchPass": "Research pass",
+      "deepResearch": "Hlboký výskum"
     },
     "quickPrompts": {
       "explain": "Vysvetli túto poznámku",
@@ -3445,7 +3492,11 @@
       "canvas_summarize": "Zhrnúť canvas",
       "canvas_to_note": "Canvas → poznámka",
       "canvas_template": "Šablóna canvasu",
-      "code_brief": "Code brief"
+      "code_brief": "Code brief",
+      "translate": "Preložiť",
+      "timeline": "Timeline",
+      "research_pack": "Research pack",
+      "export_snippet": "Export snippet"
     }
   },
   "localIntelligence": {

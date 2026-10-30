@@ -75,6 +75,10 @@ export type AgentToolId =
   | 'canvas_summarize'
   | 'canvas_to_note'
   | 'canvas_template'
+  | 'translate'
+  | 'timeline'
+  | 'research_pack'
+  | 'export_snippet'
 
 export type AgentMaxSteps = 1 | 2 | 3 | 4 | 5 | 6
 
@@ -124,6 +128,12 @@ export type AgentDigestSchedule = {
   lastRunDate: string
 }
 
+/** How scheduled digests write results. */
+export type AgentDigestWriteMode = 'toast' | 'spawn' | 'append_journal'
+
+/** Optional auto-write after save brief. */
+export type AgentAutoApplyOnSave = 'off' | 'callout' | 'section'
+
 export type CustomAgentRecipe = {
   id: string
   label: string
@@ -165,8 +175,12 @@ export type AgentPrefs = {
   runsTodayDate: string
   /** After save, queue a light document brief (preferFast tools). */
   autoRunOnSave: boolean
+  /** After save brief, optionally write into the open note. */
+  autoApplyOnSave: AgentAutoApplyOnSave
   /** While the app is open, run digests at a local time. */
   digestSchedule: AgentDigestSchedule
+  /** Persist digest output (toast-only, spawn note, or journal append). */
+  digestWriteMode: AgentDigestWriteMode
   /** User-authored tool recipes (beyond built-ins). */
   customRecipes: CustomAgentRecipe[]
 }
@@ -198,7 +212,9 @@ export const DEFAULT_AGENT_PREFS: AgentPrefs = {
   runsToday: 0,
   runsTodayDate: '',
   autoRunOnSave: false,
+  autoApplyOnSave: 'off',
   digestSchedule: { ...DEFAULT_DIGEST_SCHEDULE },
+  digestWriteMode: 'spawn',
   customRecipes: [],
 }
 
@@ -258,6 +274,10 @@ const ALL_TOOLS: AgentToolId[] = [
   'canvas_summarize',
   'canvas_to_note',
   'canvas_template',
+  'translate',
+  'timeline',
+  'research_pack',
+  'export_snippet',
 ]
 
 export function isAgentToolId(value: unknown): value is AgentToolId {
@@ -279,6 +299,8 @@ const HEAVY_TOOLS = new Set<AgentToolId>([
   'compare_notes',
   'files_answer',
   'glossary',
+  'research_pack',
+  'timeline',
 ])
 
 function isToolId(value: unknown): value is AgentToolId {
@@ -496,7 +518,15 @@ export function normalizeAgentPrefs(raw: unknown): AgentPrefs {
     runsToday,
     runsTodayDate: date === today ? today : '',
     autoRunOnSave: Boolean(input.autoRunOnSave),
+    autoApplyOnSave:
+      input.autoApplyOnSave === 'callout' || input.autoApplyOnSave === 'section'
+        ? input.autoApplyOnSave
+        : 'off',
     digestSchedule: normalizeDigestSchedule(input.digestSchedule),
+    digestWriteMode:
+      input.digestWriteMode === 'toast' || input.digestWriteMode === 'append_journal'
+        ? input.digestWriteMode
+        : 'spawn',
     customRecipes: normalizeCustomRecipes(input.customRecipes),
   }
 }

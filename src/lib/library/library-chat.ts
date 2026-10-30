@@ -36,6 +36,19 @@ export type LibraryChatResult = {
   followups?: string[]
   /** Structured spellcheck fixes for agent apply UI. */
   spellIssues?: LibraryChatSpellFix[]
+  /** Suggested document title for one-click rename apply. */
+  suggestedTitle?: string
+  /** First continuation suggestion for cursor insert. */
+  continuationText?: string
+  /** Grammar findings for structured apply. */
+  grammarFindings?: Array<{
+    match: string
+    suggestion: string
+    message?: string
+    kind?: string
+  }>
+  /** Original selection / span the rewrite targeted. */
+  rewriteSource?: string
 }
 
 export type ChatScope = 'library' | 'document' | 'folder'

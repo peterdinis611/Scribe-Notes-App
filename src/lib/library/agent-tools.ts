@@ -36,6 +36,8 @@ import {
   nlpSuggestTitle,
   nlpTemplateFillHints,
   nlpTonePack,
+  nlpSimilarDocuments,
+  nlpExtractTakeaways,
   type CalendarEvent,
 } from '@/lib/db/nlp-api'
 import { tiptapToPlainText } from '@/lib/export/plain-text'
@@ -279,6 +281,14 @@ export async function runAgentGrammar(documentId: string): Promise<LibraryChatRe
   if (!findings.length) {
     return { answer: 'Grammar check found no issues with the current rules.', citations: [] }
   }
+  const applyable = findings
+    .filter((item) => item.kind !== 'guidance' && item.match?.trim() && item.suggestion?.trim())
+    .map((item) => ({
+      match: item.match,
+      suggestion: item.suggestion,
+      message: item.message,
+      kind: item.kind,
+    }))
   return {
     answer: `**Grammar (${findings.length})**\n\n${bullets(
       findings.map((item) => {
@@ -288,6 +298,7 @@ export async function runAgentGrammar(documentId: string): Promise<LibraryChatRe
       }),
     )}`,
     citations: [{ documentId, title: 'Grammar', snippet: `${findings.length} findings` }],
+    grammarFindings: applyable,
   }
 }
 
@@ -352,6 +363,7 @@ export async function runAgentTitle(documentId: string): Promise<LibraryChatResu
   return {
     answer: `**Suggested title**\n\n**${result.title}**\n\nSlug: \`${result.slug || '—'}\` · source: ${result.source}`,
     citations: [{ documentId, title: result.title, snippet: result.source }],
+    suggestedTitle: result.title,
   }
 }
 
@@ -375,6 +387,7 @@ export async function runAgentContinuation(documentId: string): Promise<LibraryC
         snippet: `${result.corpusDocs ?? 0} corpus docs · ${result.source}`,
       },
     ],
+    continuationText: suggestions[0]?.text?.trim() || undefined,
   }
 }
 
@@ -647,6 +660,7 @@ export async function runAgentRewrite(
   return {
     answer: `**Rewrite** (_${result.mode}_)\n\n${result.output}`,
     citations: [{ documentId, title: 'Rewrite', snippet: result.original.slice(0, 120) }],
+    rewriteSource: result.original || source,
   }
 }
 
@@ -762,5 +776,119 @@ export async function runAgentSaveTemplate(documentId: string): Promise<LibraryC
       },
     ],
     followups: ['Create a note from this template', 'Polish the note first'],
+  }
+}
+
+export async function runAgentTranslate(
+  documentId: string,
+  goal: string,
+  selectionText?: string | null,
+): Promise<LibraryChatResult> {
+  let source = selectionText?.trim() || ''
+  if (!source) {
+    const doc = await getDocument(documentId)
+    if (!doc) return { answer: 'Open a note to translate.', citations: [] }
+    try {
+      source = tiptapToPlainText(JSON.parse(doc.contentJson || '{}')).slice(0, 6000)
+    } catch {
+      source = ''
+    }
+  }
+  if (!source.trim()) {
+    return { answer: 'Nothing to translate — select text or open a note.', citations: [] }
+  }
+  const target = /\bsk\b|sloven/i.test(goal)
+    ? 'Slovak'
+    : /\ben\b|english|anglick/i.test(goal)
+      ? 'English'
+      : /sloven/i.test(goal)
+        ? 'Slovak'
+        : 'English'
+  const result = await nlpRewriteSelection(
+    source.slice(0, 4000),
+    'clarity',
+    `Translate the following text into ${target}. Keep meaning; do not add commentary.`,
+  )
+  return {
+    answer: `**Translate → ${target}**\n\n${result.output}`,
+    citations: [{ documentId, title: 'Translate', snippet: source.slice(0, 120) }],
+    rewriteSource: source.slice(0, 800),
+  }
+}
+
+export async function runAgentTimeline(documentId: string): Promise<LibraryChatResult> {
+  const range = weekRangeIso()
+  const events = await nlpCalendarEvents({ limit: 40, ...range })
+  const forDoc = events.filter((item) => item.documentId === documentId)
+  const list = (forDoc.length ? forDoc : events).slice(0, 24)
+  if (!list.length) {
+    return {
+      answer: 'No dated events found for a timeline yet.',
+      citations: [],
+    }
+  }
+  const lines = list.map((item) => {
+    const when = item.resolvedDate || item.text || '—'
+    return `**${when}** — ${item.text}${item.documentTitle ? ` _(${item.documentTitle})_` : ''}`
+  })
+  return {
+    answer: `**Timeline**\n\n${lines.join('\n')}`,
+    citations: list.slice(0, 8).map((item) => ({
+      documentId: item.documentId || documentId,
+      title: item.documentTitle || item.text || 'Event',
+      snippet: item.resolvedDate || item.text || '',
+    })),
+  }
+}
+
+export async function runAgentResearchPack(
+  documentId: string,
+  goal: string,
+): Promise<LibraryChatResult> {
+  const claim = goal.trim() || 'key claims in this note'
+  const [citations, similar, takeaways] = await Promise.all([
+    runAgentCitations(claim),
+    nlpSimilarDocuments(documentId, 6).catch(() => []),
+    nlpExtractTakeaways({ documentId, limit: 8 }).catch(() => null),
+  ])
+  const similarLines = (similar ?? []).slice(0, 6).map((item) => {
+    const title = item.title || 'Related'
+    const snip = item.snippet ? `: ${item.snippet}` : ''
+    return `**${title}**${snip}`
+  })
+  const takeawayLines = (takeaways?.takeaways ?? [])
+    .slice(0, 8)
+    .map((item) => item.text)
+    .filter(Boolean)
+  const parts = [
+    citations.answer,
+    similarLines.length ? `**Related notes**\n\n${bullets(similarLines)}` : '',
+    takeawayLines.length ? `**Takeaways**\n\n${bullets(takeawayLines)}` : '',
+  ].filter(Boolean)
+  return {
+    answer: `**Research pack**\n\n${parts.join('\n\n')}`,
+    citations: citations.citations,
+    followups: ['recipe:research_pass', '/timeline', '/translate'],
+  }
+}
+
+export async function runAgentExportSnippet(
+  documentId: string,
+  selectionText?: string | null,
+): Promise<LibraryChatResult> {
+  let markdown = selectionText?.trim() || ''
+  if (!markdown) {
+    const doc = await getDocument(documentId)
+    if (!doc) return { answer: 'Open a note to export a snippet.', citations: [] }
+    const { serializeContentJsonToMarkdown } = await import('@/lib/editor/markdown-content')
+    markdown = serializeContentJsonToMarkdown(doc.contentJson || '{}').trim()
+  }
+  if (!markdown) {
+    return { answer: 'Nothing to export.', citations: [] }
+  }
+  const clipped = markdown.slice(0, 8000)
+  return {
+    answer: `**Export snippet** (Markdown)\n\n\`\`\`markdown\n${clipped}\n\`\`\`\n\nCopy the fenced block or Apply as a section.`,
+    citations: [{ documentId, title: 'Export', snippet: clipped.slice(0, 80) }],
   }
 }

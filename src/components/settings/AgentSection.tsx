@@ -115,6 +115,10 @@ const TOOL_LABEL_KEYS: Record<AgentToolId, string> = {
   canvas_to_note: 'agent.tools.canvas_to_note',
   canvas_template: 'agent.tools.canvas_template',
   code_brief: 'agent.tools.code_brief',
+  translate: 'agent.tools.translate',
+  timeline: 'agent.tools.timeline',
+  research_pack: 'agent.tools.research_pack',
+  export_snippet: 'agent.tools.export_snippet',
 }
 
 type ToolMode = 'default' | 'prefer' | 'never'
@@ -127,6 +131,7 @@ const ROLE_ICON: Record<AgentRoleId, typeof Bot> = {
   study: GraduationCap,
   organizer: FolderKanban,
   developer: Code2,
+  researcher: Library,
 }
 
 function toolMode(
@@ -703,6 +708,27 @@ export function AgentSection() {
               </li>
             </ul>
 
+            {prefs.autoRunOnSave ? (
+              <div className="agent-settings-control-strip mt-2">
+                <div className="agent-settings-control">
+                  <span>{t('settings.agent.autoApplyOnSave')}</span>
+                  <div className="agent-settings-segment" role="group">
+                    {(['off', 'callout', 'section'] as const).map((mode) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        className={cn(prefs.autoApplyOnSave === mode && 'is-active')}
+                        disabled={!prefs.enabled}
+                        onClick={() => dispatch(patchAgentPrefs({ autoApplyOnSave: mode }))}
+                      >
+                        {t(`settings.agent.autoApplyOnSave_${mode}`)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
             {prefs.digestSchedule.enabled ? (
               <div className="agent-settings-control-strip mt-2">
                 <div className="agent-settings-control">
@@ -744,6 +770,22 @@ export function AgentSection() {
                         {period === 'day'
                           ? t('settings.agent.digestScheduleDaily')
                           : t('settings.agent.digestScheduleWeekly')}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="agent-settings-control">
+                  <span>{t('settings.agent.digestWriteMode')}</span>
+                  <div className="agent-settings-segment" role="group">
+                    {(['toast', 'spawn', 'append_journal'] as const).map((mode) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        className={cn(prefs.digestWriteMode === mode && 'is-active')}
+                        disabled={!prefs.enabled}
+                        onClick={() => dispatch(patchAgentPrefs({ digestWriteMode: mode }))}
+                      >
+                        {t(`settings.agent.digestWriteMode_${mode}`)}
                       </button>
                     ))}
                   </div>

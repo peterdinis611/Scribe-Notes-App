@@ -15,6 +15,7 @@ export type AgentRoleId =
   | 'study'
   | 'organizer'
   | 'developer'
+  | 'researcher'
 
 export type AgentRolePrefs = {
   enabled: boolean
@@ -47,6 +48,7 @@ export const AGENT_ROLE_IDS: AgentRoleId[] = [
   'study',
   'organizer',
   'developer',
+  'researcher',
 ]
 
 export const AGENT_ROLES: AgentRoleDefinition[] = [
@@ -79,6 +81,8 @@ export const AGENT_ROLES: AgentRoleDefinition[] = [
       'tone',
       'continuation',
       'keywords',
+      'translate',
+      'export_snippet',
       'handoff',
     ],
   },
@@ -90,11 +94,12 @@ export const AGENT_ROLES: AgentRoleDefinition[] = [
     dockTitleKey: 'agent.roles.proofreader.dockTitle',
     defaultEnabled: true,
     panel: 'spellcheck',
-    recipeIds: ['spellcheck', 'polish'],
+    recipeIds: ['spellcheck', 'polish', 'polish_and_apply'],
     tools: [
       'spellcheck',
       'grammar',
       'rewrite',
+      'translate',
       'terminology',
       'terminology_library',
       'style',
@@ -200,7 +205,7 @@ export const AGENT_ROLES: AgentRoleDefinition[] = [
     dockTitleKey: 'agent.roles.organizer.dockTitle',
     defaultEnabled: true,
     panel: 'agent',
-    recipeIds: ['cleanup', 'privacy_pass', 'canvas_board'],
+    recipeIds: ['cleanup', 'privacy_pass', 'canvas_board', 'morning_brief'],
     tools: [
       'organize',
       'wiki',
@@ -215,6 +220,7 @@ export const AGENT_ROLES: AgentRoleDefinition[] = [
       'template_hints',
       'open_loops',
       'forward_plan',
+      'dates',
       'canvas_summarize',
       'canvas_to_note',
       'canvas_template',
@@ -245,6 +251,28 @@ export const AGENT_ROLES: AgentRoleDefinition[] = [
       'handoff',
     ],
   },
+  {
+    id: 'researcher',
+    labelKey: 'settings.agent.roles.researcher.label',
+    hintKey: 'settings.agent.roles.researcher.hint',
+    dockLabelKey: 'agent.roles.researcher.dock',
+    dockTitleKey: 'agent.roles.researcher.dockTitle',
+    defaultEnabled: true,
+    panel: 'agent',
+    recipeIds: ['deep_research', 'research_pass'],
+    tools: [
+      'library_answer',
+      'citations',
+      'similar',
+      'research_pack',
+      'timeline',
+      'translate',
+      'compare_notes',
+      'contradictions',
+      'export_snippet',
+      'handoff',
+    ],
+  },
 ]
 
 export const DEFAULT_AGENT_ROLES: Record<AgentRoleId, AgentRolePrefs> = {
@@ -255,6 +283,7 @@ export const DEFAULT_AGENT_ROLES: Record<AgentRoleId, AgentRolePrefs> = {
   study: { enabled: true },
   organizer: { enabled: true },
   developer: { enabled: true },
+  researcher: { enabled: true },
 }
 
 const ROLE_BY_ID = new Map(AGENT_ROLES.map((role) => [role.id, role]))

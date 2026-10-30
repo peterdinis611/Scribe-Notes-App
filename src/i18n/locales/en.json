@@ -2049,6 +2049,10 @@
         "developer": {
           "label": "Developer",
           "hint": "Code briefs for Rust/Python, sandbox search, and source ingest."
+        },
+        "researcher": {
+          "label": "Researcher",
+          "hint": "Citations, related notes, timelines, and translation packs."
         }
       },
       "optimizeTitle": "Optimize work",
@@ -2084,12 +2088,20 @@
       "dailyBudgetHint": "Used {{used}} / {{max}} today. 0 means unlimited.",
       "autoRunOnSave": "Brief after save",
       "autoRunOnSaveHint": "When a note is saved, run a light summarize → tasks → takeaways brief.",
+      "autoApplyOnSave": "Auto-write brief",
+      "autoApplyOnSave_off": "Toast only",
+      "autoApplyOnSave_callout": "Callout",
+      "autoApplyOnSave_section": "Section",
       "digestSchedule": "Scheduled digest",
       "digestScheduleHint": "While Scribe is open, run daily or weekly library digests at a local time.",
       "digestScheduleTime": "Time",
       "digestSchedulePeriod": "Cadence",
       "digestScheduleDaily": "Daily",
       "digestScheduleWeekly": "Weekly",
+      "digestWriteMode": "Digest write",
+      "digestWriteMode_toast": "Toast",
+      "digestWriteMode_spawn": "New note",
+      "digestWriteMode_append_journal": "Journal",
       "customRecipesTitle": "Custom recipes",
       "customRecipesHint": "Build your own tool chains (up to 3 tools). They appear as chips in the agent panel.",
       "customRecipesEmpty": "No custom recipes yet.",
@@ -3121,6 +3133,10 @@
       "developer": {
         "dock": "Code",
         "dockTitle": "Review Rust & Python"
+      },
+      "researcher": {
+        "dock": "Research",
+        "dockTitle": "Cite, compare, timeline"
       }
     },
     "spellAgent": {
@@ -3218,7 +3234,14 @@
       "template": { "label": "Note → template", "hint": "Hints + outline + save template" },
       "wikiclean": { "label": "Wiki cleanup", "hint": "Health + links + organize" },
       "ingest": { "label": "Learn from files/", "hint": "Ask sandbox then import notes" },
-      "revision": { "label": "Revision AI", "hint": "Review recent changes to this note" }
+      "revision": { "label": "Revision AI", "hint": "Review recent changes to this note" },
+      "translate": {
+        "label": "Translate",
+        "hint": "Translate selection or note (en/sk)",
+        "defaultGoal": "Translate to English"
+      },
+      "timeline": { "label": "Timeline", "hint": "Chronology of dates in this note" },
+      "research": { "label": "Research pass", "hint": "Citations + related + timeline" }
     },
     "send": "Run",
     "thinking": "Agent is running local tools…",
@@ -3247,33 +3270,49 @@
     "clarifyUncertainBadge": "Needs a choice",
     "applyToNote": "Insert into note",
     "applySmart": "Apply to note",
+    "applyAndContinue": "Apply & continue",
     "applyCallout": "Callout",
     "applyChecklist": "Checklist",
+    "applyCursor": "At cursor",
+    "applySection": "As section",
     "applyFrontmatter": "Top note",
     "applyUndo": "Undo insert",
     "applyUndone": "Undid insert",
     "applyOrganizeDone": "Added tags: {{tags}}",
-    "applyOrganizeFolder": "Suggested folder: {{folder}}",
+    "applyOrganizeDoneWithFolder": "Added tags {{tags}} and moved to {{folder}}",
+    "applyOrganizeFolder": "Moved to folder: {{folder}}",
     "applyOrganizeNone": "No new tags to apply",
     "applyWikiDone": "Linked [[{{title}}]]",
+    "applyWikiDoneCount": "Applied {{count}} wiki links",
     "applyWikiFailed": "Could not apply wiki link — open the note in the editor",
+    "applyTitleDone": "Renamed note",
+    "applyGrammarDone": "Applied {{count}} grammar fixes",
+    "applyGrammarFailed": "Could not apply grammar fixes",
+    "applyGrammarNone": "No grammar fixes to apply",
     "applyPreviewTitle": "Preview insert",
     "applyPreviewHint": "Review what will be written into the open note.",
     "applyPreviewCallout": "Insert as callout",
     "applyPreviewChecklist": "Insert as checklist",
     "applyPreviewFrontmatter": "Insert at top",
+    "applyPreviewCursor": "Insert at cursor",
+    "applyPreviewSection": "Insert as section",
     "applyPreviewReplace": "Replace selection",
     "applyPreviewBefore": "Before",
     "applyPreviewAfter": "After",
     "applyPreviewOrganize": "Apply organize suggestions",
-    "applyPreviewWiki": "Apply wiki link",
+    "applyPreviewWiki": "Apply wiki links",
     "applyPreviewTags": "New tags",
-    "applyPreviewFolder": "Folder hint",
+    "applyPreviewFolder": "Folder",
     "applyPreviewWikiBody": "Link “{{phrase}}” → [[{{title}}]]",
     "applyPreviewConfirm": "Insert into note",
     "applyPreviewConfirmReplace": "Apply rewrite",
     "applyPreviewSpellcheck": "Apply spelling fixes",
+    "applyPreviewGrammar": "Apply grammar fixes",
+    "applyPreviewTitleRename": "Rename note",
     "applyPreviewConfirmSpellcheck": "Replace in note",
+    "applyPreviewConfirmTitle": "Rename",
+    "sectionMeeting": "Meeting notes",
+    "sectionBrief": "Brief",
     "applySpellcheck": "Apply spelling fixes",
     "applySpellcheckDone": "Applied {{count}} spelling fix(es)",
     "applySpellcheckFailed": "Could not apply spelling fixes — open the note in the editor",
@@ -3350,6 +3389,10 @@
     "ingestEmpty": "File was empty",
     "digestScheduleDone": "Scheduled digest ready",
     "digestScheduleCatchUp": "Digest ready (caught up on open)",
+    "digestSpawnDaily": "Daily digest",
+    "digestSpawnWeekly": "Weekly review",
+    "digestJournalDaily": "Daily digest",
+    "digestJournalWeekly": "Weekly review",
     "starters": {
       "themes": "What themes show up across my notes?",
       "openLoops": "What open loops should I close?",
@@ -3377,7 +3420,11 @@
       "wikiCleanup": "Wiki cleanup",
       "canvasBoard": "Canvas → note",
       "codePass": "Code pass",
-      "codeAudit": "Code audit"
+      "codeAudit": "Code audit",
+      "morningBrief": "Morning brief",
+      "polishAndApply": "Polish & apply",
+      "researchPass": "Research pass",
+      "deepResearch": "Deep research"
     },
     "quickPrompts": {
       "explain": "Explain this note",
@@ -3441,7 +3488,11 @@
       "canvas_summarize": "Summarize canvas",
       "canvas_to_note": "Canvas → note",
       "canvas_template": "Canvas template",
-      "code_brief": "Code brief"
+      "code_brief": "Code brief",
+      "translate": "Translate",
+      "timeline": "Timeline",
+      "research_pack": "Research pack",
+      "export_snippet": "Export snippet"
     }
   },
   "localIntelligence": {

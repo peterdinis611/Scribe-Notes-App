@@ -88,3 +88,26 @@ export function applySpellSuggestion(word: string, replacement: string): boolean
   })
   return done
 }
+
+/** Replace first occurrence of `match` with `suggestion` (grammar / shared path). */
+export function applyTextMatchSuggestion(match: string, suggestion: string): boolean {
+  const needle = match.trim()
+  const replacement = suggestion.trim()
+  if (!needle || !replacement || needle === replacement) return false
+  return applySpellSuggestion(needle, replacement)
+}
+
+export function applyWikiSuggestions(
+  suggestions: WikiLinkSuggestion[],
+): { linked: number; inserted: number; failed: number } {
+  let linked = 0
+  let inserted = 0
+  let failed = 0
+  for (const suggestion of suggestions) {
+    const result = applyWikiSuggestion(suggestion)
+    if (result === 'linked') linked += 1
+    else if (result === 'inserted') inserted += 1
+    else failed += 1
+  }
+  return { linked, inserted, failed }
+}

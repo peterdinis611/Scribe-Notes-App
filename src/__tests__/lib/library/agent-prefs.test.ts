@@ -54,6 +54,20 @@ describe('normalizeAgentPrefs / teach', () => {
     expect(prefs.teachings).toEqual([])
   })
 
+  it('defaults digest spawn + autorun off, and registers wave-3 tools', async () => {
+    const prefs = normalizeAgentPrefs({})
+    expect(prefs.digestWriteMode).toBe('spawn')
+    expect(prefs.autoApplyOnSave).toBe('off')
+    expect(normalizeAgentPrefs({ digestWriteMode: 'append_journal' }).digestWriteMode).toBe(
+      'append_journal',
+    )
+    expect(normalizeAgentPrefs({ autoApplyOnSave: 'section' }).autoApplyOnSave).toBe('section')
+    const { AGENT_TOOL_IDS } = await import('@/lib/library/agent-prefs')
+    for (const id of ['translate', 'timeline', 'research_pack', 'export_snippet'] as const) {
+      expect(AGENT_TOOL_IDS).toContain(id)
+    }
+  })
+
   it('accepts maxSteps up to 6', () => {
     expect(normalizeAgentPrefs({ maxSteps: 6 }).maxSteps).toBe(6)
     expect(normalizeAgentPrefs({ maxSteps: 4 }).maxSteps).toBe(4)

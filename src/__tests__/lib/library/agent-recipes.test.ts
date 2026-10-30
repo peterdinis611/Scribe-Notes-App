@@ -60,4 +60,26 @@ describe('agent recipes catalog', () => {
     ).toMatchObject({ id: 'custom-1', label: 'Mine', custom: true })
     expect(resolveAgentRecipe('missing')).toBeUndefined()
   })
+
+  it('includes morning_brief, polish_and_apply, and research recipes', () => {
+    expect(getAgentRecipe('morning_brief')?.tools).toEqual([
+      'dates',
+      'open_loops',
+      'forward_plan',
+    ])
+    expect(getAgentRecipe('polish_and_apply')?.tools).toEqual([
+      'grammar',
+      'spellcheck',
+      'rewrite',
+    ])
+    expect(getAgentRecipe('research_pass')?.tools).toEqual(['research_pack', 'timeline'])
+    expect(getAgentRecipe('deep_research')?.tools).toEqual([
+      'research_pack',
+      'citations',
+      'similar',
+      'timeline',
+    ])
+    expect(recipeOwnerRole('deep_research')).toBe('researcher')
+    expect(isRecipeAllowedByAgents('research_pass', DEFAULT_AGENT_ROLES)).toBe(true)
+  })
 })

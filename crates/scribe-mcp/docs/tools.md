@@ -521,18 +521,20 @@ Same local agent as the Scribe app (`plan_agent_goal` + tool execution, or a fix
 | Arg | Type | Required | Notes |
 |-----|------|----------|--------|
 | `goal` | string | no* | Natural-language goal. Required unless `recipeId` or `forceTools` is set (then defaults to the recipe id / `"run"`) |
-| `scope` | string | no | `library` or `document` |
+| `scope` | string | no | `library` or `document` (default: `document` when `documentId` is set, else `library`) |
 | `documentId` | string | no | Required for most document tools |
 | `documentIdB` | string | no | Second note for `compare_notes` / `contradictions` |
 | `revisionId` | string | no | Snapshot id for the `revision` tool |
 | `maxTools` | number | no | 1–6; defaults to agent prefs `maxSteps` |
-| `persona` | string | no | `general` (default), `spellcheck`/`proofreader`, or role id (`librarian`, `meeting`, `study`, `organizer`, `developer`) |
-| `recipeId` | string | no | Built-in recipe (`code_pass`, `code_audit`, `meeting_wrap`, `files_digest`, …) — skips the planner |
-| `forceTools` | string[] | no | Explicit tool ids in order; overrides the planner (and takes precedence over `recipeId`) |
+| `persona` | string | no | `general` (default), `spellcheck`/`proofreader`, or role id (`librarian`, `meeting`, `study`, `organizer`, `developer`, `researcher`) |
+| `recipeId` | string | no | Built-in recipe (`code_pass`, `code_audit`, `meeting_wrap`, `files_digest`, `morning_brief`, `research_pass`, `deep_research`, …) — skips the planner |
+| `forceTools` | string[] | no | Explicit tool ids in order; overrides the planner (and takes precedence over `recipeId`). Examples: `translate`, `timeline`, `research_pack`, `export_snippet`, `brief` |
 
 When `persona` is `spellcheck` (or `proofreader`/`spell`/`grammar`), the run forces the `spellcheck` tool, requires `documentId`, and injects **grammar** teachings only. Other role personas filter planned / forced tools to that role’s allow-list.
 
-Executed tools (parity with the in-app agent) include library/document NLP tools plus `forward_plan`, `keywords`, `wiki_health`, `note_pulse`, `continuation`, `mentions`, `handoff`, `compare_notes` / `contradictions` (need `documentIdB`), `revision` (needs `revisionId`), `save_template` / `files_ingest` / `canvas_template` / `canvas_to_note` (require `SCRIBE_MCP_WRITE=1`), and `canvas_summarize`.
+Executed tools (parity with the in-app agent) include library/document NLP tools plus `forward_plan`, `keywords`, `wiki_health`, `note_pulse`, `continuation`, `mentions`, `handoff`, `compare_notes` / `contradictions` (need `documentIdB`), `revision` (needs `revisionId`), `save_template` / `files_ingest` / `canvas_template` / `canvas_to_note` (require `SCRIBE_MCP_WRITE=1`), `canvas_summarize`, `translate`, `timeline`, `research_pack`, and `export_snippet`.
+
+`brief` matches the in-app agent: with `scope=library` (or no `documentId`) it returns a daily/weekly library digest (recent notes + open tasks + dates), not a single-document summarize. With `scope=document` and `documentId` it runs the document brief pack.
 
 ---
 

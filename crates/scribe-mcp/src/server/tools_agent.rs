@@ -69,7 +69,7 @@ impl ScribeMcp {
     }
 
     #[tool(
-        description = "Run the same local agent as the Scribe app. Pass goal and/or recipeId/forceTools. persona=general|spellcheck|proofreader|librarian|meeting|study|organizer|developer. For compare_notes/contradictions pass documentIdB; for revision pass revisionId. recipeId skips the planner (e.g. code_pass, meeting_wrap). forceTools runs an explicit tool list. Requires Local AI."
+        description = "Run the same local agent as the Scribe app. Pass goal and/or recipeId/forceTools. persona=general|spellcheck|proofreader|librarian|meeting|study|organizer|developer|researcher. For compare_notes/contradictions pass documentIdB; for revision pass revisionId. recipeId skips the planner (e.g. code_pass, meeting_wrap, research_pass, deep_research). forceTools runs an explicit tool list (translate, timeline, research_pack, export_snippet, brief, …). brief with scope=library is a library digest, not summarize. Requires Local AI."
     )]
     fn run_agent(
         &self,

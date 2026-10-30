@@ -69,14 +69,21 @@ import {
 } from '@/lib/export/ics'
 import { spawnNoteFromAgentMarkdown } from '@/lib/library/agent-spawn-note'
 import { ingestCitedFilesToNotes } from '@/lib/library/agent-files-ingest'
-import { applySpellSuggestion, applyWikiSuggestion } from '@/lib/editor/apply-suggestions'
+import {
+  applySpellSuggestion,
+  applyTextMatchSuggestion,
+  applyWikiSuggestions,
+} from '@/lib/editor/apply-suggestions'
 import {
   applyAgentAnswer,
-  replaceSelectionWithAnswer,
+  getEditorSelectionText,
+  replaceMatchOrSelectionWithAnswer,
   stripAnswerMarkdown,
   undoAgentApply,
   type AgentApplyMode,
 } from '@/lib/editor/insert-ai-answer'
+import { moveDocumentToFolder } from '@/lib/db/api'
+import { useRenameDocument } from '@/hooks/useRenameDocument'
 import {
   agentMemoryContext,
   runAgentGoal,
@@ -123,7 +130,12 @@ import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { citationSearchQuery } from '@/lib/editor/citation-jump'
-import { setActiveDocument, setActiveDocumentId, setPendingEditorSearch } from '@/store/documentsSlice'
+import {
+  setActiveDocument,
+  setActiveDocumentId,
+  setPendingEditorSearch,
+  updateDocuments,
+} from '@/store/documentsSlice'
 import { FILES_TEACH_PRESETS } from '@/lib/library/agent-files-train'
 import {
   addAgentPinnedFact,
@@ -213,6 +225,10 @@ const TOOL_LABEL_KEYS: Record<AgentToolId, string> = {
   canvas_to_note: 'agent.tools.canvas_to_note',
   canvas_template: 'agent.tools.canvas_template',
   code_brief: 'agent.tools.code_brief',
+  translate: 'agent.tools.translate',
+  timeline: 'agent.tools.timeline',
+  research_pack: 'agent.tools.research_pack',
+  export_snippet: 'agent.tools.export_snippet',
 }
 
 
@@ -249,6 +265,7 @@ export function AgentPanel({
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
+  const renameDocument = useRenameDocument()
   const activeDocumentId = useAppSelector((state) => state.documents.activeDocumentId)
   const documents = useAppSelector((state) => state.documents.documents)
   const commentAuthor = useAppSelector((state) => state.documents.commentAuthor)
@@ -311,6 +328,7 @@ export function AgentPanel({
   const [filesOfflineHint, setFilesOfflineHint] = useState(false)
   const [applyBusy, setApplyBusy] = useState(false)
   const applyPendingRef = useRef<null | (() => Promise<void> | void)>(null)
+  const applyContinuePhaseRef = useRef<AgentPlanPhase | null>(null)
   const applyFeedbackRef = useRef<{
     goal: string
     tools: AgentToolId[]
@@ -678,6 +696,8 @@ export function AgentPanel({
                       roleId,
                       folderId: runScope === 'folder' ? activeDocument?.folderId : null,
                       stream: true,
+                      selectionText:
+                        runScope === 'document' ? getEditorSelectionText() || null : null,
                     },
                   ),
               )
@@ -789,14 +809,17 @@ export function AgentPanel({
   )
 
   const queueInsertPreview = useCallback(
-    (text: string, mode: AgentApplyMode = 'callout') => {
+    (text: string, mode: AgentApplyMode = 'callout', sectionTitle?: string) => {
       if (!activeDocumentId) {
         toast.error(t('libraryChat.noActiveDocument'))
         return
       }
-      setApplyPreview({ type: 'insert', mode, text })
+      setApplyPreview({ type: 'insert', mode, text, sectionTitle })
       applyPendingRef.current = () => {
-        const ok = applyAgentAnswer(text, mode, { sourceTitle: t('agent.brandBadge') })
+        const ok = applyAgentAnswer(text, mode, {
+          sourceTitle: t('agent.brandBadge'),
+          sectionTitle,
+        })
         if (ok) toast.success(t('agent.appliedToNote'))
         else toast.error(t('agent.applyFailed'))
       }
@@ -821,6 +844,16 @@ export function AgentPanel({
 
   const preferredApplyMode = useCallback((steps?: AgentStep[]): AgentApplyMode => {
     const tools = (steps ?? []).map((step) => step.tool)
+    if (tools.includes('continuation')) return 'cursor'
+    if (
+      tools.includes('summarize') ||
+      tools.includes('section_summaries') ||
+      tools.includes('forward_plan') ||
+      tools.includes('research_pack') ||
+      tools.includes('timeline')
+    ) {
+      return 'section'
+    }
     if (tools.includes('tasks') || tools.includes('takeaways') || tools.includes('dates')) {
       return 'checklist'
     }
@@ -831,11 +864,16 @@ export function AgentPanel({
   }, [])
 
   const applyFromSteps = useCallback(
-    async (text: string, steps?: AgentStep[]) => {
+    async (
+      text: string,
+      steps?: AgentStep[],
+      opts?: { continuePhase?: AgentPlanPhase | null },
+    ) => {
       if (!activeDocumentId) {
         toast.error(t('libraryChat.noActiveDocument'))
         return
       }
+      applyContinuePhaseRef.current = opts?.continuePhase ?? null
       const tools = new Set((steps ?? []).map((step) => step.tool))
       const mode = preferredApplyMode(steps)
 
@@ -843,6 +881,39 @@ export function AgentPanel({
         if (tools.has('save_template')) {
           handleSaveAsTemplate()
           return
+        }
+
+        if (tools.has('title')) {
+          const fromStep = (steps ?? []).find(
+            (step) => step.tool === 'title' && step.suggestedTitle?.trim(),
+          )
+          const title =
+            fromStep?.suggestedTitle?.trim() ||
+            text.match(/\*\*Suggested title\*\*\s*\n+\*\*([^*]+)\*\*/i)?.[1]?.trim() ||
+            ''
+          if (title) {
+            setApplyPreview({ type: 'title', title })
+            applyPendingRef.current = async () => {
+              const updated = await renameDocument(activeDocumentId, title)
+              if (updated) toast.success(t('agent.applyTitleDone'), updated.title)
+              else toast.error(t('agent.applyFailed'))
+            }
+            return
+          }
+        }
+
+        if (tools.has('continuation')) {
+          const fromStep = (steps ?? []).find(
+            (step) => step.tool === 'continuation' && step.continuationText?.trim(),
+          )
+          const snippet =
+            fromStep?.continuationText?.trim() ||
+            stripAnswerMarkdown(text).split(/\n+/).find((line) => line.length > 2) ||
+            ''
+          if (snippet) {
+            queueInsertPreview(snippet, 'cursor')
+            return
+          }
         }
 
         if (tools.has('spellcheck')) {
@@ -882,6 +953,32 @@ export function AgentPanel({
           return
         }
 
+        if (tools.has('grammar')) {
+          const fromSteps = (steps ?? [])
+            .flatMap((step) => step.grammarFindings ?? [])
+            .filter((item) => item.match?.trim() && item.suggestion?.trim())
+          const fixes = fromSteps.slice(0, 24).map((item) => ({
+            match: item.match,
+            suggestion: item.suggestion,
+            message: item.message,
+          }))
+          if (fixes.length) {
+            setApplyPreview({ type: 'grammar', fixes })
+            applyPendingRef.current = () => {
+              let applied = 0
+              for (const fix of fixes) {
+                if (applyTextMatchSuggestion(fix.match, fix.suggestion)) applied += 1
+              }
+              if (applied > 0) {
+                toast.success(t('agent.applyGrammarDone', { count: applied }))
+              } else {
+                toast.error(t('agent.applyGrammarFailed'))
+              }
+            }
+            return
+          }
+        }
+
         if (tools.has('organize') && activeDocumentSummary) {
           const suggestions = await nlpSuggestTags(activeDocumentSummary.id)
           const existing = new Set(activeDocumentSummary.tags.map((tag) => tag.trim().toLowerCase()))
@@ -892,13 +989,44 @@ export function AgentPanel({
             type: 'organize',
             tags,
             folderSuggestion: suggestions.folderSuggestion,
+            folderSuggestionId: suggestions.folderSuggestionId,
           })
           applyPendingRef.current = async () => {
             const result = await applySuggestedTagsToDocument(activeDocumentSummary, dispatch)
-            if (result.added.length) {
+            const folderId =
+              suggestions.folderSuggestionId &&
+              suggestions.folderSuggestionId !== activeDocumentSummary.folderId
+                ? suggestions.folderSuggestionId
+                : result.folderSuggestionId
+            if (folderId) {
+              try {
+                await moveDocumentToFolder(activeDocumentSummary.id, folderId)
+                dispatch(
+                  updateDocuments((prev) =>
+                    prev.map((doc) =>
+                      doc.id === activeDocumentSummary.id ? { ...doc, folderId } : doc,
+                    ),
+                  ),
+                )
+              } catch {
+                // tags may still have applied
+              }
+            }
+            if (result.added.length && folderId) {
+              toast.success(
+                t('agent.applyOrganizeDoneWithFolder', {
+                  tags: result.added.join(', '),
+                  folder: suggestions.folderSuggestion || result.folderSuggestion || folderId,
+                }),
+              )
+            } else if (result.added.length) {
               toast.success(t('agent.applyOrganizeDone', { tags: result.added.join(', ') }))
-            } else if (result.folderSuggestion) {
-              toast.success(t('agent.applyOrganizeFolder', { folder: result.folderSuggestion }))
+            } else if (folderId) {
+              toast.success(
+                t('agent.applyOrganizeFolder', {
+                  folder: suggestions.folderSuggestion || result.folderSuggestion || folderId,
+                }),
+              )
             } else {
               toast.success(t('agent.applyOrganizeNone'))
             }
@@ -907,37 +1035,49 @@ export function AgentPanel({
         }
 
         if (tools.has('wiki')) {
-          const suggestions = await nlpSuggestWikiLinks(activeDocumentId, 6)
-          const first = suggestions?.[0] as WikiLinkSuggestion | undefined
-          if (first) {
-            setApplyPreview({
-              type: 'wiki',
-              phrase: first.phrase || first.title,
-              title: first.title,
-              documentId: first.documentId,
-            })
+          const suggestions = (await nlpSuggestWikiLinks(activeDocumentId, 8)) ?? []
+          const links = suggestions
+            .filter((item): item is WikiLinkSuggestion => Boolean(item?.documentId))
+            .map((item) => ({
+              phrase: item.phrase || item.title,
+              title: item.title,
+              documentId: item.documentId,
+            }))
+          if (links.length) {
+            setApplyPreview({ type: 'wiki', links })
             applyPendingRef.current = () => {
-              const result = applyWikiSuggestion(first)
-              if (result === 'failed') toast.error(t('agent.applyWikiFailed'))
-              else toast.success(t('agent.applyWikiDone', { title: first.title }))
+              const result = applyWikiSuggestions(suggestions)
+              const ok = result.linked + result.inserted
+              if (ok > 0) {
+                toast.success(t('agent.applyWikiDoneCount', { count: ok }))
+              } else {
+                toast.error(t('agent.applyWikiFailed'))
+              }
             }
             return
           }
         }
 
-        if (tools.has('rewrite') || tools.has('simplify')) {
+        if (tools.has('rewrite') || tools.has('simplify') || tools.has('translate')) {
           const rewriteStep = (steps ?? []).find(
             (step) =>
-              (step.tool === 'rewrite' || step.tool === 'simplify') && step.status === 'ok',
+              (step.tool === 'rewrite' ||
+                step.tool === 'simplify' ||
+                step.tool === 'translate') &&
+              step.status === 'ok',
           )
           const before =
+            rewriteStep?.rewriteSource?.trim() ||
             rewriteStep?.citations?.[0]?.snippet?.trim() ||
             text.match(/\*\*Rewrite\*\*[^\n]*\n+([\s\S]+)/i)?.[1]?.slice(0, 400) ||
+            getEditorSelectionText() ||
             ''
-          const after = stripAnswerMarkdown(text)
+          const after = stripAnswerMarkdown(
+            rewriteStep?.answer?.replace(/^\*\*[^*]+\*\*[^\n]*\n+/i, '') || text,
+          )
           setApplyPreview({ type: 'replace', before, after })
           applyPendingRef.current = () => {
-            const ok = replaceSelectionWithAnswer(after)
+            const ok = replaceMatchOrSelectionWithAnswer(after, before)
             if (ok) toast.success(t('agent.appliedToNote'))
             else toast.error(t('agent.applyFailed'))
           }
@@ -948,18 +1088,36 @@ export function AgentPanel({
           tools.has('tasks') || tools.has('takeaways') || tools.has('action_items')
             ? 'checklist'
             : mode
-        queueInsertPreview(text, insertMode)
+        const sectionTitle =
+          insertMode === 'section'
+            ? tools.has('meeting')
+              ? t('agent.sectionMeeting')
+              : tools.has('brief')
+                ? t('agent.sectionBrief')
+                : t('agent.brandBadge')
+            : undefined
+        setApplyPreview({ type: 'insert', mode: insertMode, text, sectionTitle })
+        applyPendingRef.current = () => {
+          const ok = applyAgentAnswer(text, insertMode, {
+            sourceTitle: t('agent.brandBadge'),
+            sectionTitle,
+          })
+          if (ok) toast.success(t('agent.appliedToNote'))
+          else toast.error(t('agent.applyFailed'))
+        }
       } catch (error) {
         toast.error(t('agent.applyFailed'), String(error))
       }
     },
     [
+      activeDocument,
       activeDocumentId,
       activeDocumentSummary,
       dispatch,
       handleSaveAsTemplate,
       preferredApplyMode,
       queueInsertPreview,
+      renameDocument,
       t,
     ],
   )
@@ -984,12 +1142,19 @@ export function AgentPanel({
         })
         applyFeedbackRef.current = null
       }
+      const nextPhase = applyContinuePhaseRef.current
+      applyContinuePhaseRef.current = null
       setApplyPreview(null)
       applyPendingRef.current = null
+      if (nextPhase?.tools?.length) {
+        void runGoal(nextPhase.goal || nextPhase.tools.join(' + '), {
+          forceTools: nextPhase.tools,
+        })
+      }
     } finally {
       setApplyBusy(false)
     }
-  }, [roleId])
+  }, [roleId, runGoal])
 
   const handleSpawnNote = useCallback(
     async (message: AgentThreadMessage) => {
@@ -1874,6 +2039,46 @@ export function AgentPanel({
                     >
                       {t('agent.applyFrontmatter')}
                     </button>
+                    <button
+                      type="button"
+                      className="library-chat-chip"
+                      disabled={loading}
+                      onClick={() => {
+                        armPlanFeedback(message)
+                        queueInsertPreview(message.text, 'cursor')
+                      }}
+                    >
+                      {t('agent.applyCursor')}
+                    </button>
+                    <button
+                      type="button"
+                      className="library-chat-chip"
+                      disabled={loading}
+                      onClick={() => {
+                        armPlanFeedback(message)
+                        queueInsertPreview(message.text, 'section', t('agent.brandBadge'))
+                      }}
+                    >
+                      {t('agent.applySection')}
+                    </button>
+                    {message.phases?.some((phase) => phase.when === 'next' && phase.tools.length) ? (
+                      <button
+                        type="button"
+                        className="library-chat-chip is-active"
+                        disabled={loading}
+                        onClick={() => {
+                          armPlanFeedback(message)
+                          const next = message.phases?.find(
+                            (phase) => phase.when === 'next' && phase.tools.length,
+                          )
+                          void applyFromSteps(message.text, message.steps, {
+                            continuePhase: next ?? null,
+                          })
+                        }}
+                      >
+                        {t('agent.applyAndContinue')}
+                      </button>
+                    ) : null}
                     <button
                       type="button"
                       className="library-chat-chip"
