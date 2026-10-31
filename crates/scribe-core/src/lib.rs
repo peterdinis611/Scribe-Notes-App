@@ -55,7 +55,9 @@ pub use diff::{
     DiffSegment, DiffSegmentType, SideBySideCell, SideBySideCellKind, SideBySideRow,
 };
 pub use html::{escape_html, tiptap_to_html};
-pub use syntax_highlight::{highlight_code_html, list_syntax_names, supports_language};
+pub use syntax_highlight::{
+    highlight_code_html, highlight_code_html_themed, list_syntax_names, supports_language,
+};
 pub use html_paste::{looks_like_dirty_html, normalize_clipboard_html, HtmlPasteResult};
 pub use journal::{JournalNote, JournalSlot, JournalSummary, JournalSummaryInput};
 pub use office_import::{
@@ -83,8 +85,8 @@ pub use source_code::{
 };
 pub use tasks::DocumentTask;
 pub use tasks_agenda::{
-    agenda_bucket_for_due, group_tasks_by_agenda, parse_due_hint_ms, start_of_local_day_ms,
-    AgendaBucket, AgendaBucketId,
+    agenda_bucket_for_due, group_tasks_by_agenda, local_now_ms_and_offset_east,
+    parse_due_hint_ms, start_of_local_day_ms, AgendaBucket, AgendaBucketId,
 };
 pub use plain_text::{tiptap_to_markdown, tiptap_to_plain_text};
 pub use vault_crypto::{

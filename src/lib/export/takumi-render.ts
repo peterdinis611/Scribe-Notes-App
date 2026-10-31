@@ -6,7 +6,7 @@ import type { ExportResult } from '@/lib/db/api'
 let initPromise: Promise<void> | null = null
 
 async function resolveTakumiWasm(): Promise<string | URL | ArrayBuffer> {
-  // Vite asset URL — works in the Tauri webview (same pattern as pdf.js worker).
+  // Vite asset URL — works in the Tauri webview (same pattern as EmbedPDF wasm).
   try {
     const mod = await import('takumi-pdf/takumi_pdf_wasm_bg.wasm?url')
     if (typeof mod.default === 'string' && mod.default.length > 0) return mod.default

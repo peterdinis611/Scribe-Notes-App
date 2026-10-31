@@ -84,7 +84,7 @@ export async function importDocumentFromPath(path: string): Promise<Document> {
     return await importKeynoteDocumentFromPath(selected)
   }
 
-  // Prefer pdf.js path (richer page text); Rust pdf-extract is used by native picker.
+  // PDF → TipTap via Rust pdf-extract (same as native picker); preview uses EmbedPDF.
   if (isPdfPath(selected)) {
     return await importPdfDocumentFromPath(selected)
   }

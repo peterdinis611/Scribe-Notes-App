@@ -31,7 +31,7 @@ import { readFile } from '@tauri-apps/plugin-fs'
 import { getCachedParsedContent } from '@/lib/cache/document-cache'
 import { fileBasename, toast } from '@/lib/toast'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
-import { tiptapJsonToHtmlAsync } from '@/lib/export/html'
+import { tiptapJsonToHtmlPreferRust } from '@/lib/export/html-prefer-rust'
 import { tiptapJsonToMarkdown } from '@/lib/export/markdown'
 import { tiptapToPlainText } from '@/lib/export/plain-text'
 import { exportEditorSelection } from '@/lib/export/selection'
@@ -232,9 +232,14 @@ function EditorChrome() {
       return
     }
     let cancelled = false
-    void tiptapJsonToHtmlAsync(pdfPreviewPayload.contentJson, pdfPreviewPayload.title, {
-      pageSetup: pdfPreviewPayload.pageSetup,
-      forPrint: true,
+    void tiptapJsonToHtmlPreferRust({
+      contentJson: pdfPreviewPayload.contentJson,
+      title: pdfPreviewPayload.title,
+      documentId: pdfPreviewPayload.documentId,
+      options: {
+        pageSetup: pdfPreviewPayload.pageSetup,
+        forPrint: true,
+      },
     }).then((html) => {
       if (!cancelled) setExportHtml(html)
     })
@@ -283,9 +288,14 @@ function EditorChrome() {
 
       const html =
         exportHtml ||
-        (await tiptapJsonToHtmlAsync(contentJson, title, {
-          pageSetup: exportPageSetup,
-          forPrint: true,
+        (await tiptapJsonToHtmlPreferRust({
+          contentJson,
+          title,
+          documentId: document.id,
+          options: {
+            pageSetup: exportPageSetup,
+            forPrint: true,
+          },
         }))
       const fallbackPlain = plainText || tiptapToPlainText(contentJson)
       const fallbackMd = markdown || tiptapJsonToMarkdown(contentJson, title)

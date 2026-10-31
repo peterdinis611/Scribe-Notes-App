@@ -1,4 +1,5 @@
-import { tiptapJsonToHtmlAsync, type HtmlExportOptions } from '@/lib/export/html'
+import type { HtmlExportOptions } from '@/lib/export/html'
+import { tiptapJsonToHtmlPreferRust } from '@/lib/export/html-prefer-rust'
 import {
   DEFAULT_PAGE_SETUP,
   PAPER_SIZES,
@@ -64,10 +65,14 @@ export async function printDocumentFromContent(
 ): Promise<void> {
   const pageSetup = normalizePageSetup(options?.pageSetup ?? DEFAULT_PAGE_SETUP)
   const paper = PAPER_SIZES[pageSetup.paperSize]
-  const html = await tiptapJsonToHtmlAsync(contentJson, title, {
-    ...options,
-    pageSetup,
-    forPrint: true,
+  const html = await tiptapJsonToHtmlPreferRust({
+    contentJson,
+    title,
+    options: {
+      ...options,
+      pageSetup,
+      forPrint: true,
+    },
   })
 
   if (isTauriRuntime()) {

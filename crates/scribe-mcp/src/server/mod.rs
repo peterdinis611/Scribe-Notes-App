@@ -172,7 +172,7 @@ impl ServerHandler for ScribeMcp {
              create_library adds a library without switching. \
              extract_entities / extract_mentions / extract_dates / extract_outline / chunk_text accept id or text. \
              Study AI: extract_flashcards / extract_takeaways / check_terminology / writing_coach / outline_quiz / meeting_notes_pack / explain_selection / simplify / action_items / glossary / compare_notes (id or text). \
-             Review pack: section_summaries / extract_decisions / extract_quotes / extract_commitments / detect_pii / rank_tasks / open_loops / reading_plan / note_pulse / tone_pack / contradiction_hints. \
+             Review pack: section_summaries / extract_decisions / extract_quotes / extract_commitments / detect_pii / rank_tasks / open_loops / reading_plan / note_pulse / tone_pack / contradiction_hints / forward_plan. \
              Retrieval helpers: passage_rerank / answer_followups (after library_answer or document_answer). \
              Planner-only: plan_agent_goal / agent_document_brief (run_agent still executes). \
              UI catalogs: get_ui_manifest / fuzzy_rank_strings / list_theme_presets / generate_random_theme / render_ui_surface (HTML via python-ui). \
@@ -184,7 +184,10 @@ impl ServerHandler for ScribeMcp {
              Continue writing: suggest_continuation from the local library corpus. \
              Wiki: wiki_health_report / list_stub_documents / list_orphan_documents / list_unresolved_wiki_links / \
              suggest_wiki_resolutions / resolve_wiki_link / create_and_link_wiki_note / auto_resolve_wiki_links / \
-             expand_stub_document / list_graph_hubs. \
+             expand_stub_document / list_graph_hubs / wiki_neighborhood / find_wiki_ghost_match / \
+             parse_document_aliases / add_document_alias. \
+             Tasks: list_open_tasks / list_tasks_agenda (overdue|today|upcoming|later). \
+             Source: export_document_source (first codeBlock + extension). \
              Smart filters: filter_library_smart (unlinked|untagged|unread|stubs|tasks|media|…). \
              Videos: list_library_videos / get_library_video / delete_library_video. \
              Templates: list_templates / create_note_from_template / parse_template_pack. \

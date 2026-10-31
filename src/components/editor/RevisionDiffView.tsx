@@ -6,6 +6,7 @@ import {
   filterDiffLinesWithContext,
   filterDiffLinesWithContextAsync,
   filterSideBySideWithContext,
+  filterSideBySideWithContextAsync,
   type DiffLine,
   type DiffSegment,
   type DiffViewMode,
@@ -81,18 +82,26 @@ export function RevisionDiffView({
   const [visibleLines, setVisibleLines] = useState(() =>
     filterDiffLinesWithContext(lines, changesOnly, contextLines),
   )
+  const [visibleRows, setVisibleRows] = useState(() =>
+    filterSideBySideWithContext(sideBySideRows, changesOnly, contextLines),
+  )
 
   useEffect(() => {
     let cancelled = false
     setVisibleLines(filterDiffLinesWithContext(lines, changesOnly, contextLines))
+    setVisibleRows(filterSideBySideWithContext(sideBySideRows, changesOnly, contextLines))
     void filterDiffLinesWithContextAsync(lines, changesOnly, contextLines).then((next) => {
       if (!cancelled) setVisibleLines(next)
     })
+    void filterSideBySideWithContextAsync(sideBySideRows, changesOnly, contextLines).then(
+      (next) => {
+        if (!cancelled) setVisibleRows(next)
+      },
+    )
     return () => {
       cancelled = true
     }
-  }, [lines, changesOnly, contextLines])
-  const visibleRows = filterSideBySideWithContext(sideBySideRows, changesOnly, contextLines)
+  }, [lines, sideBySideRows, changesOnly, contextLines])
   const { added, removed } = countDiffChanges(lines)
   const hasTerms =
     (gainedTerms && gainedTerms.length > 0) || (lostTerms && lostTerms.length > 0)

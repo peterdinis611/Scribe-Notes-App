@@ -33,6 +33,7 @@ export async function buildCodeHighlightMap(
           const rustHtml = await invoke<string | null>('highlight_code', {
             language: block.language ?? '',
             code: block.code,
+            dark: false,
           })
           if (rustHtml) {
             map.set(key, rustHtml)

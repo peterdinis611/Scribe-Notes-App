@@ -24,6 +24,18 @@ pub struct ListOpenTasksParams {
 
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
+pub struct ListTasksAgendaParams {
+    pub folder_id: Option<String>,
+    pub limit: Option<i64>,
+    pub include_phrases: Option<bool>,
+    /// Epoch millis; default = now.
+    pub now_ms: Option<i64>,
+    /// Minutes east of UTC (JS: `-getTimezoneOffset()`); default = host local.
+    pub offset_minutes_east: Option<i32>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct GetOrCreateJournalParams {
     /// day (default) | morning | evening
     pub slot: Option<String>,

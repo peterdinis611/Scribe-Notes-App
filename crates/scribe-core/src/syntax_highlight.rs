@@ -107,7 +107,14 @@ fn find_syntax<'a>(set: &'a SyntaxSet, language: &str) -> Option<&'a SyntaxRefer
 
 /// Highlight `code` for `language`. Returns a self-contained `<pre>…</pre>` snippet,
 /// or `None` when the language is unknown / highlighting fails (caller escapes).
+///
+/// Light theme (export / print). Prefer [`highlight_code_html_themed`] for the editor.
 pub fn highlight_code_html(language: &str, code: &str) -> Option<String> {
+    highlight_code_html_themed(language, code, false)
+}
+
+/// Same as [`highlight_code_html`], with light (`InspiredGithub`) or dark (`Nord`) theme.
+pub fn highlight_code_html_themed(language: &str, code: &str, dark: bool) -> Option<String> {
     let set = syntax_set();
     let syntax = find_syntax(set, language).or_else(|| {
         // Auto / empty: try first-line detection, else Plain Text.
@@ -116,8 +123,11 @@ pub fn highlight_code_html(language: &str, code: &str) -> Option<String> {
     })?;
 
     let themes = theme_set();
-    // Light theme — matches Scribe's typical document export / print surface.
-    let theme = &themes[EmbeddedThemeName::InspiredGithub];
+    let theme = if dark {
+        &themes[EmbeddedThemeName::Nord]
+    } else {
+        &themes[EmbeddedThemeName::InspiredGithub]
+    };
 
     highlighted_html_for_string(code, set, syntax, theme).ok()
 }

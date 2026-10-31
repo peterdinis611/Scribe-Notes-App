@@ -466,4 +466,21 @@ impl ScribeMcp {
             )?))
         })
     }
+
+    #[tool(
+        description = "Forward plan: next-step bullets from a note id or plaintext (Python preferred; Rust offline fallback). Same as the in-app forward_plan agent tool."
+    )]
+    fn forward_plan(
+        &self,
+        Parameters(params): Parameters<tools::StudyLimitParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.forward_plan(
+                &self.sidecar,
+                params.id.as_deref(),
+                params.text.as_deref(),
+                params.limit,
+            )?))
+        })
+    }
 }

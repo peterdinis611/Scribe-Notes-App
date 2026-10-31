@@ -664,6 +664,38 @@ Open (unchecked) tasks across the library. Checkboxes always; NLP phrases (`todo
 
 ---
 
+## `list_tasks_agenda`
+
+Same open-task scan as `list_open_tasks`, then group by due hint into agenda buckets: `overdue` | `today` | `upcoming` | `later`.
+
+| Arg | Type | Required | Default | Notes |
+|-----|------|----------|---------|--------|
+| `folderId` | string | no | — | Limit to one folder |
+| `limit` | number | no | `200` | Max documents to scan |
+| `includePhrases` | boolean | no | `false` | NLP phrase tasks |
+| `nowMs` | number | no | host now | Epoch millis |
+| `offsetMinutesEast` | number | no | host local | JS: `-getTimezoneOffset()` |
+
+**Example result:** `{ "count": 3, "nowMs": …, "offsetMinutesEast": 120, "buckets": [ { "id": "today", "items": [ … ] } ] }`
+
+Empty buckets are omitted. Prefer this over `list_open_tasks` when triage needs overdue/today/upcoming.
+
+---
+
+## `export_document_source`
+
+First TipTap `codeBlock` in a note → language, file extension, suggested filename, and source text.
+
+| Arg | Type | Required |
+|-----|------|----------|
+| `id` | string | yes |
+
+**Example result (found):** `{ "id": "…", "title": "Snippet", "found": true, "language": "rust", "extension": "rs", "filename": "Snippet.rs", "code": "fn main() {}" }`
+
+**Example result (none):** `{ "id": "…", "title": "…", "found": false }`
+
+---
+
 ## `get_or_create_journal`
 
 Return today's journal note, or create it. Reuses the app's `Journal` / `Denník` folder and title patterns (`YYYY-MM-DD`, `YYYY-MM-DD — morning` / `ráno`, `YYYY-MM-DD — evening` / `večer`). Existing notes are readable without write access; creating requires a writable DB.
@@ -1093,6 +1125,7 @@ All accept `id` and/or `text` unless noted. Require Local AI enabled (except whe
 | `contradiction_hints` | `idA?`, `idB?`, `textA?`, `textB?`, `limit?` | Possible contradictions between two notes (Local AI) |
 | `extract_quotes` | `id?`, `text?`, `limit?` | Notable quotes (Python + Rust fallback) |
 | `extract_commitments` | `id?`, `text?`, `limit?` | Commitments / promises (Python + Rust fallback) |
+| `forward_plan` | `id?`, `text?`, `limit?` | Next-step bullets (Python + Rust fallback; also via `run_agent`) |
 | `passage_rerank` | `query`, `passages[]`, `limit?` | Rerank search/answer passages (Local AI) |
 | `answer_followups` | `question`, `sentences?`, `passages?`, `scope?` | Suggested follow-up questions (Local AI) |
 | `files_list` / `files_read_text` / `files_search` / `files_summarize` / `files_answer` | path/query | Storage Files API (`files/`); `FilesApiOffline` if server down |
@@ -1119,6 +1152,10 @@ All accept `id` and/or `text` unless noted. Require Local AI enabled (except whe
 | `auto_resolve_wiki_links` | `limit?`, `minScore?` (default `0.72`) | Writable |
 | `expand_stub_document` | `id`, `heading?` | Append outline scaffold; writable |
 | `list_graph_hubs` | `limit?` | Most connected notes |
+| `wiki_neighborhood` | `id`, `hops?` (default 2), `maxNotes?` (default 80) | BFS outbound wiki neighbors |
+| `find_wiki_ghost_match` | `paragraph`, `candidates?`, `excludeDocumentId?`, `minLength?`, `candidateLimit?` | Longest plain-text title/alias hit; auto-candidates from library when `candidates` omitted |
+| `parse_document_aliases` | `id?` or `tags?` | Read `alias:*` tags |
+| `add_document_alias` | `id`, `alias` | Writable; stores `alias:{value}` |
 
 ## Smart filters & media
 
@@ -1137,8 +1174,8 @@ All accept `id` and/or `text` unless noted. Require Local AI enabled (except whe
 |--------|---------|
 | `weekly_journal_review` | Optional `fromDate` / `toDate` — reuse artifacts, then journal_summary + tasks |
 | `capture_today` | get_or_create_journal + append_to_note |
-| `open_tasks_triage` | list_open_tasks, then toggle_task |
-| `wiki_health` | hubs + suggest/resolve/create/expand wiki workflow |
+| `open_tasks_triage` | list_tasks_agenda (or list_open_tasks), then toggle_task |
+| `wiki_health` | hubs + suggest/resolve/create/expand + neighborhood/ghost/alias |
 | `rewrite_selection_draft` | rewrite_selection preview (do not apply unless asked) |
 | `continue_document_chat` | prefer `document_answer_and_save` |
 | `analyze_this_note` | `id` — analysis → keywords → takeaways → organize |
