@@ -6,7 +6,7 @@ import { closeScribeUiSurface } from '@/lib/scribe-ui-host'
 import { isTauriRuntime } from '@/lib/tauri'
 import { persistWhatsNewVersion } from '@/store/persistence'
 
-/** Edition 5.1 release notes — keep in sync with `scribe_ui::WHATS_NEW_50_*`. */
+/** Edition 5.2 release notes — keep in sync with `scribe_ui::WHATS_NEW_50_*`. */
 export const WHATS_NEW_50_HIGHLIGHTS = [
   'nativeCore',
   'wikiNative',
