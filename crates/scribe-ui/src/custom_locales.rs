@@ -42,7 +42,7 @@ pub enum CustomLocaleError {
     InvalidJson,
     #[error("Language JSON must be an object")]
     NotObject,
-    #[error("Missing or invalid language code (e.g. \"de\", \"cs\", \"pl\")")]
+    #[error("Missing or invalid language code (e.g. \"de\", \"fr\", \"nl\")")]
     InvalidCode,
     #[error("Cannot replace built-in language \"{0}\". Use a different code.")]
     BuiltInCode(String),
@@ -278,6 +278,7 @@ mod tests {
         assert!(!is_valid_locale_code("1de"));
         assert!(!is_valid_locale_code(""));
         assert!(is_built_in_locale_code("sk"));
+        assert!(is_built_in_locale_code("cs"));
         assert!(!is_built_in_locale_code("de"));
     }
 
@@ -297,25 +298,25 @@ mod tests {
     #[test]
     fn accepts_aliases() {
         let raw = json!({
-            "locale": "cs", "label": "Čeština",
+            "locale": "de", "label": "Deutsch",
             "translation": { "a": "1", "b": "2", "c": "3" }
         })
         .to_string();
         let pack = parse_custom_locale_pack(&raw, &opts()).unwrap();
-        assert_eq!((pack.code.as_str(), pack.name.as_str()), ("cs", "Čeština"));
+        assert_eq!((pack.code.as_str(), pack.name.as_str()), ("de", "Deutsch"));
     }
 
     #[test]
     fn parses_bare_tree_with_fallbacks() {
         let raw = json!({ "a": "1", "b": "2", "c": "3" }).to_string();
-        let o = ParseLocaleOptions { fallback_code: Some("pl".into()), fallback_name: Some("Polski".into()) };
+        let o = ParseLocaleOptions { fallback_code: Some("nl".into()), fallback_name: Some("Nederlands".into()) };
         let pack = parse_custom_locale_pack(&raw, &o).unwrap();
-        assert_eq!((pack.code.as_str(), pack.name.as_str()), ("pl", "Polski"));
+        assert_eq!((pack.code.as_str(), pack.name.as_str()), ("nl", "Nederlands"));
         assert_eq!(pack.messages.len(), 3);
 
         // No name anywhere → upper-cased code.
-        let o = ParseLocaleOptions { fallback_code: Some("pl".into()), fallback_name: None };
-        assert_eq!(parse_custom_locale_pack(&raw, &o).unwrap().name, "PL");
+        let o = ParseLocaleOptions { fallback_code: Some("nl".into()), fallback_name: None };
+        assert_eq!(parse_custom_locale_pack(&raw, &o).unwrap().name, "NL");
     }
 
     #[test]

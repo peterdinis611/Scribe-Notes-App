@@ -9,15 +9,20 @@ import {
   CheckSquare,
   ChevronDown,
   Code,
+  CornerDownRight,
   Ellipsis,
+  FilePlus2,
+  BookMarked,
   Highlighter,
   ImagePlus,
   Italic,
   Link2,
+  LinkIcon,
   List,
   ListChevronsDownUp,
   ListOrdered,
   ListTree,
+  MessageSquareWarning,
   Minus,
   Paintbrush,
   Palette,
@@ -67,6 +72,8 @@ import { LINE_HEIGHTS, PARAGRAPH_SPACING } from '@/lib/editor/block-spacing'
 import { FONT_SIZES, HIGHLIGHT_COLORS, TEXT_COLORS } from '@/lib/editor/font-size'
 import {
   insertBlockMath,
+  insertChartFromTable,
+  insertContinuation,
   insertD3Chart,
   insertLeafletMap,
   insertDetailsBlock,
@@ -78,6 +85,8 @@ import {
   insertScannedBarcode,
   insertVideo,
 } from '@/lib/editor/insert-helpers'
+import { insertBlock } from '@/lib/editor/block-registry'
+import { createCustomBlockFromEditor, insertBlockSnippet } from '@/lib/editor/block-snippets'
 import { insertEmptyLottieBlock, insertEmptyModel3dBlock, insertEmptyPaintPad, pickDocumentMediaFiles } from '@/lib/editor/image-utils'
 import { insertBulletList, insertOrderedList, insertTaskList } from '@/lib/editor/list-commands'
 import { PARAGRAPH_STYLES, applyParagraphStyle, type ParagraphStyleId } from '@/lib/editor/paragraph-styles'
@@ -261,10 +270,15 @@ export function ToolbarRibbon({
               </button>
             </DropdownMenuTrigger>
           </IconTooltip>
-          <DropdownMenuContent align="start" className="min-w-[200px]" onCloseAutoFocus={keepEditorSelectionFocus(editor)}>
+          <DropdownMenuContent align="start" className="min-w-[220px] max-h-[min(70vh,520px)] overflow-y-auto" onCloseAutoFocus={keepEditorSelectionFocus(editor)}>
+            <p className="toolbar-section-menu-label">{t('toolbar.actions.insertMedia')}</p>
             <DropdownMenuItem onClick={() => void handlePickImage()}>
               <ImagePlus className="h-4 w-4" />
               {t('toolbar.actions.image')}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => void insertBlock(editor, 'image-url')}>
+              <ImagePlus className="h-4 w-4" />
+              {t('toolbar.actions.imageUrl')}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => void handleInsertQr()}>
               <QrCode className="h-4 w-4" />
@@ -276,10 +290,6 @@ export function ToolbarRibbon({
                 {t('toolbar.actions.scanBarcode')}
               </DropdownMenuItem>
             )}
-            <DropdownMenuItem onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}>
-              <Table2 className="h-4 w-4" />
-              {t('toolbar.actions.table')}
-            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => void insertVideo(editor)}>{t('toolbar.actions.video')}</DropdownMenuItem>
             <DropdownMenuItem onClick={() => void insertLocalLibraryVideo(editor)}>
               {t('toolbar.actions.localVideo')}
@@ -287,6 +297,13 @@ export function ToolbarRibbon({
             <DropdownMenuItem onClick={() => insertEmptyLottieBlock(editor)}>{t('toolbar.actions.lottie')}</DropdownMenuItem>
             <DropdownMenuItem onClick={() => insertEmptyModel3dBlock(editor)}>{t('toolbar.actions.model3d')}</DropdownMenuItem>
             <DropdownMenuItem onClick={() => insertEmptyPaintPad(editor)}>{t('toolbar.actions.paint')}</DropdownMenuItem>
+
+            <DropdownMenuSeparator />
+            <p className="toolbar-section-menu-label">{t('toolbar.actions.insertStructure')}</p>
+            <DropdownMenuItem onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}>
+              <Table2 className="h-4 w-4" />
+              {t('toolbar.actions.table')}
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => editor.chain().focus().insertTableOfContents().run()}>
               <ListTree className="h-4 w-4" />
               {t('toolbar.actions.tableOfContents')}
@@ -294,21 +311,86 @@ export function ToolbarRibbon({
             <DropdownMenuItem onClick={() => editor.chain().focus().setPageBreak().run()}>
               {t('toolbar.actions.pageBreak')}
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => void insertLoremIpsum(editor)}>
-              <Type className="h-4 w-4" />
-              {t('toolbar.actions.lorem')}
+            <DropdownMenuItem onClick={() => editor.chain().focus().toggleBlockquote().run()}>
+              <Quote className="h-4 w-4" />
+              {t('toolbar.actions.quote')}
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => void insertInlineMath(editor)}>{t('toolbar.actions.inlineMath')}</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => void insertBlockMath(editor)}>{t('toolbar.actions.blockMath')}</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => insertMermaidDiagram(editor)}>{t('toolbar.actions.mermaid')}</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => insertD3Chart(editor)}>{t('toolbar.actions.chart')}</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => insertLeafletMap(editor)}>{t('toolbar.actions.map')}</DropdownMenuItem>
-            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => editor.chain().focus().setHorizontalRule().run()}>
+              <Minus className="h-4 w-4" />
+              {t('toolbar.actions.divider')}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => insertDetailsBlock(editor)}>
+              <ListChevronsDownUp className="h-4 w-4" />
+              {t('toolbar.actions.detailsBlock')}
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => editor.chain().focus().toggleCodeBlock().run()}>
               <Code className="h-4 w-4" />
               {t('toolbar.actions.codeBlock')}
             </DropdownMenuItem>
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <MessageSquareWarning className="h-4 w-4" />
+                {t('toolbar.actions.callouts')}
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent>
+                <DropdownMenuItem onClick={() => editor.chain().focus().toggleCallout('info').run()}>
+                  {t('slash.callout-info.label')}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => editor.chain().focus().toggleCallout('tip').run()}>
+                  {t('slash.callout-tip.label')}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => editor.chain().focus().toggleCallout('warning').run()}>
+                  {t('slash.callout-warning.label')}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => editor.chain().focus().toggleCallout('danger').run()}>
+                  {t('slash.callout-danger.label')}
+                </DropdownMenuItem>
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+            <DropdownMenuItem onClick={() => editor.chain().focus().insertFootnote().run()}>
+              <BookMarked className="h-4 w-4" />
+              {t('slash.footnote.label')}
+            </DropdownMenuItem>
+
             <DropdownMenuSeparator />
+            <p className="toolbar-section-menu-label">{t('toolbar.actions.insertEmbeds')}</p>
+            <DropdownMenuItem onClick={() => void insertInlineMath(editor)}>{t('toolbar.actions.inlineMath')}</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => void insertBlockMath(editor)}>{t('toolbar.actions.blockMath')}</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => void insertMermaidDiagram(editor)}>{t('toolbar.actions.mermaid')}</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => void insertD3Chart(editor)}>{t('toolbar.actions.chart')}</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => void insertChartFromTable(editor)}>
+              {t('toolbar.actions.chartFromTable')}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => insertLeafletMap(editor)}>{t('toolbar.actions.map')}</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => void insertBlock(editor, 'wiki-link')}>
+              <LinkIcon className="h-4 w-4" />
+              {t('slash.wiki-link.label')}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => void insertBlock(editor, 'wiki-embed')}>
+              <Link2 className="h-4 w-4" />
+              {t('slash.wiki-embed.label')}
+            </DropdownMenuItem>
+
+            <DropdownMenuSeparator />
+            <p className="toolbar-section-menu-label">{t('toolbar.actions.insertWriting')}</p>
+            <DropdownMenuItem onClick={() => void insertContinuation(editor)}>
+              <CornerDownRight className="h-4 w-4" />
+              {t('slash.continue.label')}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => void insertLoremIpsum(editor)}>
+              <Type className="h-4 w-4" />
+              {t('toolbar.actions.lorem')}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => insertBlockSnippet(editor, 'meeting-notes')}>
+              {t('slash.snippet-meeting.label')}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => insertBlockSnippet(editor, 'decision')}>
+              {t('slash.snippet-decision.label')}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => void createCustomBlockFromEditor(editor)}>
+              <FilePlus2 className="h-4 w-4" />
+              {t('slash.custom-block.label')}
+            </DropdownMenuItem>
             <DropdownMenuSub>
               <DropdownMenuSubTrigger>
                 <Smile className="h-4 w-4" />

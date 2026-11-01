@@ -43,8 +43,17 @@ export function buildHeaderFooterLines(
   return { header, footer }
 }
 
+const DATE_LOCALE_TAGS: Record<string, string> = {
+  sk: 'sk-SK',
+  en: 'en-US',
+  cs: 'cs-CZ',
+  hu: 'hu-HU',
+  pl: 'pl-PL',
+}
+
 export function formatExportDate(date = new Date()): string {
-  const locale = i18n.language?.startsWith('sk') ? 'sk-SK' : 'en-US'
+  const base = (i18n.language || 'sk').slice(0, 2).toLowerCase()
+  const locale = DATE_LOCALE_TAGS[base] ?? 'en-US'
   return date.toLocaleDateString(locale, {
     day: 'numeric',
     month: 'long',

@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-pub const BUILT_IN_LOCALES: &[&str] = &["sk", "en"];
+pub const BUILT_IN_LOCALES: &[&str] = &["sk", "en", "cs", "hu", "pl"];
 pub const DEFAULT_LOCALE: &str = "sk";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -34,13 +34,16 @@ pub struct CustomLocaleInput {
 const BUILT_IN: &[(&str, &str, &str)] = &[
     ("sk", "settings.language.sk", "SK"),
     ("en", "settings.language.en", "EN"),
+    ("cs", "settings.language.cs", "CS"),
+    ("hu", "settings.language.hu", "HU"),
+    ("pl", "settings.language.pl", "PL"),
 ];
 
 fn built_in_rank(code: &str) -> usize {
     BUILT_IN_LOCALES.iter().position(|c| *c == code).unwrap_or(usize::MAX)
 }
 
-/// SK (default) first, then EN, then custom packs. `label_for` resolves i18n keys.
+/// SK (default) first, then other built-ins, then custom packs. `label_for` resolves i18n keys.
 pub fn build_locale_options(
     label_for: impl Fn(&str) -> String,
     custom_locales: &[CustomLocaleInput],
@@ -85,12 +88,12 @@ mod tests {
         let customs = vec![CustomLocaleInput { code: "deu".into(), name: "Deutsch".into() }];
         let opts = build_locale_options(|k| format!("L:{k}"), &customs);
         let codes: Vec<_> = opts.iter().map(|o| o.code.as_str()).collect();
-        assert_eq!(codes, ["sk", "en", "deu"]);
+        assert_eq!(codes, ["sk", "en", "cs", "hu", "pl", "deu"]);
         assert_eq!(opts[0].label, "L:settings.language.sk");
         assert_eq!(opts[0].is_default, Some(true));
         assert_eq!(opts[1].is_default, Some(false));
-        assert_eq!(opts[2].short, "DEU");
-        assert_eq!(opts[2].kind, LocaleKind::Custom);
+        assert_eq!(opts[5].short, "DEU");
+        assert_eq!(opts[5].kind, LocaleKind::Custom);
     }
 
     #[test]
@@ -100,6 +103,6 @@ mod tests {
         assert_eq!(json["kind"], "builtin");
         assert_eq!(json["isDefault"], true);
         let custom = build_locale_options(|k| k.to_string(), &[CustomLocaleInput { code: "fr".into(), name: "Français".into() }]);
-        assert!(serde_json::to_value(&custom[2]).unwrap().get("isDefault").is_none());
+        assert!(serde_json::to_value(&custom[5]).unwrap().get("isDefault").is_none());
     }
 }

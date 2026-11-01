@@ -8,7 +8,7 @@ export type CustomLocalePack = {
 }
 
 const CODE_RE = /^[a-z][a-z0-9_-]{0,15}$/
-const BUILT_IN = new Set(['sk', 'en'])
+const BUILT_IN = new Set(['sk', 'en', 'cs', 'hu', 'pl'])
 const MAX_JSON_CHARS = 2_500_000
 
 export function normalizeLocaleCode(raw: string): string {
@@ -76,7 +76,7 @@ export function parseCustomLocalePack(
 
   const code = normalizeLocaleCode(codeRaw || options?.fallbackCode || '')
   if (!code || !CODE_RE.test(code)) {
-    throw new Error('Missing or invalid language code (e.g. "de", "cs", "pl")')
+    throw new Error('Missing or invalid language code (e.g. "de", "fr", "nl")')
   }
   if (isBuiltInLocaleCode(code)) {
     throw new Error(`Cannot replace built-in language "${code}". Use a different code.`)

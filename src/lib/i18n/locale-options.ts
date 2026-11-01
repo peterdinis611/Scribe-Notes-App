@@ -13,9 +13,12 @@ export type LocaleOption = {
 const BUILT_IN: { id: BuiltInLocale; labelKey: string; short: string }[] = [
   { id: 'sk', labelKey: 'settings.language.sk', short: 'SK' },
   { id: 'en', labelKey: 'settings.language.en', short: 'EN' },
+  { id: 'cs', labelKey: 'settings.language.cs', short: 'CS' },
+  { id: 'hu', labelKey: 'settings.language.hu', short: 'HU' },
+  { id: 'pl', labelKey: 'settings.language.pl', short: 'PL' },
 ]
 
-/** Pure locale dropdown options — SK (default) first, then EN, then custom packs. */
+/** Pure locale dropdown options — SK (default) first, then other built-ins, then custom packs. */
 export function buildLocaleOptions(input: {
   labelFor: (key: string) => string
   customLocales: Array<{ code: string; name: string }>
