@@ -15,10 +15,11 @@ from scribe_ui import (
 class CatalogTests(unittest.TestCase):
     def test_agent_recipes(self) -> None:
         recipes = agent_recipes()
-        self.assertEqual(len(recipes), 15)
+        self.assertEqual(len(recipes), 21)
         self.assertTrue(is_agent_recipe_id("deep_read"))
         self.assertTrue(is_agent_recipe_id("files_learn"))
         self.assertTrue(is_agent_recipe_id("files_to_library"))
+        self.assertTrue(is_agent_recipe_id("deep_research"))
         deep = next(r for r in recipes if r["id"] == "deep_read")
         self.assertIn("section_summaries", deep["tools"])
         learn = next(r for r in recipes if r["id"] == "files_learn")

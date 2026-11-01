@@ -199,6 +199,11 @@ description = "Allow filter_library_assets_ui"
 commands.allow = ["filter_library_assets_ui"]
 
 [[permission]]
+identifier = "allow-filter-side-by-side-ui"
+description = "Allow filter_side_by_side_ui"
+commands.allow = ["filter_side_by_side_ui"]
+
+[[permission]]
 identifier = "allow-filter-tools-by-agents-ui"
 description = "Allow filter_tools_by_agents_ui"
 commands.allow = ["filter_tools_by_agents_ui"]
@@ -597,6 +602,7 @@ permissions = [
   "allow-filter-diff-lines-ui",
   "allow-filter-documents-by-smart-filter-ui",
   "allow-filter-library-assets-ui",
+  "allow-filter-side-by-side-ui",
   "allow-filter-tools-by-agents-ui",
   "allow-flashcards-to-anki-tsv",
   "allow-flashcards-to-markdown",
