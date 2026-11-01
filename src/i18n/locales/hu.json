@@ -66,6 +66,7 @@
     "newDocument": "Új dokumentum",
     "todayNote": "Mai jegyzet",
     "import": "Importálás",
+    "importFolder": "Mappa importálása",
     "connectionMap": "Kapcsolati térkép",
     "connectionMapHint": "A [[title]] címkével összekapcsolt jegyzetek. Hasznos, ha már van néhány hivatkozás.",
     "openDocs": "Dokumentáció megnyitása",
@@ -99,6 +100,7 @@
   "fileMenu": {
     "label": "Fájl",
     "import": "Importálás…",
+    "importFolder": "Mappa importálása…",
     "importPdfHighlights": "PDF kiemelések importálása…",
     "goHome": "Ugrás a kezdőlapra",
     "closeDocument": "Dokumentum bezárása",

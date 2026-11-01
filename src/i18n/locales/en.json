@@ -66,6 +66,7 @@
     "newDocument": "New document",
     "todayNote": "Today’s note",
     "import": "Import",
+    "importFolder": "Import folder",
     "connectionMap": "Connection map",
     "connectionMapHint": "Notes linked with [[title]]. Useful after you have a few links.",
     "openDocs": "Open Docs",
@@ -99,6 +100,7 @@
   "fileMenu": {
     "label": "File",
     "import": "Import…",
+    "importFolder": "Import folder…",
     "importPdfHighlights": "Import PDF highlights…",
     "goHome": "Go to home",
     "closeDocument": "Close document",

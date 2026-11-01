@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import {
   filterImportableDocumentPaths,
-  importDocumentsFromPaths,
+  importDocumentsFromPathsOrFolders,
   toastImportDocumentsResult,
 } from '@/lib/import-document'
 import type { Document } from '@/lib/db/api'
@@ -17,7 +17,8 @@ export type AppFileDropHandlers = {
 }
 
 /**
- * Native window file drag-and-drop (Tauri). Accepts one or many document files.
+ * Native window file drag-and-drop (Tauri). Accepts files and folders
+ * (folders expand to every supported document underneath).
  */
 export function useAppFileDrop(handlers: AppFileDropHandlers) {
   const [active, setActive] = useState(false)
@@ -72,8 +73,9 @@ export function useAppFileDrop(handlers: AppFileDropHandlers) {
             return
           }
 
-          const importable = filterImportableDocumentPaths(paths)
-          if (importable.length === 0) {
+          // Directories are expanded in Rust; keep hover feedback for any drop payload.
+          const maybeFiles = filterImportableDocumentPaths(paths)
+          if (maybeFiles.length === 0 && paths.length === 0) {
             handlersRef.current.toastError(
               handlersRef.current.t('fileDrop.unsupportedTitle'),
               handlersRef.current.t('fileDrop.unsupportedBody'),
@@ -87,8 +89,14 @@ export function useAppFileDrop(handlers: AppFileDropHandlers) {
           void (async () => {
             const h = handlersRef.current
             try {
-              // Import one-by-one so progress toasts stay ordered; shared helper is sequential.
-              const result = await importDocumentsFromPaths(importable)
+              const result = await importDocumentsFromPathsOrFolders(paths)
+              if (result.imported.length === 0 && result.failed.length === 0) {
+                h.toastError(
+                  h.t('fileDrop.unsupportedTitle'),
+                  h.t('fileDrop.unsupportedBody'),
+                )
+                return
+              }
               if (result.imported.length > 0) {
                 await h.onImported(result.imported)
               }

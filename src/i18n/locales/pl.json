@@ -66,6 +66,7 @@
     "newDocument": "Nowy dokument",
     "todayNote": "Dzisiejsza notatka",
     "import": "Import",
+    "importFolder": "Importuj folder",
     "connectionMap": "Mapa połączeń",
     "connectionMapHint": "Notatki powiązane z [[tytuł]]. Przydatne, gdy masz kilka linków.",
     "openDocs": "Otwórz Dokumenty",
@@ -99,6 +100,7 @@
   "fileMenu": {
     "label": "Plik",
     "import": "Import…",
+    "importFolder": "Importuj folder…",
     "importPdfHighlights": "Importuj zaznaczenia z pliku PDF…",
     "goHome": "Idź do domu",
     "closeDocument": "Zamknij dokument",

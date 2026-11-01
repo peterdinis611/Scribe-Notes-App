@@ -339,6 +339,104 @@ pub fn pick_and_import_file(
     Ok(Some(PickAndImportResult { imported, failed }))
 }
 
+/// Folder picker → walk supported files → import each (same converters as multi-file pick).
+#[tauri::command]
+pub fn pick_and_import_folder(
+    app: AppHandle,
+    state: State<'_, DbState>,
+    gate: State<'_, PathAccessGate>,
+    antivirus_policy: Option<AntivirusPolicy>,
+) -> Result<Option<PickAndImportResult>, String> {
+    let picked = app
+        .dialog()
+        .file()
+        .set_title("Importovať priečinok")
+        .blocking_pick_folder();
+
+    let Some(folder) = picked else {
+        return Ok(None);
+    };
+    let folder = PathBuf::from(folder.to_string());
+    gate.grant_from_picker(&folder);
+
+    let files = scribe_core::collect_importable_files(
+        &folder,
+        scribe_core::CollectImportFilesOpts {
+            include_apple_packages: true,
+            ..Default::default()
+        },
+    )?;
+    if files.is_empty() {
+        return Ok(Some(PickAndImportResult {
+            imported: Vec::new(),
+            failed: vec![PickAndImportFailure {
+                path: folder.to_string_lossy().into_owned(),
+                error: "V priečinku nie sú žiadne podporované súbory na import.".into(),
+            }],
+        }));
+    }
+
+    let mut imported = Vec::new();
+    let mut failed = Vec::new();
+    for path in files {
+        gate.grant_from_picker(&path);
+        match import_file_at_path(&app, &state, &gate, &path, antivirus_policy.as_ref()) {
+            Ok(doc) => imported.push(doc),
+            Err(error) => failed.push(PickAndImportFailure {
+                path: path.to_string_lossy().to_string(),
+                error,
+            }),
+        }
+    }
+
+    Ok(Some(PickAndImportResult { imported, failed }))
+}
+
+/// Expand dropped paths: directories become all importable files underneath (files stay as-is).
+#[tauri::command]
+pub fn expand_import_paths(
+    app: AppHandle,
+    state: State<'_, DbState>,
+    gate: State<'_, PathAccessGate>,
+    paths: Vec<String>,
+) -> Result<Vec<String>, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let mut out = Vec::new();
+    let mut seen = std::collections::HashSet::new();
+
+    for raw in paths {
+        let path = PathBuf::from(raw.trim());
+        if path.as_os_str().is_empty() {
+            continue;
+        }
+        // Drag-drop / picker paths: grant first so validate_read accepts them.
+        gate.grant_from_picker(&path);
+        let validated = gate.validate_read(&app, &conn, &path)?;
+
+        let collected = if validated.is_dir() {
+            scribe_core::collect_importable_files(
+                &validated,
+                scribe_core::CollectImportFilesOpts {
+                    include_apple_packages: true,
+                    ..Default::default()
+                },
+            )?
+        } else {
+            vec![validated]
+        };
+
+        for file in collected {
+            let key = file.to_string_lossy().into_owned();
+            if seen.insert(key.clone()) {
+                gate.grant_from_picker(&file);
+                out.push(key);
+            }
+        }
+    }
+
+    Ok(out)
+}
+
 #[derive(Debug, Serialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum PagesImportPrepared {

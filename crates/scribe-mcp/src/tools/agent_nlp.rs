@@ -179,6 +179,34 @@ pub struct BackupDirParams {
 
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
+pub struct ListTeachingsParams {
+    /// Optional role partition (`general`, `proofreader`, `librarian`, …).
+    pub agent_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct AddTeachingParams {
+    pub text: String,
+    /// `general` or `grammar`.
+    pub topic: Option<String>,
+    pub agent_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct RemoveTeachingParams {
+    pub id: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ClearTeachingsParams {
+    pub agent_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct ChatContextMessage {
     pub role: String,
     pub text: String,

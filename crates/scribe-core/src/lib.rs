@@ -6,6 +6,7 @@ pub mod diff;
 pub mod document_assets;
 pub mod enhance;
 pub mod file_antivirus;
+pub mod file_import;
 pub mod file_integrity;
 pub mod html;
 pub mod html_paste;
@@ -45,6 +46,11 @@ pub use file_antivirus::{
     FileHealthReport, ImportGateAction, ImportGateDecision, QuarantineEntry, ScanOptions,
     ScanReport, ScanVerdict, SelfTestReport, ThreatHit, DEFAULT_SCAN_TIMEOUT_SECS,
     EICAR_TEST_STRING, QUARANTINE_DIR,
+};
+pub use file_import::{
+    bytes_to_tiptap_note, collect_importable_files, detect_import_kind, import_title_from_path,
+    CollectImportFilesOpts, ImportKind, DEFAULT_FOLDER_IMPORT_MAX_DEPTH,
+    DEFAULT_FOLDER_IMPORT_MAX_FILES,
 };
 pub use file_integrity::{
     detect_kind, is_healthy, probe_bytes, probe_path, FileKind, IntegrityIssue, IntegrityReport,

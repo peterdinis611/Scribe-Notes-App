@@ -186,6 +186,13 @@ Encrypted vault notes are stored as AES-GCM ciphertext in SQLite. The unlock pas
 | `create_note_from_template` | Create a note from a template (writable) |
 | `list_backups` | List zip backups |
 | `create_backup` | Create a library zip backup |
+| `import_backup` | Restore unencrypted zip (`confirm: true`; replaces DB) |
+| `import_path_as_note` | Import `files/` sandbox path → note (writable) |
+| `import_folder_as_notes` | Import whole `files/` directory recursively (writable) |
+| `import_bytes_as_note` | Import base64 bytes → note (writable) |
+| `antivirus_status` / `scan_import_path` | ClamAV status + sandbox scan gate |
+| `create_named_revision` / `rename_document_revision` | Named / pinned revision snapshots |
+| `list_agent_teachings` / `add_agent_teaching` / `remove_agent_teaching` / `clear_agent_teachings` | Agent prefs / grammar teachings |
 | `list_document_assets` | Images / SVG / Lottie under `assets/{id}/` |
 | `get_ui_manifest` | UI catalogs from `scribe-ui` (Whats New, settings/docs, themes, agents) |
 | `fuzzy_rank_strings` | Fuzzy rank `{id, primary, secondary?}` lists |

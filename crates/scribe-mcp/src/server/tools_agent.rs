@@ -409,6 +409,113 @@ impl ScribeMcp {
         })
     }
 
+    #[tool(
+        description = "List standing agent teachings (prefs / grammar rules) from scribe-agent.db. Optional agentId filters to that role (+ shared general)."
+    )]
+    fn list_agent_teachings(
+        &self,
+        Parameters(params): Parameters<tools::ListTeachingsParams>,
+    ) -> Result<String, String> {
+        let store = self
+            .open_agent_store()
+            .ok_or_else(|| "Agent DB unavailable (scribe-agent.db)".to_string())?;
+        let teachings = store.list_teachings(params.agent_id.as_deref())?;
+        Ok(tools::json(&serde_json::json!({
+            "count": teachings.len(),
+            "agentId": params.agent_id,
+            "teachings": teachings,
+        })))
+    }
+
+    #[tool(
+        description = "Add an agent teaching (standing preference or grammar rule). topic=general|grammar; optional agentId. Requires writable MCP."
+    )]
+    fn add_agent_teaching(
+        &self,
+        Parameters(params): Parameters<tools::AddTeachingParams>,
+    ) -> Result<String, String> {
+        if !self.writable {
+            return Err("MCP is read-only (set SCRIBE_MCP_WRITE=1 to enable writes)".to_string());
+        }
+        let store = self
+            .open_agent_store()
+            .ok_or_else(|| "Agent DB unavailable (scribe-agent.db)".to_string())?;
+        let teaching = store.add_teaching(
+            &params.text,
+            params.topic.as_deref(),
+            params.agent_id.as_deref(),
+        )?;
+        self.audit_mcp(
+            "agent",
+            "add_teaching",
+            "MCP add_agent_teaching",
+            Some(serde_json::json!({
+                "id": teaching.id,
+                "agentId": teaching.agent_id,
+                "topic": teaching.topic,
+            })),
+            "ok",
+        );
+        Ok(tools::json(&teaching))
+    }
+
+    #[tool(description = "Remove one agent teaching by id. Requires writable MCP.")]
+    fn remove_agent_teaching(
+        &self,
+        Parameters(params): Parameters<tools::RemoveTeachingParams>,
+    ) -> Result<String, String> {
+        if !self.writable {
+            return Err("MCP is read-only (set SCRIBE_MCP_WRITE=1 to enable writes)".to_string());
+        }
+        let store = self
+            .open_agent_store()
+            .ok_or_else(|| "Agent DB unavailable (scribe-agent.db)".to_string())?;
+        let removed = store.remove_teaching(params.id.trim())?;
+        if removed {
+            self.audit_mcp(
+                "agent",
+                "remove_teaching",
+                "MCP remove_agent_teaching",
+                Some(serde_json::json!({ "id": params.id })),
+                "ok",
+            );
+        }
+        Ok(tools::json(&serde_json::json!({
+            "id": params.id,
+            "removed": removed,
+        })))
+    }
+
+    #[tool(
+        description = "Clear agent teachings. Optional agentId limits to that role partition; omit to clear all. Requires writable MCP."
+    )]
+    fn clear_agent_teachings(
+        &self,
+        Parameters(params): Parameters<tools::ClearTeachingsParams>,
+    ) -> Result<String, String> {
+        if !self.writable {
+            return Err("MCP is read-only (set SCRIBE_MCP_WRITE=1 to enable writes)".to_string());
+        }
+        let store = self
+            .open_agent_store()
+            .ok_or_else(|| "Agent DB unavailable (scribe-agent.db)".to_string())?;
+        let cleared = store.clear_teachings(params.agent_id.as_deref())?;
+        self.audit_mcp(
+            "agent",
+            "clear_teachings",
+            &format!("MCP clear_agent_teachings: {cleared}"),
+            Some(serde_json::json!({
+                "agentId": params.agent_id,
+                "cleared": cleared,
+            })),
+            "ok",
+        );
+        Ok(tools::json(&serde_json::json!({
+            "cleared": cleared,
+            "agentId": params.agent_id,
+        })))
+    }
+
     #[tool(description = "Enable or disable Local AI (NLP) in Scribe settings. Requires writable DB.")]
     fn set_nlp_enabled(
         &self,

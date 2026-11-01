@@ -205,7 +205,11 @@ impl ServerHandler for ScribeMcp {
              Media: list_document_assets / extract_asset_ocr. \
              Find/replace is dry-run by default (library_find_replace). \
              Templates: list_templates then create_note_from_template. \
-             Backups: list_backups / create_backup. \
+             Backups: list_backups / create_backup / import_backup (confirm=true; replaces DB). \
+             Import: import_path_as_note / import_folder_as_notes (files/ sandbox) / \
+             import_bytes_as_note (base64) / antivirus_status / scan_import_path. \
+             Revisions: list/get/restore/delete + create_named_revision / rename_document_revision. \
+             Teachings: list_agent_teachings / add_agent_teaching / remove_agent_teaching / clear_agent_teachings. \
              Documents are also readable as resources scribe://doc/{id}.",
         )
     }

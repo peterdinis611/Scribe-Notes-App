@@ -1404,6 +1404,18 @@ export const pickAndImportFiles = async () => {
   })
 }
 
+/** Folder picker → import every supported file under the tree. */
+export const pickAndImportFolder = async () => {
+  const { readAntivirusPolicy } = await import('@/lib/antivirus/prefs')
+  return invoke<PickAndImportResult | null>('pick_and_import_folder', {
+    antivirusPolicy: readAntivirusPolicy(),
+  })
+}
+
+/** Expand directories in a drop/open path list to importable file paths. */
+export const expandImportPaths = (paths: string[]) =>
+  invoke<string[]>('expand_import_paths', { paths })
+
 export const importFile = async (path: string) => {
   const [
     { isPagesPath, importPagesDocumentFromPath },

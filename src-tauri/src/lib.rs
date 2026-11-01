@@ -641,6 +641,8 @@ pub fn run() {
             commands::import_export::read_binary_file,
             commands::import_export::write_text_file,
             commands::import_export::pick_and_import_file,
+            commands::import_export::pick_and_import_folder,
+            commands::import_export::expand_import_paths,
             commands::import_export::import_file,
             commands::import_export::prepare_pages_import,
             commands::import_export::prepare_numbers_import,

@@ -66,6 +66,7 @@
     "newDocument": "Nový dokument",
     "todayNote": "Dnešná poznámka",
     "import": "Importovať",
+    "importFolder": "Importovať priečinok",
     "connectionMap": "Mapa prepojení",
     "connectionMapHint": "Poznámky spojené cez [[názov]]. Hodí sa, keď už máte pár odkazov.",
     "openDocs": "Otvoriť Docs",
@@ -99,6 +100,7 @@
   "fileMenu": {
     "label": "Súbor",
     "import": "Importovať…",
+    "importFolder": "Importovať priečinok…",
     "importPdfHighlights": "Importovať zvýraznenia z PDF…",
     "goHome": "Prejsť na úvod",
     "closeDocument": "Zatvoriť dokument",

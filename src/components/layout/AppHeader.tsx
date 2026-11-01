@@ -23,7 +23,7 @@ import { SidebarToggle } from '@/components/SidebarToggle'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { IconTooltip } from '@/components/ui/tooltip'
-import { exportDocument, pickAndImportFiles, revealInFinder } from '@/lib/db/api'
+import { exportDocument, pickAndImportFiles, pickAndImportFolder, revealInFinder } from '@/lib/db/api'
 import { toastImportDocumentsResult } from '@/lib/import-document'
 import { listPluginExportFormats, listPluginImportFormats } from '@/lib/plugins'
 import { open } from '@tauri-apps/plugin-dialog'
@@ -418,8 +418,9 @@ function EditorChrome() {
     }
   }
 
-  async function handleImport() {
-    const result = await pickAndImportFiles()
+  async function applyImportResult(
+    result: Awaited<ReturnType<typeof pickAndImportFiles>>,
+  ) {
     if (!result) return
     toastImportDocumentsResult(result, (key, options) => t(key, options))
     if (result.imported.length === 0) return
@@ -431,6 +432,14 @@ function EditorChrome() {
     dispatch(setActiveDocument(last))
     dispatch(setSaveStatus('saved'))
     navigate(ROUTES.document(last.id))
+  }
+
+  async function handleImport() {
+    await applyImportResult(await pickAndImportFiles())
+  }
+
+  async function handleImportFolder() {
+    await applyImportResult(await pickAndImportFolder())
   }
 
   async function handlePluginExport(entryId: string) {
@@ -556,6 +565,7 @@ function EditorChrome() {
             hasDocument={!!document}
             hasFilePath={!!document?.filePath}
             onImport={() => void handleImport()}
+            onImportFolder={() => void handleImportFolder()}
             onImportPdfHighlights={() => void handleImportPdfHighlights()}
             onPluginImport={(id) => void handlePluginImport(id)}
             onRevealFile={() => void handleRevealFile()}

@@ -586,6 +586,64 @@ impl ScribeMcp {
         self.with_store(|store| Ok(tools::json(&store.restore_document_revision(&params.revision_id)?)))
     }
 
+    #[tool(
+        description = "Save the current note body as a named revision (label + optional pinned). Requires writable DB."
+    )]
+    fn create_named_revision(
+        &self,
+        rmcp::handler::server::wrapper::Parameters(params): rmcp::handler::server::wrapper::Parameters<
+            tools::CreateNamedRevisionParams,
+        >,
+    ) -> Result<String, String> {
+        if !self.writable {
+            return Err("MCP is read-only (set SCRIBE_MCP_WRITE=1 to enable writes)".to_string());
+        }
+        let result = self.with_store(|store| {
+            Ok(tools::json(&store.create_named_revision(
+                &params.document_id,
+                &params.label,
+                params.pinned,
+            )?))
+        })?;
+        self.audit_mcp(
+            "mcp_tool",
+            "create_named_revision",
+            &format!("MCP create_named_revision: {}", params.label.trim()),
+            Some(serde_json::json!({ "documentId": params.document_id })),
+            "ok",
+        );
+        Ok(result)
+    }
+
+    #[tool(
+        description = "Rename or (un)pin an existing revision snapshot. Requires writable DB."
+    )]
+    fn rename_document_revision(
+        &self,
+        rmcp::handler::server::wrapper::Parameters(params): rmcp::handler::server::wrapper::Parameters<
+            tools::RenameDocumentRevisionParams,
+        >,
+    ) -> Result<String, String> {
+        if !self.writable {
+            return Err("MCP is read-only (set SCRIBE_MCP_WRITE=1 to enable writes)".to_string());
+        }
+        let result = self.with_store(|store| {
+            Ok(tools::json(&store.rename_document_revision(
+                &params.revision_id,
+                params.label.as_deref(),
+                params.pinned,
+            )?))
+        })?;
+        self.audit_mcp(
+            "mcp_tool",
+            "rename_document_revision",
+            &format!("MCP rename_document_revision: {}", params.revision_id),
+            None,
+            "ok",
+        );
+        Ok(result)
+    }
+
     #[tool(description = "Unified search with mode: hybrid (default), semantic, or fts.")]
     fn search(
         &self,

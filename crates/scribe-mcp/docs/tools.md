@@ -928,11 +928,76 @@ Near-duplicate pairs across recent notes. Optional `limit` (default 20).
 
 ---
 
-## `list_backups` / `create_backup`
+## `list_backups` / `create_backup` / `import_backup`
 
 Default directory: `~/Documents/Scribe/Backups`. Optional `directory` override.
 
 `create_backup` writes `scribe-backup-{timestamp}.zip` (DB + documents) and prunes older auto backups.
+
+`import_backup` restores an **unencrypted** zip. **Writable** + `confirm: true` required — replaces local `scribe.db` and the documents tree, then reopens the DB. Encrypted archives stay app-only.
+
+| Arg | Type | Required | Notes |
+|-----|------|----------|--------|
+| `path` | string | yes | Absolute path to `.zip` |
+| `confirm` | boolean | yes | Must be `true` |
+
+---
+
+## `import_path_as_note` / `import_bytes_as_note`
+
+Create a note from a file via the same TipTap converters as the app (docx, md, pdf, xlsx, odt, source, …). Pages/Numbers/Keynote need the desktop app.
+
+`import_path_as_note` — path is **relative to the library `files/` sandbox** (no absolute paths). Optional antivirus gate when ClamAV is installed (`scan` defaults `true`).
+
+| Arg | Type | Required | Notes |
+|-----|------|----------|--------|
+| `path` | string | yes | e.g. `inbox/report.pdf` |
+| `title` | string | no | Defaults to file stem |
+| `folderId` | string | no | — |
+| `scan` | boolean | no | default `true` |
+
+`import_bytes_as_note` — `fileName` (bare name + extension) + `contentBase64` (max ~12 MB decoded).
+
+`import_folder_as_notes` — recursive import of every supported file under a `files/` directory (skips `node_modules` / `.git` / …). Soft cap `limit` (default 500).
+
+| Arg | Type | Required | Notes |
+|-----|------|----------|--------|
+| `path` | string | no | Relative dir under `files/` (default root) |
+| `folderId` | string | no | Library folder for all created notes |
+| `scan` | boolean | no | default `true` |
+| `limit` | number | no | max files (≤ 500) |
+| `maxDepth` | number | no | default 12 |
+
+All require **writable** MCP.
+
+---
+
+## `antivirus_status` / `scan_import_path`
+
+`antivirus_status` — local ClamAV engine probe (no in-process signatures).
+
+`scan_import_path` — run the import gate on a `files/` relative path without creating a note.
+
+---
+
+## `create_named_revision` / `rename_document_revision`
+
+`create_named_revision` — snapshot current body with `label` (default `pinned: true`). **Writable.**
+
+`rename_document_revision` — update `label` and/or `pinned` on an existing revision. **Writable.**
+
+---
+
+## `list_agent_teachings` / `add_agent_teaching` / `remove_agent_teaching` / `clear_agent_teachings`
+
+Standing prefs / grammar rules in `scribe-agent.db` (same as Settings → Agent).
+
+| Tool | Args | Notes |
+|------|------|--------|
+| `list_agent_teachings` | optional `agentId` | Role + shared `general` when filtered |
+| `add_agent_teaching` | `text`, optional `topic` (`general`\|`grammar`), optional `agentId` | Writable |
+| `remove_agent_teaching` | `id` | Writable |
+| `clear_agent_teachings` | optional `agentId` | Writable; omit agentId to clear all |
 
 ---
 

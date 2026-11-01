@@ -4,7 +4,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { DemoGuideButton } from '@/components/DemoGuideButton'
-import { pickAndImportFiles } from '@/lib/db/api'
+import { pickAndImportFiles, pickAndImportFolder } from '@/lib/db/api'
 import { toastImportDocumentsResult } from '@/lib/import-document'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
 import { prefetchDocument } from '@/lib/cache/prefetch-document'
@@ -53,8 +53,9 @@ export function WelcomeScreen() {
     return [...alive].sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 12)
   }, [documents, recentDocumentIds])
 
-  async function handleImport() {
-    const result = await pickAndImportFiles()
+  async function applyImportResult(
+    result: Awaited<ReturnType<typeof pickAndImportFiles>>,
+  ) {
     if (!result) return
     toastImportDocumentsResult(result, (key, options) => t(key, options))
     if (result.imported.length === 0) return
@@ -66,6 +67,14 @@ export function WelcomeScreen() {
     dispatch(setActiveDocument(last))
     dispatch(setSaveStatus('saved'))
     navigate(ROUTES.document(last.id))
+  }
+
+  async function handleImport() {
+    await applyImportResult(await pickAndImportFiles())
+  }
+
+  async function handleImportFolder() {
+    await applyImportResult(await pickAndImportFolder())
   }
 
   function handleToday() {
@@ -123,6 +132,14 @@ export function WelcomeScreen() {
             >
               <FolderInput className="h-4 w-4" />
               {t('welcome.import')}
+            </Button>
+            <Button
+              variant="ghost"
+              className="welcome-page-ghost"
+              onClick={() => void handleImportFolder()}
+            >
+              <FolderInput className="h-4 w-4" />
+              {t('welcome.importFolder')}
             </Button>
             <DemoGuideButton variant="link" className="welcome-page-link" />
           </div>
