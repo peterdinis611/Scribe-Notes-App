@@ -24,6 +24,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { IconTooltip } from '@/components/ui/tooltip'
 import { exportDocument, pickAndImportFiles, pickAndImportFolder, revealInFinder } from '@/lib/db/api'
+import { recordImportBatch } from '@/lib/import/record-import-batch'
 import { toastImportDocumentsResult } from '@/lib/import-document'
 import { listPluginExportFormats, listPluginImportFormats } from '@/lib/plugins'
 import { open } from '@tauri-apps/plugin-dialog'
@@ -427,6 +428,7 @@ function EditorChrome() {
     for (const doc of result.imported) {
       dispatch(updateDocuments((prev) => prependDocumentSummary(prev, doc)))
     }
+    recordImportBatch(dispatch, result.imported)
     const last = result.imported[result.imported.length - 1]!
     dispatch(setActiveDocumentId(last.id))
     dispatch(setActiveDocument(last))

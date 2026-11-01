@@ -3542,6 +3542,7 @@
     "agent": "Lokálny agent",
     "spellcheckAgent": "Pravopisný agent",
     "flashcards": "Kartičky",
+    "importBatch": "Importované ({{count}})",
     "stats": "Štatistika",
     "revisions": "História verzií",
     "findReplace": "Nájsť a nahradiť",
@@ -3554,6 +3555,24 @@
     "autoExpand": "Automaticky rozšíriť"
   },
   "panels": {
+    "importBatch": {
+      "ariaLabel": "Importované dokumenty",
+      "title": "Importované",
+      "count_one": "{{count}} súbor v tejto dávke",
+      "count_few": "{{count}} súbory v tejto dávke",
+      "count_many": "{{count}} súborov v tejto dávke",
+      "count_other": "{{count}} súborov v tejto dávke",
+      "emptySubtitle": "V dávke nie sú žiadne súbory",
+      "empty": "Zatiaľ nič neimportované",
+      "emptyHint": "Importujte súbory alebo priečinok — zobrazia sa tu, aby ste medzi nimi vedeli prepínať.",
+      "hide": "Skryť panel importu",
+      "clear": "Vymazať zoznam dávky",
+      "untitled": "Bez názvu",
+      "openNow": "Práve otvorené",
+      "hint": "Kliknite na súbor alebo použite Predchádzajúci / Ďalší.",
+      "prev": "Predchádzajúci",
+      "next": "Ďalší"
+    },
     "comments": {
       "hide": "Skryť komentáre",
       "noComments": "Žiadne komentáre",

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { DemoGuideButton } from '@/components/DemoGuideButton'
 import { pickAndImportFiles, pickAndImportFolder } from '@/lib/db/api'
+import { recordImportBatch } from '@/lib/import/record-import-batch'
 import { toastImportDocumentsResult } from '@/lib/import-document'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
 import { prefetchDocument } from '@/lib/cache/prefetch-document'
@@ -62,6 +63,7 @@ export function WelcomeScreen() {
     for (const doc of result.imported) {
       dispatch(updateDocuments((prev) => prependDocumentSummary(prev, doc)))
     }
+    recordImportBatch(dispatch, result.imported)
     const last = result.imported[result.imported.length - 1]!
     dispatch(setActiveDocumentId(last.id))
     dispatch(setActiveDocument(last))

@@ -3538,6 +3538,7 @@
     "agent": "Local Agent",
     "spellcheckAgent": "Spellcheck Agent",
     "flashcards": "Flashcards",
+    "importBatch": "Imported ({{count}})",
     "stats": "Statistics",
     "revisions": "Version history",
     "findReplace": "Find and replace",
@@ -3550,6 +3551,22 @@
     "autoExpand": "Expand automatically"
   },
   "panels": {
+    "importBatch": {
+      "ariaLabel": "Imported documents",
+      "title": "Imported",
+      "count_one": "{{count}} file in this batch",
+      "count_other": "{{count}} files in this batch",
+      "emptySubtitle": "No files in this batch",
+      "empty": "Nothing imported yet",
+      "emptyHint": "Import files or a folder — they will show up here so you can jump between them.",
+      "hide": "Hide imported panel",
+      "clear": "Clear batch list",
+      "untitled": "Untitled",
+      "openNow": "Open now",
+      "hint": "Click a file to open it, or use previous / next.",
+      "prev": "Previous",
+      "next": "Next"
+    },
     "comments": {
       "hide": "Hide comments",
       "noComments": "No comments",

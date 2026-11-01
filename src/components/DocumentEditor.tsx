@@ -52,6 +52,9 @@ const StatsPanel = lazy(() =>
 const FlashcardsPanel = lazy(() =>
   import('@/components/editor/FlashcardsPanel').then((m) => ({ default: m.FlashcardsPanel })),
 )
+const ImportBatchPanel = lazy(() =>
+  import('@/components/editor/ImportBatchPanel').then((m) => ({ default: m.ImportBatchPanel })),
+)
 import { FindReplaceBar } from '@/components/editor/FindReplaceBar'
 import { EditorToolbar } from '@/components/editor-toolbar/EditorToolbar'
 import { EditorMenus } from '@/components/editor/EditorMenus'
@@ -100,6 +103,7 @@ import {
   setDocumentTocLeftOpen,
   setFindReplaceOpen,
   setFlashcardsPanelOpen,
+  setImportBatchPanelOpen,
   setPendingEditorSearch,
   setInsightsPanelOpen,
   setRevisionHistoryOpen,
@@ -125,6 +129,7 @@ export function DocumentEditor() {
   const insightsOpen = useAppSelector((state) => state.documents.insightsPanelOpen)
   const clipboardOpen = useAppSelector((state) => state.documents.clipboardHistoryPanelOpen)
   const flashcardsOpen = useAppSelector((state) => state.documents.flashcardsPanelOpen)
+  const importBatchOpen = useAppSelector((state) => state.documents.importBatchPanelOpen)
   const focusMode = useAppSelector((state) => state.documents.focusMode)
   const readingMode = useAppSelector((state) => state.documents.readingMode)
   const [markdownDraft, setMarkdownDraft] = useState('')
@@ -940,6 +945,9 @@ export function DocumentEditor() {
               onInsertPlain={isMarkdown ? insertClipboardPlain : undefined}
               onClose={() => dispatch(setClipboardHistoryPanelOpen(false))}
             />
+          )}
+          {!readingMode && importBatchOpen && (
+            <ImportBatchPanel onClose={() => dispatch(setImportBatchPanelOpen(false))} />
           )}
         </Suspense>
           </div>

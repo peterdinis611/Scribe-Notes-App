@@ -33,6 +33,16 @@ import { normalizeAgentRoleId } from '@/lib/library/agent-roles'
 
 export type SaveStatus = 'idle' | 'dirty' | 'saving' | 'saved' | 'error'
 
+export type ImportBatchItem = {
+  id: string
+  title: string
+}
+
+export type ImportBatchState = {
+  at: number
+  items: ImportBatchItem[]
+}
+
 export interface DocumentsState {
   documents: DocumentSummary[]
   activeDocumentId: string | null
@@ -106,6 +116,12 @@ export interface DocumentsState {
   librarySmartFilter: LibrarySmartFilter
   /** Multi-select in library views. */
   selectedDocumentIds: string[]
+  /**
+   * Last file/folder import batch — right-side panel for count + switching
+   * between just-imported notes (session only).
+   */
+  importBatchPanelOpen: boolean
+  importBatch: ImportBatchState | null
 }
 
 function pruneIds(ids: string[], documents: DocumentSummary[]): string[] {
@@ -144,6 +160,8 @@ const initialState: DocumentsState = {
   insightsFocusAsk: false,
   clipboardHistoryPanelOpen: readBoolStorage('scribe-clipboard-history-open', false),
   flashcardsPanelOpen: readBoolStorage('scribe-flashcards-open', false),
+  importBatchPanelOpen: false,
+  importBatch: null,
   agentPanelOpen: readBoolStorage('scribe-agent-panel-open', false),
   agentPersona: 'general',
   panelRailExpanded: readBoolStorage('scribe-panel-rail-expanded', false),
@@ -424,6 +442,7 @@ const documentsSlice = createSlice({
         state.insightsFocusAsk = false
         state.clipboardHistoryPanelOpen = false
         state.flashcardsPanelOpen = false
+        state.importBatchPanelOpen = false
         persistBoolStorage('scribe-insights-open', false)
       } else {
         state.agentPersona = 'general'
@@ -453,6 +472,7 @@ const documentsSlice = createSlice({
       state.insightsFocusAsk = false
       state.clipboardHistoryPanelOpen = false
       state.flashcardsPanelOpen = false
+      state.importBatchPanelOpen = false
       persistBoolStorage('scribe-insights-open', false)
     },
     requestInsightsAskFocus(state) {
@@ -468,6 +488,7 @@ const documentsSlice = createSlice({
       state.backlinksPanelOpen = false
       state.clipboardHistoryPanelOpen = false
       state.flashcardsPanelOpen = false
+      state.importBatchPanelOpen = false
       state.agentPanelOpen = false
       persistBoolStorage('scribe-agent-panel-open', false)
     },
@@ -489,6 +510,54 @@ const documentsSlice = createSlice({
         state.panelRailExpanded = true
         persistBoolStorage('scribe-panel-rail-expanded', true)
       }
+    },
+    setImportBatchPanelOpen(state, action: PayloadAction<boolean>) {
+      state.importBatchPanelOpen = action.payload
+      if (action.payload) {
+        state.panelRailExpanded = true
+        persistBoolStorage('scribe-panel-rail-expanded', true)
+        state.documentOutlineOpen = false
+        state.revisionHistoryOpen = false
+        state.commentsPanelOpen = false
+        state.statsPanelOpen = false
+        state.backlinksPanelOpen = false
+        state.insightsPanelOpen = false
+        state.insightsFocusAsk = false
+        state.clipboardHistoryPanelOpen = false
+        state.flashcardsPanelOpen = false
+        state.agentPanelOpen = false
+        persistBoolStorage('scribe-agent-panel-open', false)
+        persistBoolStorage('scribe-insights-open', false)
+      }
+    },
+    /** Replace the session import batch and open the panel (file/folder import). */
+    openImportBatch(state, action: PayloadAction<ImportBatchItem[]>) {
+      const items = action.payload.filter((item) => item.id.trim().length > 0)
+      if (items.length === 0) {
+        state.importBatch = null
+        state.importBatchPanelOpen = false
+        return
+      }
+      state.importBatch = { at: Date.now(), items }
+      state.importBatchPanelOpen = true
+      state.panelRailExpanded = true
+      persistBoolStorage('scribe-panel-rail-expanded', true)
+      state.documentOutlineOpen = false
+      state.revisionHistoryOpen = false
+      state.commentsPanelOpen = false
+      state.statsPanelOpen = false
+      state.backlinksPanelOpen = false
+      state.insightsPanelOpen = false
+      state.insightsFocusAsk = false
+      state.clipboardHistoryPanelOpen = false
+      state.flashcardsPanelOpen = false
+      state.agentPanelOpen = false
+      persistBoolStorage('scribe-agent-panel-open', false)
+      persistBoolStorage('scribe-insights-open', false)
+    },
+    clearImportBatch(state) {
+      state.importBatch = null
+      state.importBatchPanelOpen = false
     },
     setPanelRailExpanded(state, action: PayloadAction<boolean>) {
       state.panelRailExpanded = action.payload
@@ -727,6 +796,9 @@ export const {
   clearInsightsAskFocus,
   setClipboardHistoryPanelOpen,
   setFlashcardsPanelOpen,
+  setImportBatchPanelOpen,
+  openImportBatch,
+  clearImportBatch,
   setPanelRailExpanded,
   setFocusMode,
   toggleFocusMode,

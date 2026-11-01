@@ -51,6 +51,7 @@ import {
   setSaveStatus,
   updateDocuments,
 } from '@/store/documentsSlice'
+import { recordImportBatch } from '@/lib/import/record-import-batch'
 import { setTemplatePickerOpen } from '@/store/settingsSlice'
 import { setMoveDocumentPickerOpen } from '@/store/foldersSlice'
 
@@ -122,6 +123,7 @@ export function AppLayout() {
       for (const doc of docs) {
         dispatch(updateDocuments((prev) => prependDocumentSummary(prev, doc)))
       }
+      recordImportBatch(dispatch, docs)
       const last = docs[docs.length - 1]!
       dispatch(setActiveDocumentId(last.id))
       dispatch(setActiveDocument(last))

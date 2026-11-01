@@ -3,6 +3,7 @@ import {
   BarChart3,
   BookOpen,
   ClipboardList,
+  FileStack,
   Focus,
   History,
   Layers,
@@ -35,6 +36,7 @@ import {
   setDocumentOutlineOpen,
   setFindReplaceMode,
   setFlashcardsPanelOpen,
+  setImportBatchPanelOpen,
   setInsightsPanelOpen,
   setPanelRailExpanded,
   setRevisionHistoryOpen,
@@ -88,6 +90,10 @@ export function EditorPanelRail() {
   const spellAgentOpen = agentOpen && agentPersona === 'proofreader'
   const clipboardOpen = useAppSelector((state) => state.documents.clipboardHistoryPanelOpen)
   const flashcardsOpen = useAppSelector((state) => state.documents.flashcardsPanelOpen)
+  const importBatchOpen = useAppSelector((state) => state.documents.importBatchPanelOpen)
+  const importBatchCount = useAppSelector(
+    (state) => state.documents.importBatch?.items.length ?? 0,
+  )
   const findReplaceOpen = useAppSelector((state) => state.documents.findReplaceOpen)
   const panelRailExpanded = useAppSelector((state) => state.documents.panelRailExpanded)
   const focusMode = useAppSelector((state) => state.documents.focusMode)
@@ -105,6 +111,7 @@ export function EditorPanelRail() {
     agentOpen ||
     clipboardOpen ||
     flashcardsOpen ||
+    importBatchOpen ||
     findReplaceOpen
   const expanded = panelRailExpanded || anyPanelOpen
 
@@ -118,7 +125,8 @@ export function EditorPanelRail() {
       | 'insights'
       | 'agent'
       | 'clipboard'
-      | 'flashcards',
+      | 'flashcards'
+      | 'importBatch',
   ) {
     if (except !== 'outline') dispatch(setDocumentOutlineOpen(false))
     if (except !== 'history') dispatch(setRevisionHistoryOpen(false))
@@ -129,6 +137,7 @@ export function EditorPanelRail() {
     if (except !== 'agent') dispatch(setAgentPanelOpen(false))
     if (except !== 'clipboard') dispatch(setClipboardHistoryPanelOpen(false))
     if (except !== 'flashcards') dispatch(setFlashcardsPanelOpen(false))
+    if (except !== 'importBatch') dispatch(setImportBatchPanelOpen(false))
   }
 
   function openFind() {
@@ -226,6 +235,23 @@ export function EditorPanelRail() {
           >
             <Sparkles className="h-4 w-4" />
           </RailButton>
+          {importBatchCount > 0 ? (
+            <RailButton
+              label={t('editorPanels.importBatch', { count: importBatchCount })}
+              active={importBatchOpen}
+              onClick={() => {
+                closeOtherPanels('importBatch')
+                dispatch(setImportBatchPanelOpen(!importBatchOpen))
+              }}
+            >
+              <span className="relative inline-flex">
+                <FileStack className="h-4 w-4" />
+                <span className="absolute -right-1.5 -top-1.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-[var(--color-accent)] px-0.5 text-[8px] font-bold leading-none text-[var(--color-accent-foreground)]">
+                  {importBatchCount > 99 ? '99+' : importBatchCount}
+                </span>
+              </span>
+            </RailButton>
+          ) : null}
           <div className="editor-panel-rail-sep" aria-hidden="true" />
           <RailButton
             label={t('editorPanels.expand')}
@@ -312,6 +338,23 @@ export function EditorPanelRail() {
         >
           <Layers className="h-4 w-4" />
         </RailButton>
+        {importBatchCount > 0 ? (
+          <RailButton
+            label={t('editorPanels.importBatch', { count: importBatchCount })}
+            active={importBatchOpen}
+            onClick={() => {
+              closeOtherPanels('importBatch')
+              dispatch(setImportBatchPanelOpen(!importBatchOpen))
+            }}
+          >
+            <span className="relative inline-flex">
+              <FileStack className="h-4 w-4" />
+              <span className="absolute -right-1.5 -top-1.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-[var(--color-accent)] px-0.5 text-[8px] font-bold leading-none text-[var(--color-accent-foreground)]">
+                {importBatchCount > 99 ? '99+' : importBatchCount}
+              </span>
+            </span>
+          </RailButton>
+        ) : null}
         <RailButton
           label={t('editorPanels.clipboard')}
           active={clipboardOpen}

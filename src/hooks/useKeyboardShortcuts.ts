@@ -139,6 +139,8 @@ export function useKeyboardShortcuts() {
           for (const doc of result.imported) {
             dispatch(updateDocuments((prev) => prependDocumentSummary(prev, doc)))
           }
+          const { recordImportBatch } = await import('@/lib/import/record-import-batch')
+          recordImportBatch(dispatch, result.imported)
           const last = result.imported[result.imported.length - 1]!
           dispatch(setActiveDocumentId(last.id))
           dispatch(setActiveDocument(last))
