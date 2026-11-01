@@ -1,8 +1,10 @@
 import { message } from '@tauri-apps/plugin-dialog'
 import { cacheDocument } from '@/lib/cache/document-cache'
 import {
+  expandImportPaths,
   importFile,
   pickAndImportFiles,
+  pickAndImportFolder,
   type Document,
 } from '@/lib/db/api'
 import {
@@ -84,7 +86,7 @@ export async function importDocumentFromPath(path: string): Promise<Document> {
     return await importKeynoteDocumentFromPath(selected)
   }
 
-  // Prefer pdf.js path (richer page text); Rust pdf-extract is used by native picker.
+  // PDF → TipTap via Rust pdf-extract (same as native picker); preview uses EmbedPDF.
   if (isPdfPath(selected)) {
     return await importPdfDocumentFromPath(selected)
   }
@@ -124,12 +126,45 @@ export async function importDocumentsFromPaths(paths: string[]): Promise<ImportD
 }
 
 /**
+ * Import files and/or folders: directories are expanded recursively to supported files.
+ */
+export async function importDocumentsFromPathsOrFolders(
+  paths: string[],
+): Promise<ImportDocumentsResult> {
+  const trimmed = paths.map((path) => path.trim()).filter(Boolean)
+  if (trimmed.length === 0) {
+    return { imported: [], skipped: [], failed: [] }
+  }
+  let expanded = trimmed
+  try {
+    expanded = await expandImportPaths(trimmed)
+  } catch {
+    // Fall back to file-only filter when expand command is unavailable.
+  }
+  return importDocumentsFromPaths(expanded)
+}
+
+/**
  * Open a multi-file picker and import all selected documents.
  * Returns `null` when the user cancels.
  */
 export async function pickAndImportDocuments(): Promise<ImportDocumentsResult | null> {
   // Native Rust multi-file picker + PathAccessGate grant (not JS path strings).
   const result = await pickAndImportFiles()
+  if (!result) return null
+  for (const doc of result.imported) {
+    cacheDocument(doc)
+  }
+  return {
+    imported: result.imported,
+    skipped: [],
+    failed: result.failed,
+  }
+}
+
+/** Native folder picker → import every supported file in the tree. */
+export async function pickAndImportDocumentsFolder(): Promise<ImportDocumentsResult | null> {
+  const result = await pickAndImportFolder()
   if (!result) return null
   for (const doc of result.imported) {
     cacheDocument(doc)

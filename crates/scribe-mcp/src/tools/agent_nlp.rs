@@ -24,6 +24,18 @@ pub struct ListOpenTasksParams {
 
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
+pub struct ListTasksAgendaParams {
+    pub folder_id: Option<String>,
+    pub limit: Option<i64>,
+    pub include_phrases: Option<bool>,
+    /// Epoch millis; default = now.
+    pub now_ms: Option<i64>,
+    /// Minutes east of UTC (JS: `-getTimezoneOffset()`); default = host local.
+    pub offset_minutes_east: Option<i32>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct GetOrCreateJournalParams {
     /// day (default) | morning | evening
     pub slot: Option<String>,
@@ -163,6 +175,34 @@ pub struct CreateFromTemplateParams {
 pub struct BackupDirParams {
     /// Optional backup folder; default ~/Documents/Scribe/Backups
     pub directory: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ListTeachingsParams {
+    /// Optional role partition (`general`, `proofreader`, `librarian`, …).
+    pub agent_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct AddTeachingParams {
+    pub text: String,
+    /// `general` or `grammar`.
+    pub topic: Option<String>,
+    pub agent_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct RemoveTeachingParams {
+    pub id: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ClearTeachingsParams {
+    pub agent_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]

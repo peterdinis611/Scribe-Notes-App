@@ -8,9 +8,25 @@ import {
   type AgentPrefs,
 } from '@/lib/library/agent-prefs'
 import { isAgentRoleEnabled } from '@/lib/library/agent-roles'
+import { applyAgentAnswer } from '@/lib/editor/insert-ai-answer'
+import {
+  createDocument,
+  getDocument,
+  listDocuments,
+  updateDocument,
+} from '@/lib/db/api'
+import { cacheDocument } from '@/lib/cache/document-cache'
+import {
+  parseMarkdownToContentJson,
+  serializeContentJsonToMarkdown,
+  titleFromMarkdown,
+} from '@/lib/editor/markdown-content'
+import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { toast } from '@/lib/toast'
 import { store } from '@/store/index'
 import { setAgentPrefs } from '@/store/settingsSlice'
+import { updateDocuments } from '@/store/documentsSlice'
+import { editorRefs } from '@/store/editorRefs'
 import i18n from '@/i18n'
 
 const TICK_MS = 60_000
@@ -52,6 +68,84 @@ export function shouldCatchUpDigest(schedule: AgentDigestSchedule, now = new Dat
   return localHm(now) >= schedule.timeLocal
 }
 
+function journalTitle(period: 'day' | 'week'): string {
+  return period === 'week'
+    ? i18n.t('agent.digestJournalWeekly')
+    : i18n.t('agent.digestJournalDaily')
+}
+
+async function spawnDigestNote(markdown: string, titleHint: string): Promise<void> {
+  const body = markdown.trim()
+  if (!body) return
+  const title = titleFromMarkdown(body, titleHint)
+  const document = cacheDocument(
+    await createDocument({
+      title,
+      contentJson: parseMarkdownToContentJson(body),
+    }),
+  )
+  store.dispatch(updateDocuments((prev) => prependDocumentSummary(prev, document)))
+}
+
+async function appendToJournalNote(markdown: string, period: 'day' | 'week'): Promise<void> {
+  const title = journalTitle(period)
+  const stamp = new Date().toISOString().slice(0, 16).replace('T', ' ')
+  const section = `\n\n## ${stamp}\n\n${markdown.trim()}\n`
+  const docs = await listDocuments()
+  const existing = docs.find((doc) => doc.title === title)
+  if (existing) {
+    const full = await getDocument(existing.id)
+    if (!full) return
+    const current = serializeContentJsonToMarkdown(full.contentJson || '{}').trim()
+    const nextMd = `${current}${section}`
+    await updateDocument({
+      id: existing.id,
+      contentJson: parseMarkdownToContentJson(nextMd),
+    })
+    return
+  }
+  const document = cacheDocument(
+    await createDocument({
+      title,
+      contentJson: parseMarkdownToContentJson(`# ${title}${section}`),
+    }),
+  )
+  store.dispatch(updateDocuments((prev) => prependDocumentSummary(prev, document)))
+}
+
+async function writeDigestResult(
+  prefs: AgentPrefs,
+  answer: string,
+  recipeId: string,
+): Promise<void> {
+  const mode = prefs.digestWriteMode
+  const period = prefs.digestSchedule.period
+  if (mode === 'toast' || !answer.trim()) return
+
+  const sectionTitle =
+    recipeId === 'weekly_review'
+      ? i18n.t('agent.digestSpawnWeekly')
+      : i18n.t('agent.digestSpawnDaily')
+
+  if (mode === 'spawn') {
+    await spawnDigestNote(answer, sectionTitle)
+    return
+  }
+
+  if (mode === 'append_journal') {
+    const activeId = store.getState().documents.activeDocumentId
+    const editor = editorRefs.editor
+    if (activeId && editor && !editor.isDestroyed) {
+      applyAgentAnswer(answer, 'section', {
+        sourceTitle: i18n.t('agent.brandBadge'),
+        sectionTitle,
+      })
+      return
+    }
+    await appendToJournalNote(answer, period)
+  }
+}
+
 async function tick(opts?: { catchUp?: boolean }) {
   if (running) return
   const prefs = normalizeAgentPrefs(store.getState().settings.agentPrefs)
@@ -86,6 +180,11 @@ async function tick(opts?: { catchUp?: boolean }) {
     }
     store.dispatch(setAgentPrefs(next))
     const preview = (result.answer || '').replace(/\s+/g, ' ').slice(0, 140)
+    try {
+      await writeDigestResult(next, result.answer || '', recipeId)
+    } catch {
+      // Write-back is best-effort; toast still informs the user.
+    }
     toast.success(
       catchUp && !due
         ? i18n.t('agent.digestScheduleCatchUp')

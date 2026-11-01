@@ -357,6 +357,147 @@ impl ScribeMcp {
     }
 
     #[tool(
+        description = "Collect note ids within N outbound wiki-link hops of a root (BFS; root first). Parity with in-app wiki neighborhood."
+    )]
+    fn wiki_neighborhood(
+        &self,
+        Parameters(params): Parameters<tools::WikiNeighborhoodParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.collect_wiki_neighborhood(
+                &params.id,
+                params.hops,
+                params.max_notes,
+            )?))
+        })
+    }
+
+    #[tool(
+        description = "Find the longest library title/alias that appears as plain text in a paragraph (wiki ghost link). Pass candidates or auto-build from the active library."
+    )]
+    fn find_wiki_ghost_match(
+        &self,
+        Parameters(params): Parameters<tools::FindWikiGhostMatchParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            let min_length = params.min_length.unwrap_or(4).max(1);
+            let candidates: Vec<scribe_core::WikiGhostCandidate> =
+                if let Some(raw) = params.candidates.as_ref() {
+                    raw.iter()
+                        .map(|c| scribe_core::WikiGhostCandidate {
+                            id: c.id.clone(),
+                            title: c.title.clone(),
+                            phrase: c
+                                .phrase
+                                .clone()
+                                .unwrap_or_else(|| c.title.clone()),
+                        })
+                        .collect()
+                } else {
+                    let exclude = params
+                        .exclude_document_id
+                        .as_deref()
+                        .map(str::trim)
+                        .filter(|s| !s.is_empty());
+                    let limit = params.candidate_limit.unwrap_or(200).clamp(1, 200);
+                    let docs = store.list_documents(None, Some(limit))?;
+                    let mut out = Vec::new();
+                    for doc in docs {
+                        if exclude.is_some_and(|id| id == doc.id) {
+                            continue;
+                        }
+                        out.push(scribe_core::WikiGhostCandidate {
+                            id: doc.id.clone(),
+                            title: doc.title.clone(),
+                            phrase: doc.title.clone(),
+                        });
+                        for alias in scribe_core::parse_aliases(&doc.tags) {
+                            out.push(scribe_core::WikiGhostCandidate {
+                                id: doc.id.clone(),
+                                title: doc.title.clone(),
+                                phrase: alias,
+                            });
+                        }
+                    }
+                    out
+                };
+            let match_hit = scribe_core::find_wiki_ghost_match(
+                &params.paragraph,
+                &candidates,
+                min_length,
+            );
+            Ok(tools::json(&serde_json::json!({
+                "match": match_hit,
+                "candidateCount": candidates.len(),
+            })))
+        })
+    }
+
+    #[tool(description = "List alias:* tags for a document (or parse aliases from an explicit tags array).")]
+    fn parse_document_aliases(
+        &self,
+        Parameters(params): Parameters<tools::ParseAliasesParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            let (id, tags) = if let Some(id) = params
+                .id
+                .as_deref()
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+            {
+                let doc = store
+                    .get_document_scoped(id, false, self.vault_scope)?
+                    .ok_or_else(|| format!("Document not found: {id}"))?;
+                (Some(doc.id), doc.tags)
+            } else if let Some(tags) = params.tags.clone() {
+                (None, tags)
+            } else {
+                return Err("Provide id or tags".to_string());
+            };
+            let aliases = scribe_core::parse_aliases(&tags);
+            Ok(tools::json(&serde_json::json!({
+                "id": id,
+                "aliases": aliases,
+                "tags": tags,
+            })))
+        })
+    }
+
+    #[tool(
+        description = "Add an alias:* tag to a document (title synonym for wiki resolve/ghost). Requires writable DB."
+    )]
+    fn add_document_alias(
+        &self,
+        Parameters(params): Parameters<tools::AddDocumentAliasParams>,
+    ) -> Result<String, String> {
+        if !self.writable {
+            return Err("MCP is read-only (set SCRIBE_MCP_WRITE=1 to enable writes)".to_string());
+        }
+        let alias = params.alias.trim().to_string();
+        if alias.is_empty() {
+            return Err("alias is required".to_string());
+        }
+        let result = self.with_store(|store| {
+            let doc = store
+                .get_document(&params.id, false)?
+                .ok_or_else(|| format!("Document not found: {}", params.id))?;
+            let next = scribe_core::add_alias_tag(&doc.tags, &alias);
+            Ok(tools::json(&store.set_document_tags(&params.id, &next)?))
+        })?;
+        self.audit_mcp(
+            "mcp_tool",
+            "add_document_alias",
+            &format!("MCP add_document_alias: {} → {}", params.id, alias),
+            Some(serde_json::json!({
+                "id": params.id,
+                "alias": alias,
+            })),
+            "ok",
+        );
+        Ok(result)
+    }
+
+    #[tool(
         description = "Append a short outline scaffold to a stub note (heading + seed paragraph + 3 bullets). Requires writable DB."
     )]
     fn expand_stub_document(

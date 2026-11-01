@@ -23,15 +23,17 @@ import { SidebarToggle } from '@/components/SidebarToggle'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { IconTooltip } from '@/components/ui/tooltip'
-import { exportDocument, pickAndImportFiles, revealInFinder } from '@/lib/db/api'
+import { exportDocument, listFolders, pickAndImportFiles, pickAndImportFolder, revealInFinder } from '@/lib/db/api'
+import { recordImportBatch } from '@/lib/import/record-import-batch'
 import { toastImportDocumentsResult } from '@/lib/import-document'
+import { setFolders } from '@/store/foldersSlice'
 import { listPluginExportFormats, listPluginImportFormats } from '@/lib/plugins'
 import { open } from '@tauri-apps/plugin-dialog'
 import { readFile } from '@tauri-apps/plugin-fs'
 import { getCachedParsedContent } from '@/lib/cache/document-cache'
-import { fileBasename, toast } from '@/lib/toast'
+import { dismissToast, fileBasename, toast } from '@/lib/toast'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
-import { tiptapJsonToHtmlAsync } from '@/lib/export/html'
+import { tiptapJsonToHtmlPreferRust } from '@/lib/export/html-prefer-rust'
 import { tiptapJsonToMarkdown } from '@/lib/export/markdown'
 import { tiptapToPlainText } from '@/lib/export/plain-text'
 import { exportEditorSelection } from '@/lib/export/selection'
@@ -232,9 +234,14 @@ function EditorChrome() {
       return
     }
     let cancelled = false
-    void tiptapJsonToHtmlAsync(pdfPreviewPayload.contentJson, pdfPreviewPayload.title, {
-      pageSetup: pdfPreviewPayload.pageSetup,
-      forPrint: true,
+    void tiptapJsonToHtmlPreferRust({
+      contentJson: pdfPreviewPayload.contentJson,
+      title: pdfPreviewPayload.title,
+      documentId: pdfPreviewPayload.documentId,
+      options: {
+        pageSetup: pdfPreviewPayload.pageSetup,
+        forPrint: true,
+      },
     }).then((html) => {
       if (!cancelled) setExportHtml(html)
     })
@@ -283,9 +290,14 @@ function EditorChrome() {
 
       const html =
         exportHtml ||
-        (await tiptapJsonToHtmlAsync(contentJson, title, {
-          pageSetup: exportPageSetup,
-          forPrint: true,
+        (await tiptapJsonToHtmlPreferRust({
+          contentJson,
+          title,
+          documentId: document.id,
+          options: {
+            pageSetup: exportPageSetup,
+            forPrint: true,
+          },
         }))
       const fallbackPlain = plainText || tiptapToPlainText(contentJson)
       const fallbackMd = markdown || tiptapJsonToMarkdown(contentJson, title)
@@ -408,19 +420,47 @@ function EditorChrome() {
     }
   }
 
-  async function handleImport() {
-    const result = await pickAndImportFiles()
+  async function applyImportResult(
+    result: Awaited<ReturnType<typeof pickAndImportFiles>>,
+  ) {
     if (!result) return
     toastImportDocumentsResult(result, (key, options) => t(key, options))
     if (result.imported.length === 0) return
+    if (result.imported.some((doc) => doc.folderId)) {
+      try {
+        dispatch(setFolders(await listFolders()))
+      } catch {
+        // Documents still imported; folder tree refresh is best-effort.
+      }
+    }
     for (const doc of result.imported) {
       dispatch(updateDocuments((prev) => prependDocumentSummary(prev, doc)))
     }
+    recordImportBatch(dispatch, result.imported)
     const last = result.imported[result.imported.length - 1]!
     dispatch(setActiveDocumentId(last.id))
     dispatch(setActiveDocument(last))
     dispatch(setSaveStatus('saved'))
     navigate(ROUTES.document(last.id))
+  }
+
+  async function handleImport() {
+    try {
+      await applyImportResult(await pickAndImportFiles())
+    } catch (error) {
+      toast.error(t('fileDrop.failed', { count: 1 }), String(error))
+    }
+  }
+
+  async function handleImportFolder() {
+    const pendingId = toast.info(t('fileDrop.importing'), undefined, { duration: 0 })
+    try {
+      await applyImportResult(await pickAndImportFolder())
+    } catch (error) {
+      toast.error(t('fileDrop.failed', { count: 1 }), String(error))
+    } finally {
+      dismissToast(pendingId)
+    }
   }
 
   async function handlePluginExport(entryId: string) {
@@ -546,6 +586,7 @@ function EditorChrome() {
             hasDocument={!!document}
             hasFilePath={!!document?.filePath}
             onImport={() => void handleImport()}
+            onImportFolder={() => void handleImportFolder()}
             onImportPdfHighlights={() => void handleImportPdfHighlights()}
             onPluginImport={(id) => void handlePluginImport(id)}
             onRevealFile={() => void handleRevealFile()}

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Download, Loader2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { IconTooltip } from '@/components/ui/tooltip'
-import { PdfJsPageViewer } from '@/components/export/PdfJsPageViewer'
+import { EmbedPdfPageViewer } from '@/components/export/EmbedPdfPageViewer'
 import { previewPdfExport } from '@/lib/db/api'
 import { base64ToPdfUrl } from '@/lib/pdf/pdf-viewer-config'
 import type { PageSetup } from '@/lib/editor/page-setup'
@@ -139,7 +139,7 @@ export function PdfPreviewDialog({
           )}
 
           {!loading && !error && pdfUrl && (
-            <PdfJsPageViewer key={pdfUrl} url={pdfUrl} title={title} />
+            <EmbedPdfPageViewer key={pdfUrl} url={pdfUrl} title={title} />
           )}
         </div>
       </div>

@@ -14,8 +14,8 @@ describe('WhatsNew 5.0 highlights', () => {
     expect(WHATS_NEW_50_TAG_KEYS).toEqual(['native', 'library', 'editor'])
   })
 
-  it('matches app version 5.1.0', () => {
-    expect(APP_VERSION).toBe('5.1.0')
-    expect(APP_SHORT_VERSION).toBe('5.1')
+  it('matches app version 5.2.0', () => {
+    expect(APP_VERSION).toBe('5.2.0')
+    expect(APP_SHORT_VERSION).toBe('5.2')
   })
 })

@@ -102,6 +102,83 @@ impl ScribeMcp {
         })
     }
 
+    #[tool(
+        description = "Open tasks grouped into agenda buckets overdue|today|upcoming|later by due hint (YYYY-MM-DD). Same scan as list_open_tasks."
+    )]
+    fn list_tasks_agenda(
+        &self,
+        Parameters(params): Parameters<tools::ListTasksAgendaParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            let include_phrases = params.include_phrases.unwrap_or(false);
+            let tasks = store.list_open_tasks(
+                &self.sidecar,
+                params.folder_id.as_deref(),
+                params.limit.unwrap_or(200),
+                include_phrases,
+            )?;
+            let (default_now, default_offset) = scribe_core::local_now_ms_and_offset_east();
+            let now_ms = params.now_ms.unwrap_or(default_now);
+            let offset = params.offset_minutes_east.unwrap_or(default_offset);
+            let buckets = scribe_core::group_tasks_by_agenda(&tasks, now_ms, offset);
+            let total: usize = buckets.iter().map(|b| b.items.len()).sum();
+            Ok(tools::json(&serde_json::json!({
+                "count": total,
+                "includePhrases": include_phrases,
+                "nowMs": now_ms,
+                "offsetMinutesEast": offset,
+                "buckets": buckets,
+            })))
+        })
+    }
+
+    #[tool(
+        description = "Export the first TipTap codeBlock from a note as source text plus language extension (Whats New source export)."
+    )]
+    fn export_document_source(
+        &self,
+        Parameters(params): Parameters<tools::ExportDocumentSourceParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            let doc = store
+                .get_document_scoped(&params.id, true, self.vault_scope)?
+                .ok_or_else(|| format!("Document not found: {}", params.id))?;
+            let content_json = doc
+                .content_json
+                .as_deref()
+                .ok_or_else(|| "Document body unavailable (vault scope?)".to_string())?;
+            let Some((language, code)) = scribe_core::extract_first_code_block(content_json) else {
+                return Ok(tools::json(&serde_json::json!({
+                    "id": doc.id,
+                    "title": doc.title,
+                    "found": false,
+                })));
+            };
+            let extension = scribe_core::extension_for_language(language.as_deref());
+            let safe_title: String = doc
+                .title
+                .chars()
+                .map(|c| {
+                    if c.is_ascii_alphanumeric() || c == '-' || c == '_' {
+                        c
+                    } else {
+                        '_'
+                    }
+                })
+                .collect();
+            let filename = format!("{safe_title}.{extension}");
+            Ok(tools::json(&serde_json::json!({
+                "id": doc.id,
+                "title": doc.title,
+                "found": true,
+                "language": language,
+                "extension": extension,
+                "filename": filename,
+                "code": code,
+            })))
+        })
+    }
+
     #[tool(description = "Get today's journal note, or create it. Slot: day (default), morning, or evening. Date YYYY-MM-DD defaults to today.")]
     fn get_or_create_journal(
         &self,

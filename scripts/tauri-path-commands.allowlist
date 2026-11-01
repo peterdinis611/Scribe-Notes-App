@@ -14,6 +14,8 @@ commands::import_export::prepare_numbers_import
 commands::import_export::prepare_keynote_import
 commands::import_export::cleanup_temp_import_file
 commands::import_export::import_file
+# Folder drop expansion — PathAccessGate grant + validate_read before walk.
+commands::import_export::expand_import_paths
 
 # OCR — must validate via PathAccessGate (documents/temp/granted).
 commands::ocr::extract_image_ocr

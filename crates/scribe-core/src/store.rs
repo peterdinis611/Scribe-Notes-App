@@ -16,7 +16,8 @@ use crate::db::{
 use crate::db::{
     count_embeddings, count_stale_embeddings, dominant_embedding_model, extract_search_text,
     document_index_text, fetch_revision, get_document_embedding, get_embed_backend, is_nlp_enabled, remove_document_fts,
-    restore_document_content, save_artifact, save_revision, semantic_search, similar_documents,
+    restore_document_content, save_artifact, save_revision, set_revision_label, semantic_search,
+    similar_documents,
     sync_document_fts, sync_document_links, upsert_embedding_with_chunks,
     EmbeddingChunkInput,
 };
@@ -333,6 +334,14 @@ impl ScribeStore {
         }
     }
 
+    /// In-memory placeholder so MCP can drop a live DB handle before replacing `scribe.db`.
+    pub fn detached_placeholder() -> Self {
+        Self {
+            db: Connection::open_in_memory().expect("in-memory sqlite"),
+            writable: false,
+        }
+    }
+
     pub fn close(self) {}
 
     pub(crate) fn require_writable(&self) -> Result<(), String> {
@@ -449,7 +458,32 @@ impl ScribeStore {
             Box::leak(Box::new(self.resolve_wiki_labels(body)));
         let resolver = Self::wiki_resolver_from_map(wiki_map);
         let content_json = plain_text_to_tiptap(body, Some(&resolver));
+        self.create_note_from_tiptap(title, &content_json, folder_id)
+    }
+
+    /// Insert a note from TipTap JSON (import path). Syncs FTS + wiki links.
+    pub fn create_note_from_tiptap(
+        &self,
+        title: &str,
+        content_json: &str,
+        folder_id: Option<&str>,
+    ) -> Result<IdTitle, String> {
+        let title = title.trim();
+        if title.is_empty() {
+            return Err("title is required".to_string());
+        }
+        let content_json = content_json.trim();
+        if content_json.is_empty() {
+            return Err("contentJson is required".to_string());
+        }
+        // Validate TipTap shape early.
+        let parsed: Value = serde_json::from_str(content_json)
+            .map_err(|e| format!("Invalid TipTap JSON: {e}"))?;
+        if parsed.get("type").and_then(|t| t.as_str()) != Some("doc") {
+            return Err("contentJson must be a TipTap doc".to_string());
+        }
         let folder_id = folder_id.map(str::to_string);
+        let content_json = content_json.to_string();
 
         self.run_writable(|db| {
             let id = Uuid::new_v4().to_string();
@@ -1288,6 +1322,91 @@ impl ScribeStore {
                 plain_text: tiptap_to_plain_text(&content_json),
             },
         ))
+    }
+
+    /// Snapshot the current document body as a named (optionally pinned) revision.
+    pub fn create_named_revision(
+        &self,
+        document_id: &str,
+        label: &str,
+        pinned: Option<bool>,
+    ) -> Result<DocumentRevisionSummary, String> {
+        let document_id = document_id.trim();
+        let label = label.trim();
+        if document_id.is_empty() {
+            return Err("documentId is required".to_string());
+        }
+        if label.is_empty() {
+            return Err("label is required".to_string());
+        }
+        let pinned = pinned.unwrap_or(true);
+
+        self.run_writable(|db| {
+            let row: Option<(String, String, Option<i64>)> = db
+                .query_row(
+                    "SELECT title, content_json, deleted_at FROM documents WHERE id = ?1",
+                    params![document_id],
+                    |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+                )
+                .optional()
+                .map_err(|e| e.to_string())?;
+            let Some((title, content_json, deleted_at)) = row else {
+                return Err(format!("Document not found: {document_id}"));
+            };
+            if deleted_at.is_some() {
+                return Err(format!("Document is in trash: {document_id}"));
+            }
+            let id = save_revision(db, document_id, &title, &content_json, Some(label), pinned)?;
+            Ok(DocumentRevisionSummary {
+                id,
+                document_id: document_id.to_string(),
+                title,
+                created_at: chrono::Utc::now().timestamp(),
+                label: Some(label.to_string()),
+                pinned,
+            })
+        })
+    }
+
+    /// Rename / (un)pin an existing revision snapshot.
+    pub fn rename_document_revision(
+        &self,
+        revision_id: &str,
+        label: Option<&str>,
+        pinned: Option<bool>,
+    ) -> Result<DocumentRevisionSummary, String> {
+        let revision_id = revision_id.trim();
+        if revision_id.is_empty() {
+            return Err("revisionId is required".to_string());
+        }
+
+        self.run_writable(|db| {
+            let row: Option<(String, String, i64, Option<String>, i64)> = db
+                .query_row(
+                    "SELECT document_id, title, created_at, label, pinned FROM document_revisions WHERE id = ?1",
+                    params![revision_id],
+                    |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?)),
+                )
+                .optional()
+                .map_err(|e| e.to_string())?;
+            let Some((document_id, title, created_at, current_label, current_pinned)) = row else {
+                return Err(format!("Revision not found: {revision_id}"));
+            };
+            let next_label = label
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .or(current_label.as_deref());
+            let next_pinned = pinned.unwrap_or(current_pinned != 0);
+            set_revision_label(db, revision_id, next_label, next_pinned)?;
+            Ok(DocumentRevisionSummary {
+                id: revision_id.to_string(),
+                document_id,
+                title,
+                created_at,
+                label: next_label.map(str::to_string),
+                pinned: next_pinned,
+            })
+        })
     }
 
     pub fn restore_document_revision(&self, revision_id: &str) -> Result<IdTitle, String> {

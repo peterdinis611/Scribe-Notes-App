@@ -1101,6 +1101,28 @@ export const filterDiffLinesNative = (
     contextLines: contextLines ?? null,
   })
 
+export const filterSideBySideNative = (
+  rows: import('@/lib/revisions/diff-text').SideBySideRow[],
+  changesOnly: boolean,
+  contextLines?: number | null,
+) =>
+  invoke<import('@/lib/revisions/diff-text').SideBySideRow[]>('filter_side_by_side_ui', {
+    rows,
+    changesOnly,
+    contextLines: contextLines ?? null,
+  })
+
+export const renderTiptapHtml = (
+  contentJson: string,
+  title: string,
+  includeTitleHeading = true,
+) =>
+  invoke<string>('render_tiptap_html', {
+    contentJson,
+    title,
+    includeTitleHeading,
+  })
+
 export const buildDocumentAskQuestionsNative = (
   analysis: unknown | null,
   tasks: Array<{ text: string; checked: boolean }>,
@@ -1381,6 +1403,18 @@ export const pickAndImportFiles = async () => {
     antivirusPolicy: readAntivirusPolicy(),
   })
 }
+
+/** Folder picker → import every supported file under the tree. */
+export const pickAndImportFolder = async () => {
+  const { readAntivirusPolicy } = await import('@/lib/antivirus/prefs')
+  return invoke<PickAndImportResult | null>('pick_and_import_folder', {
+    antivirusPolicy: readAntivirusPolicy(),
+  })
+}
+
+/** Expand directories in a drop/open path list to importable file paths. */
+export const expandImportPaths = (paths: string[]) =>
+  invoke<string[]>('expand_import_paths', { paths })
 
 export const importFile = async (path: string) => {
   const [

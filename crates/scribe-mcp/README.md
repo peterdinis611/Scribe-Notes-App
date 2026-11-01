@@ -108,6 +108,7 @@ Encrypted vault notes are stored as AES-GCM ciphertext in SQLite. The unlock pas
 | `similar_documents` | Semantically similar notes |
 | `extract_document_tasks` | Checkboxes + NLP phrase tasks |
 | `list_open_tasks` | Open tasks across the whole library |
+| `list_tasks_agenda` | Open tasks grouped overdue / today / upcoming / later |
 | `toggle_task` | Check or uncheck a task by text |
 | `journal_tasks` | Tasks from multiple journal documents |
 | `journal_summary` | AI summary of journal date range |
@@ -122,8 +123,12 @@ Encrypted vault notes are stored as AES-GCM ciphertext in SQLite. The unlock pas
 | `restore_document_revision` | Restore a note to a snapshot |
 | `duplicate_document` / `rename_document` / `replace_document_content` | Edit notes |
 | `export_document` | Markdown or plain text |
+| `export_document_source` | First code block + language extension |
 | `get_document_outline` | Heading TOC |
 | `list_graph_hubs` | Most connected notes by backlinks and outgoing wiki links |
+| `wiki_neighborhood` | Outbound wiki-link neighbors (BFS hops) |
+| `find_wiki_ghost_match` | Plain-text title/alias that can become `[[wiki]]` |
+| `parse_document_aliases` / `add_document_alias` | Read / write `alias:*` tags (add is writable) |
 | `library_answer` | Answer a question from the local library (hybrid + Local AI) |
 | `document_answer` | Answer a question from one note (optional chat context) |
 | `document_answer_and_save` | Answer + persist user/assistant turns |
@@ -181,13 +186,20 @@ Encrypted vault notes are stored as AES-GCM ciphertext in SQLite. The unlock pas
 | `create_note_from_template` | Create a note from a template (writable) |
 | `list_backups` | List zip backups |
 | `create_backup` | Create a library zip backup |
+| `import_backup` | Restore unencrypted zip (`confirm: true`; replaces DB) |
+| `import_path_as_note` | Import `files/` sandbox path → note (writable) |
+| `import_folder_as_notes` | Import whole `files/` directory recursively (writable) |
+| `import_bytes_as_note` | Import base64 bytes → note (writable) |
+| `antivirus_status` / `scan_import_path` | ClamAV status + sandbox scan gate |
+| `create_named_revision` / `rename_document_revision` | Named / pinned revision snapshots |
+| `list_agent_teachings` / `add_agent_teaching` / `remove_agent_teaching` / `clear_agent_teachings` | Agent prefs / grammar teachings |
 | `list_document_assets` | Images / SVG / Lottie under `assets/{id}/` |
 | `get_ui_manifest` | UI catalogs from `scribe-ui` (Whats New, settings/docs, themes, agents) |
 | `fuzzy_rank_strings` | Fuzzy rank `{id, primary, secondary?}` lists |
 | `list_theme_presets` / `generate_random_theme` | Theme preset catalog / random colors |
 | `render_ui_surface` | Chrome HTML via `python-ui` (whats-new, welcome, …; needs Local AI) |
 | `plan_agent_goal` / `agent_document_brief` | Planner-only (no tool execution) |
-| `section_summaries` / `extract_decisions` / `extract_quotes` / `extract_commitments` / `detect_pii` / `rank_tasks` / `open_loops` / `reading_plan` / `note_pulse` / `tone_pack` / `contradiction_hints` | Study/review pack (Python + Rust fallback; contradictions need Local AI) |
+| `section_summaries` / `extract_decisions` / `extract_quotes` / `extract_commitments` / `detect_pii` / `rank_tasks` / `open_loops` / `reading_plan` / `note_pulse` / `tone_pack` / `contradiction_hints` / `forward_plan` | Study/review pack (Python + Rust fallback; contradictions need Local AI) |
 | `passage_rerank` / `answer_followups` | Retrieval helpers after search / Q&A |
 | `files_index_status` / `files_similar` / `files_index_clear` | Files sandbox index ops (Local Files API) |
 

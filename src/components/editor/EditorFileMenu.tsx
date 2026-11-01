@@ -14,6 +14,7 @@ type EditorFileMenuProps = {
   hasDocument?: boolean
   hasFilePath?: boolean
   onImport: () => void
+  onImportFolder?: () => void
   onImportPdfHighlights?: () => void
   onPluginImport?: (formatId: string) => void
   onRevealFile?: () => void
@@ -36,6 +37,7 @@ export function EditorFileMenu({
   hasDocument = true,
   hasFilePath = false,
   onImport,
+  onImportFolder,
   onImportPdfHighlights,
   onPluginImport,
   onRevealFile,
@@ -71,6 +73,12 @@ export function EditorFileMenu({
           <FolderInput className="h-3.5 w-3.5 shrink-0" />
           {t('fileMenu.import')}
         </DropdownMenuItem>
+        {onImportFolder && (
+          <DropdownMenuItem onClick={onImportFolder}>
+            <FolderInput className="h-3.5 w-3.5 shrink-0" />
+            {t('fileMenu.importFolder')}
+          </DropdownMenuItem>
+        )}
         {onImportPdfHighlights && (
           <DropdownMenuItem onClick={onImportPdfHighlights}>
             <FolderInput className="h-3.5 w-3.5 shrink-0" />

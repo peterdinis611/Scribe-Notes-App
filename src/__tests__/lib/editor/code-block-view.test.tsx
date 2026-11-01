@@ -30,7 +30,7 @@ function Harness() {
 }
 
 describe('SyntaxCodeBlock', () => {
-  it('renders react-syntax-highlighter over an editable code block', async () => {
+  it('renders syntax highlight overlay over an editable code block', async () => {
     render(<Harness />)
 
     await waitFor(() => {

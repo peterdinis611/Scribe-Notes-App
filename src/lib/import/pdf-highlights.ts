@@ -1,9 +1,12 @@
-import { getDocument } from 'pdfjs-dist'
-import { ensurePdfjsWorker } from '@/lib/pdf/pdfjs-worker'
+import {
+  PdfAnnotationSubtype,
+  PdfAnnotationSubtypeName,
+  type PdfAnnotationObject,
+  type Rect,
+} from '@embedpdf/models'
+import { getPdfiumEngine } from '@/lib/pdf/pdfium-engine'
 
-/** Pure helpers keep in sync with `crates/scribe-ui/src/pdf_highlights.rs` (pdf.js extraction stays here). */
-
-ensurePdfjsWorker()
+/** Pure TipTap helpers stay in sync with `crates/scribe-ui/src/pdf_highlights.rs`. Extraction uses EmbedPDF/PDFium. */
 
 /** One highlight/underline annotation extracted from a PDF. */
 export type PdfHighlightAnnotation = {
@@ -19,21 +22,17 @@ export type PdfHighlightsImport = {
   highlights: PdfHighlightAnnotation[]
 }
 
-const HIGHLIGHT_SUBTYPES = new Set(['Highlight', 'Underline', 'Squiggly', 'StrikeOut'])
-
-function rgbaToCss(color: number[] | undefined): string | null {
-  if (!color || color.length < 3) return null
-  const [r, g, b] = color
-  const toByte = (v: number) => Math.round(Math.min(1, Math.max(0, v)) * 255)
-  if (color.length >= 4) {
-    return `rgba(${toByte(r!)}, ${toByte(g!)}, ${toByte(b!)}, ${Math.min(1, Math.max(0, color[3]!)).toFixed(2)})`
-  }
-  return `rgb(${toByte(r!)}, ${toByte(g!)}, ${toByte(b!)})`
-}
+const MARKUP_TYPES = new Set<PdfAnnotationSubtype>([
+  PdfAnnotationSubtype.HIGHLIGHT,
+  PdfAnnotationSubtype.UNDERLINE,
+  PdfAnnotationSubtype.SQUIGGLY,
+  PdfAnnotationSubtype.STRIKEOUT,
+])
 
 function mapToTipTapHighlight(color: string | null): string {
   if (!color) return '#fef08a'
-  // Prefer solid hex-ish for TipTap highlight mark.
+  const hex = color.trim()
+  if (/^#[0-9a-fA-F]{6}$/.test(hex)) return hex.toLowerCase()
   const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i)
   if (!match) return '#fef08a'
   const r = Number(match[1])
@@ -43,83 +42,93 @@ function mapToTipTapHighlight(color: string | null): string {
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`
 }
 
-async function extractTextFromQuadPoints(
-  page: Awaited<ReturnType<Awaited<ReturnType<typeof getDocument>['promise']>['getPage']>>,
-  quadPoints: number[] | undefined,
-): Promise<string> {
-  if (!quadPoints || quadPoints.length < 8) return ''
-  const textContent = await page.getTextContent()
-  const items = textContent.items as Array<{ str?: string; transform?: number[] }>
+function rectsOverlap(a: Rect, b: Rect, pad = 2): boolean {
+  const ax2 = a.origin.x + a.size.width + pad
+  const ay2 = a.origin.y + a.size.height + pad
+  const bx2 = b.origin.x + b.size.width + pad
+  const by2 = b.origin.y + b.size.height + pad
+  return (
+    a.origin.x - pad < bx2 &&
+    ax2 > b.origin.x - pad &&
+    a.origin.y - pad < by2 &&
+    ay2 > b.origin.y - pad
+  )
+}
 
-  // QuadPoints: 8 numbers per quad (x1,y1 ... x4,y4). Use bounding box.
-  const boxes: Array<{ xMin: number; yMin: number; xMax: number; yMax: number }> = []
-  for (let i = 0; i + 7 < quadPoints.length; i += 8) {
-    const xs = [quadPoints[i]!, quadPoints[i + 2]!, quadPoints[i + 4]!, quadPoints[i + 6]!]
-    const ys = [quadPoints[i + 1]!, quadPoints[i + 3]!, quadPoints[i + 5]!, quadPoints[i + 7]!]
-    boxes.push({
-      xMin: Math.min(...xs),
-      xMax: Math.max(...xs),
-      yMin: Math.min(...ys),
-      yMax: Math.max(...ys),
-    })
+function annotationColor(ann: PdfAnnotationObject): string | null {
+  const stroke = 'strokeColor' in ann ? ann.strokeColor : undefined
+  const color = 'color' in ann ? ann.color : undefined
+  const value = (typeof stroke === 'string' && stroke) || (typeof color === 'string' && color) || null
+  return value
+}
+
+function annotationSegmentRects(ann: PdfAnnotationObject): Rect[] {
+  if ('segmentRects' in ann && Array.isArray(ann.segmentRects)) {
+    return ann.segmentRects as Rect[]
   }
+  return ann.rect ? [ann.rect] : []
+}
 
+async function textForMarkup(
+  engine: Awaited<ReturnType<typeof getPdfiumEngine>>,
+  doc: Parameters<typeof engine.getPageTextRects>[0],
+  page: Parameters<typeof engine.getPageTextRects>[1],
+  ann: PdfAnnotationObject,
+): Promise<string> {
+  const contents = typeof ann.contents === 'string' ? ann.contents.trim() : ''
+  if (contents) return contents
+
+  const segments = annotationSegmentRects(ann)
+  if (segments.length === 0) return ''
+
+  const textRects = await engine.getPageTextRects(doc, page).toPromise()
   const parts: string[] = []
-  for (const item of items) {
-    if (!item.str || !item.transform) continue
-    const x = item.transform[4] ?? 0
-    const y = item.transform[5] ?? 0
-    const inside = boxes.some(
-      (box) => x >= box.xMin - 2 && x <= box.xMax + 2 && y >= box.yMin - 2 && y <= box.yMax + 2,
-    )
-    if (inside) parts.push(item.str)
+  for (const item of textRects) {
+    if (!item.content?.trim()) continue
+    if (segments.some((seg) => rectsOverlap(item.rect, seg))) {
+      parts.push(item.content)
+    }
   }
   return parts.join(' ').replace(/\s+/g, ' ').trim()
 }
 
-/** Parse highlight-like annotations from a PDF ArrayBuffer. */
+/** Parse highlight-like annotations from a PDF ArrayBuffer via EmbedPDF/PDFium. */
 export async function extractPdfHighlights(
   data: ArrayBuffer,
   fileName = 'document.pdf',
 ): Promise<PdfHighlightsImport> {
-  const loadingTask = getDocument({
-    data: new Uint8Array(data),
-    useSystemFonts: true,
-    isEvalSupported: false,
-  })
+  const engine = await getPdfiumEngine()
+  const doc = await engine
+    .openDocumentBuffer({
+      id: `highlights-${fileName}-${Date.now()}`,
+      content: data.slice(0),
+    })
+    .toPromise()
 
-  const pdf = await loadingTask.promise
-  const highlights: PdfHighlightAnnotation[] = []
-
-  for (let pageNum = 1; pageNum <= pdf.numPages; pageNum += 1) {
-    const page = await pdf.getPage(pageNum)
-    const annotations = await page.getAnnotations({ intent: 'display' })
-    for (const ann of annotations as Array<Record<string, unknown>>) {
-      const subtype = String(ann.subtype ?? '')
-      if (!HIGHLIGHT_SUBTYPES.has(subtype)) continue
-
-      let text = String(ann.contentsObj && typeof ann.contentsObj === 'object'
-        ? (ann.contentsObj as { str?: string }).str ?? ''
-        : ann.contents ?? '').trim()
-
-      if (!text) {
-        text = await extractTextFromQuadPoints(page, ann.quadPoints as number[] | undefined)
+  try {
+    const highlights: PdfHighlightAnnotation[] = []
+    for (const page of doc.pages) {
+      const annotations = await engine.getPageAnnotations(doc, page).toPromise()
+      for (const ann of annotations) {
+        if (!MARKUP_TYPES.has(ann.type)) continue
+        const text = await textForMarkup(engine, doc, page, ann)
+        if (!text) continue
+        highlights.push({
+          page: page.index + 1,
+          text,
+          color: annotationColor(ann),
+          subtype: PdfAnnotationSubtypeName[ann.type] ?? String(ann.type),
+        })
       }
-      if (!text) continue
-
-      highlights.push({
-        page: pageNum,
-        text,
-        color: rgbaToCss(ann.color as number[] | undefined),
-        subtype,
-      })
     }
-  }
 
-  return {
-    fileName,
-    pageCount: pdf.numPages,
-    highlights,
+    return {
+      fileName,
+      pageCount: doc.pageCount,
+      highlights,
+    }
+  } finally {
+    await engine.closeDocument(doc).toPromise().catch(() => undefined)
   }
 }
 
@@ -185,4 +194,3 @@ export function pdfHighlightsToContentJson(imported: PdfHighlightsImport): Recor
 
   return { type: 'doc', content }
 }
-

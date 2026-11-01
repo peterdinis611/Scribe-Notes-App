@@ -39,7 +39,7 @@ Scribe is a local-first notes app. This document summarizes the threat model and
 ## Path access
 
 - Reads/writes outside the documents dir, app data, and temp require a path that was granted by a **native file picker or drag-and-drop** in Rust.
-- Prefer `pick_and_grant_path` / `pick_and_grant_save_path` / `pick_and_import_file`.
+- Prefer `pick_and_grant_path` / `pick_and_grant_save_path` / `pick_and_import_file` / `pick_and_import_folder`.
 - Grant matching is prefix-of-granted-root only (no reverse-prefix privilege escalation).
 - Path grants are written to the security audit log.
 
@@ -126,7 +126,8 @@ Risky path-bearing commands must not grant from raw JS strings:
 | Command | Path source |
 |---------|-------------|
 | `pick_and_grant_path` / `pick_and_grant_save_path` | Native dialog |
-| `pick_and_import_file` | Native dialog |
+| `pick_and_import_file` / `pick_and_import_folder` | Native dialog |
+| `expand_import_paths` | Expand dropped folders via `PathAccessGate` |
 | `grant_dropped_paths` | Native drag-drop (also Rust `on_window_event`) |
 | `read_*` / `write_text_file` / `import_file` | Validate via `PathAccessGate` only |
 | `extract_image_ocr` / `save_document_ocr` / `remove_image_background` | Temp or `PathAccessGate::validate_read` |
@@ -136,7 +137,7 @@ CI fails if a new path-bearing `#[tauri::command]` appears without an entry in `
 
 ## Antivirus on import
 
-- Rust `import_file` / `pick_and_import_file` always apply `AntivirusPolicy` (FE prefs when provided, otherwise secure defaults: scan + block/quarantine).
+- Rust `import_file` / `pick_and_import_file` / `pick_and_import_folder` always apply `AntivirusPolicy` (FE prefs when provided, otherwise secure defaults: scan + block/quarantine).
 - FE SheetJS Excel/CSV import also calls `assertImportAllowedByAntivirus` before parse.
 - Disabling scan is an explicit user policy change — omitting the IPC arg no longer skips the gate.
 

@@ -215,6 +215,18 @@ pub fn filter_diff_lines_ui(
 }
 
 #[tauri::command]
+pub fn filter_side_by_side_ui(
+    rows: Vec<scribe_ui::SideBySideRow>,
+    changes_only: bool,
+    context_lines: Option<usize>,
+) -> Vec<scribe_ui::SideBySideRow> {
+    match context_lines {
+        Some(n) => scribe_ui::filter_side_by_side_with_context(&rows, changes_only, n),
+        None => scribe_ui::filter_side_by_side_rows(&rows, changes_only),
+    }
+}
+
+#[tauri::command]
 pub fn analyze_graph_density_ui(
     seed_count: usize,
     edge_count: usize,

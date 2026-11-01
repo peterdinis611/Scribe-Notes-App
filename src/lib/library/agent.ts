@@ -74,6 +74,10 @@ import {
   runAgentTerminologyLibrary,
   runAgentTitle,
   runAgentTone,
+  runAgentTranslate,
+  runAgentTimeline,
+  runAgentResearchPack,
+  runAgentExportSnippet,
   runAgentWikiHealth,
 } from '@/lib/library/agent-tools'
 import {
@@ -109,6 +113,16 @@ export type AgentStep = {
   answer?: string
   citations?: LibraryChatCitation[]
   spellIssues?: Array<{ word: string; suggestions: string[] }>
+  suggestedTitle?: string
+  continuationText?: string
+  grammarFindings?: Array<{
+    match: string
+    suggestion: string
+    message?: string
+    kind?: string
+  }>
+  /** Original selection span for rewrite/simplify apply. */
+  rewriteSource?: string
 }
 
 export type AgentPlanSource = 'jepa' | 'python' | 'llm' | 'recipe' | 'force' | 'fallback'
@@ -194,6 +208,10 @@ const DOCUMENT_TOOLS = new Set<AgentToolId>([
   'canvas_summarize',
   'canvas_to_note',
   'canvas_template',
+  'translate',
+  'timeline',
+  'research_pack',
+  'export_snippet',
 ])
 
 const LIBRARY_ONLY_TOOLS = new Set<AgentToolId>([
@@ -276,6 +294,10 @@ const INTENT_TO_TOOL: Record<string, AgentToolId> = {
   handoff: 'handoff',
   keywords: 'keywords',
   wiki_health: 'wiki_health',
+  translate: 'translate',
+  timeline: 'timeline',
+  research_pack: 'research_pack',
+  export_snippet: 'export_snippet',
   canvas_summarize: 'canvas_summarize',
   canvas_to_note: 'canvas_to_note',
   canvas_template: 'canvas_template',
@@ -739,6 +761,22 @@ async function runTool(
     if (!ctx.documentId && !ctx.selectionText) throw new Error('agent.needsDocument')
     return runAgentRewrite(ctx.documentId ?? 'selection', ctx.goal, ctx.selectionText)
   }
+  if (tool === 'translate') {
+    if (!ctx.documentId && !ctx.selectionText) throw new Error('agent.needsDocument')
+    return runAgentTranslate(ctx.documentId ?? 'selection', ctx.goal, ctx.selectionText)
+  }
+  if (tool === 'timeline') {
+    if (!ctx.documentId) throw new Error('agent.needsDocument')
+    return runAgentTimeline(ctx.documentId)
+  }
+  if (tool === 'research_pack') {
+    if (!ctx.documentId) throw new Error('agent.needsDocument')
+    return runAgentResearchPack(ctx.documentId, ctx.goal)
+  }
+  if (tool === 'export_snippet') {
+    if (!ctx.documentId && !ctx.selectionText) throw new Error('agent.needsDocument')
+    return runAgentExportSnippet(ctx.documentId ?? 'selection', ctx.selectionText)
+  }
   if (tool === 'save_template') {
     if (!ctx.documentId) throw new Error('agent.needsDocument')
     return runAgentSaveTemplate(ctx.documentId)
@@ -894,6 +932,7 @@ async function runTool(
     return {
       answer: result.simplified || 'No simplified text produced.',
       citations: [],
+      rewriteSource: text,
     }
   }
 
@@ -1078,6 +1117,10 @@ export async function runAgentGoal(
         answer: result.answer,
         citations: result.citations,
         spellIssues: result.spellIssues,
+        suggestedTitle: result.suggestedTitle,
+        continuationText: result.continuationText,
+        grammarFindings: result.grammarFindings,
+        rewriteSource: result.rewriteSource ?? (opts?.selectionText?.trim() || undefined),
       })
       priorAnswers.push(result.answer)
       sectionAnswers.push(`### ${tool}\n\n${result.answer}`)

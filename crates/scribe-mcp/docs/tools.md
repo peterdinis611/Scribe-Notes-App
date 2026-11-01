@@ -521,18 +521,20 @@ Same local agent as the Scribe app (`plan_agent_goal` + tool execution, or a fix
 | Arg | Type | Required | Notes |
 |-----|------|----------|--------|
 | `goal` | string | no* | Natural-language goal. Required unless `recipeId` or `forceTools` is set (then defaults to the recipe id / `"run"`) |
-| `scope` | string | no | `library` or `document` |
+| `scope` | string | no | `library` or `document` (default: `document` when `documentId` is set, else `library`) |
 | `documentId` | string | no | Required for most document tools |
 | `documentIdB` | string | no | Second note for `compare_notes` / `contradictions` |
 | `revisionId` | string | no | Snapshot id for the `revision` tool |
 | `maxTools` | number | no | 1–6; defaults to agent prefs `maxSteps` |
-| `persona` | string | no | `general` (default), `spellcheck`/`proofreader`, or role id (`librarian`, `meeting`, `study`, `organizer`, `developer`) |
-| `recipeId` | string | no | Built-in recipe (`code_pass`, `code_audit`, `meeting_wrap`, `files_digest`, …) — skips the planner |
-| `forceTools` | string[] | no | Explicit tool ids in order; overrides the planner (and takes precedence over `recipeId`) |
+| `persona` | string | no | `general` (default), `spellcheck`/`proofreader`, or role id (`librarian`, `meeting`, `study`, `organizer`, `developer`, `researcher`) |
+| `recipeId` | string | no | Built-in recipe (`code_pass`, `code_audit`, `meeting_wrap`, `files_digest`, `morning_brief`, `research_pass`, `deep_research`, …) — skips the planner |
+| `forceTools` | string[] | no | Explicit tool ids in order; overrides the planner (and takes precedence over `recipeId`). Examples: `translate`, `timeline`, `research_pack`, `export_snippet`, `brief` |
 
 When `persona` is `spellcheck` (or `proofreader`/`spell`/`grammar`), the run forces the `spellcheck` tool, requires `documentId`, and injects **grammar** teachings only. Other role personas filter planned / forced tools to that role’s allow-list.
 
-Executed tools (parity with the in-app agent) include library/document NLP tools plus `forward_plan`, `keywords`, `wiki_health`, `note_pulse`, `continuation`, `mentions`, `handoff`, `compare_notes` / `contradictions` (need `documentIdB`), `revision` (needs `revisionId`), `save_template` / `files_ingest` / `canvas_template` / `canvas_to_note` (require `SCRIBE_MCP_WRITE=1`), and `canvas_summarize`.
+Executed tools (parity with the in-app agent) include library/document NLP tools plus `forward_plan`, `keywords`, `wiki_health`, `note_pulse`, `continuation`, `mentions`, `handoff`, `compare_notes` / `contradictions` (need `documentIdB`), `revision` (needs `revisionId`), `save_template` / `files_ingest` / `canvas_template` / `canvas_to_note` (require `SCRIBE_MCP_WRITE=1`), `canvas_summarize`, `translate`, `timeline`, `research_pack`, and `export_snippet`.
+
+`brief` matches the in-app agent: with `scope=library` (or no `documentId`) it returns a daily/weekly library digest (recent notes + open tasks + dates), not a single-document summarize. With `scope=document` and `documentId` it runs the document brief pack.
 
 ---
 
@@ -659,6 +661,38 @@ Open (unchecked) tasks across the library. Checkboxes always; NLP phrases (`todo
   ]
 }
 ```
+
+---
+
+## `list_tasks_agenda`
+
+Same open-task scan as `list_open_tasks`, then group by due hint into agenda buckets: `overdue` | `today` | `upcoming` | `later`.
+
+| Arg | Type | Required | Default | Notes |
+|-----|------|----------|---------|--------|
+| `folderId` | string | no | — | Limit to one folder |
+| `limit` | number | no | `200` | Max documents to scan |
+| `includePhrases` | boolean | no | `false` | NLP phrase tasks |
+| `nowMs` | number | no | host now | Epoch millis |
+| `offsetMinutesEast` | number | no | host local | JS: `-getTimezoneOffset()` |
+
+**Example result:** `{ "count": 3, "nowMs": …, "offsetMinutesEast": 120, "buckets": [ { "id": "today", "items": [ … ] } ] }`
+
+Empty buckets are omitted. Prefer this over `list_open_tasks` when triage needs overdue/today/upcoming.
+
+---
+
+## `export_document_source`
+
+First TipTap `codeBlock` in a note → language, file extension, suggested filename, and source text.
+
+| Arg | Type | Required |
+|-----|------|----------|
+| `id` | string | yes |
+
+**Example result (found):** `{ "id": "…", "title": "Snippet", "found": true, "language": "rust", "extension": "rs", "filename": "Snippet.rs", "code": "fn main() {}" }`
+
+**Example result (none):** `{ "id": "…", "title": "…", "found": false }`
 
 ---
 
@@ -894,11 +928,76 @@ Near-duplicate pairs across recent notes. Optional `limit` (default 20).
 
 ---
 
-## `list_backups` / `create_backup`
+## `list_backups` / `create_backup` / `import_backup`
 
 Default directory: `~/Documents/Scribe/Backups`. Optional `directory` override.
 
 `create_backup` writes `scribe-backup-{timestamp}.zip` (DB + documents) and prunes older auto backups.
+
+`import_backup` restores an **unencrypted** zip. **Writable** + `confirm: true` required — replaces local `scribe.db` and the documents tree, then reopens the DB. Encrypted archives stay app-only.
+
+| Arg | Type | Required | Notes |
+|-----|------|----------|--------|
+| `path` | string | yes | Absolute path to `.zip` |
+| `confirm` | boolean | yes | Must be `true` |
+
+---
+
+## `import_path_as_note` / `import_bytes_as_note`
+
+Create a note from a file via the same TipTap converters as the app (docx, md, pdf, xlsx, odt, source, …). Pages/Numbers/Keynote need the desktop app.
+
+`import_path_as_note` — path is **relative to the library `files/` sandbox** (no absolute paths). Optional antivirus gate when ClamAV is installed (`scan` defaults `true`).
+
+| Arg | Type | Required | Notes |
+|-----|------|----------|--------|
+| `path` | string | yes | e.g. `inbox/report.pdf` |
+| `title` | string | no | Defaults to file stem |
+| `folderId` | string | no | — |
+| `scan` | boolean | no | default `true` |
+
+`import_bytes_as_note` — `fileName` (bare name + extension) + `contentBase64` (max ~12 MB decoded).
+
+`import_folder_as_notes` — recursive import of every supported file under a `files/` directory (skips `node_modules` / `.git` / …). Soft cap `limit` (default 500).
+
+| Arg | Type | Required | Notes |
+|-----|------|----------|--------|
+| `path` | string | no | Relative dir under `files/` (default root) |
+| `folderId` | string | no | Library folder for all created notes |
+| `scan` | boolean | no | default `true` |
+| `limit` | number | no | max files (≤ 500) |
+| `maxDepth` | number | no | default 12 |
+
+All require **writable** MCP.
+
+---
+
+## `antivirus_status` / `scan_import_path`
+
+`antivirus_status` — local ClamAV engine probe (no in-process signatures).
+
+`scan_import_path` — run the import gate on a `files/` relative path without creating a note.
+
+---
+
+## `create_named_revision` / `rename_document_revision`
+
+`create_named_revision` — snapshot current body with `label` (default `pinned: true`). **Writable.**
+
+`rename_document_revision` — update `label` and/or `pinned` on an existing revision. **Writable.**
+
+---
+
+## `list_agent_teachings` / `add_agent_teaching` / `remove_agent_teaching` / `clear_agent_teachings`
+
+Standing prefs / grammar rules in `scribe-agent.db` (same as Settings → Agent).
+
+| Tool | Args | Notes |
+|------|------|--------|
+| `list_agent_teachings` | optional `agentId` | Role + shared `general` when filtered |
+| `add_agent_teaching` | `text`, optional `topic` (`general`\|`grammar`), optional `agentId` | Writable |
+| `remove_agent_teaching` | `id` | Writable |
+| `clear_agent_teachings` | optional `agentId` | Writable; omit agentId to clear all |
 
 ---
 
@@ -1091,6 +1190,7 @@ All accept `id` and/or `text` unless noted. Require Local AI enabled (except whe
 | `contradiction_hints` | `idA?`, `idB?`, `textA?`, `textB?`, `limit?` | Possible contradictions between two notes (Local AI) |
 | `extract_quotes` | `id?`, `text?`, `limit?` | Notable quotes (Python + Rust fallback) |
 | `extract_commitments` | `id?`, `text?`, `limit?` | Commitments / promises (Python + Rust fallback) |
+| `forward_plan` | `id?`, `text?`, `limit?` | Next-step bullets (Python + Rust fallback; also via `run_agent`) |
 | `passage_rerank` | `query`, `passages[]`, `limit?` | Rerank search/answer passages (Local AI) |
 | `answer_followups` | `question`, `sentences?`, `passages?`, `scope?` | Suggested follow-up questions (Local AI) |
 | `files_list` / `files_read_text` / `files_search` / `files_summarize` / `files_answer` | path/query | Storage Files API (`files/`); `FilesApiOffline` if server down |
@@ -1117,6 +1217,10 @@ All accept `id` and/or `text` unless noted. Require Local AI enabled (except whe
 | `auto_resolve_wiki_links` | `limit?`, `minScore?` (default `0.72`) | Writable |
 | `expand_stub_document` | `id`, `heading?` | Append outline scaffold; writable |
 | `list_graph_hubs` | `limit?` | Most connected notes |
+| `wiki_neighborhood` | `id`, `hops?` (default 2), `maxNotes?` (default 80) | BFS outbound wiki neighbors |
+| `find_wiki_ghost_match` | `paragraph`, `candidates?`, `excludeDocumentId?`, `minLength?`, `candidateLimit?` | Longest plain-text title/alias hit; auto-candidates from library when `candidates` omitted |
+| `parse_document_aliases` | `id?` or `tags?` | Read `alias:*` tags |
+| `add_document_alias` | `id`, `alias` | Writable; stores `alias:{value}` |
 
 ## Smart filters & media
 
@@ -1135,8 +1239,8 @@ All accept `id` and/or `text` unless noted. Require Local AI enabled (except whe
 |--------|---------|
 | `weekly_journal_review` | Optional `fromDate` / `toDate` — reuse artifacts, then journal_summary + tasks |
 | `capture_today` | get_or_create_journal + append_to_note |
-| `open_tasks_triage` | list_open_tasks, then toggle_task |
-| `wiki_health` | hubs + suggest/resolve/create/expand wiki workflow |
+| `open_tasks_triage` | list_tasks_agenda (or list_open_tasks), then toggle_task |
+| `wiki_health` | hubs + suggest/resolve/create/expand + neighborhood/ghost/alias |
 | `rewrite_selection_draft` | rewrite_selection preview (do not apply unless asked) |
 | `continue_document_chat` | prefer `document_answer_and_save` |
 | `analyze_this_note` | `id` — analysis → keywords → takeaways → organize |

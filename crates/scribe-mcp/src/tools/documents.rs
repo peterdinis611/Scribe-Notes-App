@@ -112,6 +112,75 @@ pub struct RevisionParams {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateNamedRevisionParams {
+    pub document_id: String,
+    pub label: String,
+    /// Default true (keeps the snapshot when unpinned ones are pruned).
+    pub pinned: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct RenameDocumentRevisionParams {
+    pub revision_id: String,
+    pub label: Option<String>,
+    pub pinned: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ImportPathAsNoteParams {
+    /// Relative path under the library `files/` sandbox (e.g. `inbox/report.pdf`).
+    pub path: String,
+    pub title: Option<String>,
+    pub folder_id: Option<String>,
+    /// When true (default), run antivirus gate before import when ClamAV is available.
+    pub scan: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ImportFolderAsNotesParams {
+    /// Relative directory under `files/` (e.g. `inbox/` or `projects/docs`). Empty = files root.
+    pub path: Option<String>,
+    /// Library folder id for all created notes.
+    pub folder_id: Option<String>,
+    pub scan: Option<bool>,
+    /// Soft cap (default 500, max 500).
+    pub limit: Option<i64>,
+    /// Max directory depth (default 12).
+    pub max_depth: Option<i64>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ImportBytesAsNoteParams {
+    /// Filename with extension used for format detection (e.g. `notes.md`).
+    pub file_name: String,
+    /// Base64-encoded file bytes (max ~12 MB decoded).
+    pub content_base64: String,
+    pub title: Option<String>,
+    pub folder_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ImportBackupParams {
+    /// Absolute path to an unencrypted `scribe-backup-*.zip`.
+    pub path: String,
+    /// Must be `true` — replaces local `scribe.db` + documents tree.
+    pub confirm: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ScanImportPathParams {
+    /// Relative path under `files/` sandbox.
+    pub path: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
 pub struct SearchModeParams {
     pub query: String,
     pub limit: Option<i64>,

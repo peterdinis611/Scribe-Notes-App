@@ -14,11 +14,21 @@ import { stripAnswerMarkdown } from '@/lib/editor/insert-ai-answer'
 import { cn } from '@/lib/utils'
 
 export type AgentApplyPreviewKind =
-  | { type: 'insert'; mode: AgentApplyMode; text: string }
+  | { type: 'insert'; mode: AgentApplyMode; text: string; sectionTitle?: string }
   | { type: 'replace'; before: string; after: string }
-  | { type: 'organize'; tags: string[]; folderSuggestion?: string | null }
-  | { type: 'wiki'; phrase: string; title: string; documentId: string }
+  | {
+      type: 'organize'
+      tags: string[]
+      folderSuggestion?: string | null
+      folderSuggestionId?: string | null
+    }
+  | {
+      type: 'wiki'
+      links: Array<{ phrase: string; title: string; documentId: string }>
+    }
   | { type: 'spellcheck'; fixes: Array<{ word: string; suggestion: string }> }
+  | { type: 'grammar'; fixes: Array<{ match: string; suggestion: string; message?: string }> }
+  | { type: 'title'; title: string }
 
 type AgentApplyPreviewDialogProps = {
   open: boolean
@@ -55,8 +65,12 @@ export function AgentApplyPreviewDialog({
     if (preview.type === 'wiki') return t('agent.applyPreviewWiki')
     if (preview.type === 'replace') return t('agent.applyPreviewReplace')
     if (preview.type === 'spellcheck') return t('agent.applyPreviewSpellcheck')
+    if (preview.type === 'grammar') return t('agent.applyPreviewGrammar')
+    if (preview.type === 'title') return t('agent.applyPreviewTitleRename')
     if (preview.mode === 'checklist') return t('agent.applyPreviewChecklist')
     if (preview.mode === 'frontmatter') return t('agent.applyPreviewFrontmatter')
+    if (preview.mode === 'cursor') return t('agent.applyPreviewCursor')
+    if (preview.mode === 'section') return t('agent.applyPreviewSection')
     return t('agent.applyPreviewCallout')
   }, [preview, t])
 
@@ -94,12 +108,16 @@ export function AgentApplyPreviewDialog({
                 ) : null}
               </ul>
             ) : preview.type === 'wiki' ? (
-              <p className="m-0 text-[13px]">
-                {t('agent.applyPreviewWikiBody', {
-                  phrase: preview.phrase,
-                  title: preview.title,
-                })}
-              </p>
+              <ul className="m-0 list-none space-y-1.5 p-0 text-[13px]">
+                {preview.links.map((link) => (
+                  <li key={`${link.documentId}-${link.phrase}`}>
+                    {t('agent.applyPreviewWikiBody', {
+                      phrase: link.phrase,
+                      title: link.title,
+                    })}
+                  </li>
+                ))}
+              </ul>
             ) : preview.type === 'spellcheck' ? (
               <ul className="m-0 list-none space-y-1.5 p-0 text-[13px]">
                 {preview.fixes.length ? (
@@ -118,6 +136,31 @@ export function AgentApplyPreviewDialog({
                   </li>
                 )}
               </ul>
+            ) : preview.type === 'grammar' ? (
+              <ul className="m-0 list-none space-y-1.5 p-0 text-[13px]">
+                {preview.fixes.length ? (
+                  preview.fixes.map((fix) => (
+                    <li key={`${fix.match}-${fix.suggestion}`}>
+                      <span className="text-[var(--color-muted-foreground)]">{fix.match}</span>
+                      {' → '}
+                      <span className="font-medium text-[var(--color-foreground)]">
+                        {fix.suggestion}
+                      </span>
+                      {fix.message ? (
+                        <span className="block text-[11px] text-[var(--color-muted-foreground)]">
+                          {fix.message}
+                        </span>
+                      ) : null}
+                    </li>
+                  ))
+                ) : (
+                  <li className="text-[var(--color-muted-foreground)]">
+                    {t('agent.applyGrammarNone')}
+                  </li>
+                )}
+              </ul>
+            ) : preview.type === 'title' ? (
+              <p className="m-0 text-[13px] font-medium">{preview.title}</p>
             ) : preview.type === 'replace' ? (
               <div className="space-y-3 text-[13px] leading-relaxed">
                 <div>
@@ -144,6 +187,9 @@ export function AgentApplyPreviewDialog({
                   preview.mode === 'checklist' ? 'list-none' : 'list-disc pl-4',
                 )}
               >
+                {preview.mode === 'section' && preview.sectionTitle ? (
+                  <li className="list-none font-semibold pl-0">{preview.sectionTitle}</li>
+                ) : null}
                 {previewLines(preview.text, preview.mode).map((line, index) => (
                   <li key={`${index}-${line.slice(0, 24)}`} className="whitespace-pre-wrap">
                     {preview.mode === 'checklist' ? `☐ ${line}` : line}
@@ -162,9 +208,11 @@ export function AgentApplyPreviewDialog({
                 ? t('common.loading')
                 : preview.type === 'replace'
                   ? t('agent.applyPreviewConfirmReplace')
-                  : preview.type === 'spellcheck'
+                  : preview.type === 'spellcheck' || preview.type === 'grammar'
                     ? t('agent.applyPreviewConfirmSpellcheck')
-                    : t('agent.applyPreviewConfirm')}
+                    : preview.type === 'title'
+                      ? t('agent.applyPreviewConfirmTitle')
+                      : t('agent.applyPreviewConfirm')}
             </Button>
           </DialogFooter>
         </DialogContent>

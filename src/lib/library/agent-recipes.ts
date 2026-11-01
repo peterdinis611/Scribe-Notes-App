@@ -20,6 +20,10 @@ export type AgentRecipeId =
   | 'files_to_library'
   | 'code_pass'
   | 'code_audit'
+  | 'morning_brief'
+  | 'polish_and_apply'
+  | 'research_pass'
+  | 'deep_research'
 
 export type AgentRecipe = {
   id: AgentRecipeId
@@ -136,6 +140,30 @@ export const AGENT_RECIPES: AgentRecipe[] = [
     id: 'code_audit',
     labelKey: 'agent.recipes.codeAudit',
     tools: ['code_brief', 'pii', 'glossary'],
+    documentPreferred: true,
+  },
+  {
+    id: 'morning_brief',
+    labelKey: 'agent.recipes.morningBrief',
+    tools: ['dates', 'open_loops', 'forward_plan'],
+    documentPreferred: true,
+  },
+  {
+    id: 'polish_and_apply',
+    labelKey: 'agent.recipes.polishAndApply',
+    tools: ['grammar', 'spellcheck', 'rewrite'],
+    documentPreferred: true,
+  },
+  {
+    id: 'research_pass',
+    labelKey: 'agent.recipes.researchPass',
+    tools: ['research_pack', 'timeline'],
+    documentPreferred: true,
+  },
+  {
+    id: 'deep_research',
+    labelKey: 'agent.recipes.deepResearch',
+    tools: ['research_pack', 'citations', 'similar', 'timeline'],
     documentPreferred: true,
   },
 ]

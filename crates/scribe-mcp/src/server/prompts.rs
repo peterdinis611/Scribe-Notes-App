@@ -52,8 +52,8 @@ impl ScribeMcp {
         GetPromptResult::new(vec![PromptMessage::new_text(
             Role::User,
             "Triage open tasks in my Scribe library.\n\
-             1. Call list_open_tasks.\n\
-             2. Group by document. Suggest what to do today vs later.\n\
+             1. Prefer list_tasks_agenda (overdue/today/upcoming/later); else list_open_tasks.\n\
+             2. Suggest what to do today vs later using the buckets.\n\
              3. If I mark something done, call toggle_task with the document id and task text.\n\
              Do not invent tasks that were not returned.",
         )])
@@ -70,6 +70,7 @@ impl ScribeMcp {
              3. For clear matches (score ≥ 0.72) use auto_resolve_wiki_links or resolve_wiki_link.\n\
              4. For missing targets use create_and_link_wiki_note.\n\
              5. For stubs use expand_stub_document.\n\
+             6. Optional: wiki_neighborhood on a hub; find_wiki_ghost_match on a paragraph; add_document_alias for synonyms.\n\
              Quote document ids. Writable tools need SCRIBE_MCP_WRITE=1.",
         )])
         .with_description("Wiki hubs and unresolved links")

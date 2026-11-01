@@ -182,7 +182,7 @@ pub async fn api_catalog() -> Json<ApiCatalog> {
             EndpointInfo {
                 method: "POST",
                 path: "/v1/fs/upload",
-                description: "multipart/form-data: file + optional path=dir/",
+                description: "multipart/form-data: one or many file fields + optional path=dir/; folder upload keeps relative names",
             },
             EndpointInfo {
                 method: "*",
@@ -303,7 +303,10 @@ pub async fn fs_write(
     }
 }
 
-/// `multipart/form-data` with field `file` and optional `path` (directory or full relative path).
+/// `multipart/form-data` with one or many `file` fields and optional `path` (base directory).
+///
+/// Folder uploads (e.g. `<input webkitdirectory>`) send multiple files whose `filename`
+/// may include relative path segments (`notes/a.md`); those are preserved under `path`.
 pub async fn fs_upload(
     State(state): State<RestState>,
     mut multipart: Multipart,
@@ -317,8 +320,7 @@ pub async fn fs_upload(
     };
 
     let mut dest_hint: Option<String> = None;
-    let mut file_name: Option<String> = None;
-    let mut bytes: Option<Vec<u8>> = None;
+    let mut uploads: Vec<(String, Vec<u8>)> = Vec::new();
 
     while let Ok(Some(field)) = multipart.next_field().await {
         let name = field.name().unwrap_or("").to_string();
@@ -328,13 +330,14 @@ pub async fn fs_upload(
             }
             continue;
         }
-        if name == "file" || name == "upload" || name.is_empty() {
-            file_name = field
+        if name == "file" || name == "upload" || name == "files" || name.is_empty() {
+            let file_name = field
                 .file_name()
                 .map(|s| s.to_string())
-                .filter(|s| !s.is_empty());
+                .filter(|s| !s.is_empty())
+                .unwrap_or_else(|| "upload.bin".into());
             match field.bytes().await {
-                Ok(data) => bytes = Some(data.to_vec()),
+                Ok(data) => uploads.push((file_name, data.to_vec())),
                 Err(e) => {
                     return err_response(StatusCode::BAD_REQUEST, format!("Upload read failed: {e}"))
                 }
@@ -342,45 +345,77 @@ pub async fn fs_upload(
         }
     }
 
-    let Some(data) = bytes else {
+    if uploads.is_empty() {
         return err_response(
             StatusCode::BAD_REQUEST,
-            "multipart field `file` with binary content is required",
+            "multipart field `file` (one or many) with binary content is required",
         );
-    };
-    let filename = file_name.unwrap_or_else(|| "upload.bin".into());
-    let safe_name = filename
-        .rsplit(['/', '\\'])
-        .next()
-        .unwrap_or("upload.bin")
-        .trim();
-    if safe_name.is_empty() || safe_name == "." || safe_name == ".." {
-        return err_response(StatusCode::BAD_REQUEST, "Invalid upload filename");
     }
 
-    let rel = match dest_hint.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
-        Some(hint) if hint.ends_with('/') || !hint.contains('.') => {
-            format!("{}/{}", hint.trim_matches('/'), safe_name)
-        }
-        Some(hint) => hint.to_string(),
-        None => safe_name.to_string(),
-    };
+    let base = dest_hint
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(|s| s.trim_matches('/').to_string());
 
-    match storage_fs::write_file(&docs, &rel, &data, true) {
-        Ok(entry) => {
-            state.mcp.audit_mcp(
-                "mcp_tool",
-                "http_fs_upload",
-                &format!("HTTP fs upload {rel}"),
-                Some(json!({ "path": rel, "bytes": data.len() })),
-                "ok",
-            );
-            (
-                StatusCode::CREATED,
-                Json(json!({ "ok": true, "entry": entry, "path": rel })),
-            )
-                .into_response()
+    let mut entries = Vec::new();
+    let mut failed = Vec::new();
+
+    for (filename, data) in uploads {
+        let normalized = filename.replace('\\', "/");
+        let rel_name = normalized
+            .trim_start_matches('/')
+            .split('/')
+            .filter(|part| !part.is_empty() && *part != "." && *part != "..")
+            .collect::<Vec<_>>()
+            .join("/");
+        if rel_name.is_empty() {
+            failed.push(json!({ "fileName": filename, "error": "Invalid upload filename" }));
+            continue;
         }
-        Err(e) => err_response(StatusCode::BAD_REQUEST, e),
+        let rel = match base.as_deref() {
+            Some(hint) => format!("{hint}/{rel_name}"),
+            None => rel_name,
+        };
+        match storage_fs::write_file(&docs, &rel, &data, true) {
+            Ok(entry) => {
+                state.mcp.audit_mcp(
+                    "mcp_tool",
+                    "http_fs_upload",
+                    &format!("HTTP fs upload {rel}"),
+                    Some(json!({ "path": rel, "bytes": data.len() })),
+                    "ok",
+                );
+                entries.push(json!({ "path": rel, "entry": entry, "bytes": data.len() }));
+            }
+            Err(e) => failed.push(json!({ "path": rel, "error": e })),
+        }
     }
+
+    if entries.is_empty() && !failed.is_empty() {
+        return err_response(
+            StatusCode::BAD_REQUEST,
+            failed
+                .first()
+                .and_then(|v| v.get("error"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("Upload failed")
+                .to_string(),
+        );
+    }
+
+    (
+        StatusCode::CREATED,
+        Json(json!({
+            "ok": true,
+            "count": entries.len(),
+            "failedCount": failed.len(),
+            "entries": entries,
+            "failed": failed,
+            // Back-compat for single-file clients
+            "path": entries.first().and_then(|e| e.get("path")).cloned(),
+            "entry": entries.first().and_then(|e| e.get("entry")).cloned(),
+        })),
+    )
+        .into_response()
 }

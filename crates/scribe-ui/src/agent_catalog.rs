@@ -11,6 +11,7 @@ pub const AGENT_ROLE_IDS: &[&str] = &[
     "study",
     "organizer",
     "developer",
+    "researcher",
 ];
 
 pub const AGENT_RECIPE_IDS: &[&str] = &[
@@ -31,6 +32,10 @@ pub const AGENT_RECIPE_IDS: &[&str] = &[
     "files_to_library",
     "code_pass",
     "code_audit",
+    "morning_brief",
+    "polish_and_apply",
+    "research_pass",
+    "deep_research",
 ];
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -144,6 +149,30 @@ pub fn agent_recipes() -> Vec<AgentRecipeDef> {
             &["code_brief", "pii", "glossary"],
             true,
         ),
+        recipe(
+            "morning_brief",
+            "agent.recipes.morningBrief",
+            &["dates", "open_loops", "forward_plan"],
+            true,
+        ),
+        recipe(
+            "polish_and_apply",
+            "agent.recipes.polishAndApply",
+            &["grammar", "spellcheck", "rewrite"],
+            true,
+        ),
+        recipe(
+            "research_pass",
+            "agent.recipes.researchPass",
+            &["research_pack", "timeline"],
+            true,
+        ),
+        recipe(
+            "deep_research",
+            "agent.recipes.deepResearch",
+            &["research_pack", "citations", "similar", "timeline"],
+            true,
+        ),
     ]
 }
 
@@ -201,17 +230,20 @@ pub fn agent_roles() -> Vec<AgentRoleDef> {
                 "tone",
                 "continuation",
                 "keywords",
+                "translate",
+                "export_snippet",
                 "handoff",
             ],
         ),
         role(
             "proofreader",
             "spellcheck",
-            &["spellcheck", "polish"],
+            &["spellcheck", "polish", "polish_and_apply"],
             &[
                 "spellcheck",
                 "grammar",
                 "rewrite",
+                "translate",
                 "terminology",
                 "terminology_library",
                 "style",
@@ -297,7 +329,7 @@ pub fn agent_roles() -> Vec<AgentRoleDef> {
         role(
             "organizer",
             "agent",
-            &["cleanup", "privacy_pass", "canvas_board"],
+            &["cleanup", "privacy_pass", "canvas_board", "morning_brief"],
             &[
                 "organize",
                 "wiki",
@@ -312,6 +344,7 @@ pub fn agent_roles() -> Vec<AgentRoleDef> {
                 "template_hints",
                 "open_loops",
                 "forward_plan",
+                "dates",
                 "canvas_summarize",
                 "canvas_to_note",
                 "canvas_template",
@@ -334,6 +367,23 @@ pub fn agent_roles() -> Vec<AgentRoleDef> {
                 "files_ingest",
                 "document_answer",
                 "library_answer",
+                "handoff",
+            ],
+        ),
+        role(
+            "researcher",
+            "agent",
+            &["deep_research", "research_pass"],
+            &[
+                "library_answer",
+                "citations",
+                "similar",
+                "research_pack",
+                "timeline",
+                "translate",
+                "compare_notes",
+                "contradictions",
+                "export_snippet",
                 "handoff",
             ],
         ),
@@ -624,9 +674,12 @@ mod tests {
 
     #[test]
     fn catalogs_non_empty() {
-        assert_eq!(agent_role_ids().len(), 7);
-        assert_eq!(agent_recipes().len(), 17);
-        assert_eq!(agent_roles().len(), 7);
+        assert_eq!(agent_role_ids().len(), 8);
+        assert_eq!(agent_recipes().len(), 21);
+        assert_eq!(agent_roles().len(), 8);
+        assert!(is_agent_role_id("researcher"));
+        assert!(is_agent_recipe_id("deep_research"));
+        assert!(is_agent_recipe_id("morning_brief"));
     }
 
     #[test]

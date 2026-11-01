@@ -74,6 +74,15 @@ pub fn filter_diff_lines_with_context(
         .collect()
 }
 
+/// Inline word-level segment (`src/lib/revisions/diff-text.ts`).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct DiffSegment {
+    #[serde(rename = "type")]
+    pub kind: String,
+    pub text: String,
+}
+
 /// One cell in a side-by-side revision row (`src/lib/revisions/diff-text.ts`).
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -83,6 +92,9 @@ pub struct SideBySideCell {
     pub line_type: Option<String>,
     #[serde(default)]
     pub text: String,
+    /// Preserved through Rust filter round-trips (word highlight).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub segments: Option<Vec<DiffSegment>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -175,11 +187,13 @@ mod tests {
                     kind: "text".into(),
                     line_type: Some("unchanged".into()),
                     text: "a".into(),
+                    segments: None,
                 },
                 right: SideBySideCell {
                     kind: "text".into(),
                     line_type: Some("unchanged".into()),
                     text: "a".into(),
+                    segments: None,
                 },
                 paired: None,
             },
@@ -188,11 +202,13 @@ mod tests {
                     kind: "text".into(),
                     line_type: Some("removed".into()),
                     text: "b".into(),
+                    segments: None,
                 },
                 right: SideBySideCell {
                     kind: "text".into(),
                     line_type: Some("added".into()),
                     text: "c".into(),
+                    segments: None,
                 },
                 paired: Some(true),
             },

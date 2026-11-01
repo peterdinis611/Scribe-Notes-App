@@ -189,7 +189,7 @@ impl ScribeMcp {
     ) -> Result<String, String> {
         let mut payload = serde_json::json!({
             "surface": params.surface,
-            "version": params.version.unwrap_or_else(|| "5.1.0".into()),
+            "version": params.version.unwrap_or_else(|| "5.2.0".into()),
         });
         if let Some(strings) = params.strings {
             payload["strings"] = serde_json::json!(strings);
@@ -463,6 +463,23 @@ impl ScribeMcp {
                 &self.sidecar,
                 params.id.as_deref(),
                 params.text.as_deref(),
+            )?))
+        })
+    }
+
+    #[tool(
+        description = "Forward plan: next-step bullets from a note id or plaintext (Python preferred; Rust offline fallback). Same as the in-app forward_plan agent tool."
+    )]
+    fn forward_plan(
+        &self,
+        Parameters(params): Parameters<tools::StudyLimitParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.forward_plan(
+                &self.sidecar,
+                params.id.as_deref(),
+                params.text.as_deref(),
+                params.limit,
             )?))
         })
     }

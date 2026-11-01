@@ -201,7 +201,7 @@ pub fn scan_path_with(path: &Path, opts: &ScanOptions) -> ScanReport {
     }
 
     let binary = status.binary_path.as_deref().unwrap_or("clamscan");
-    match run_clam(binary, status.engine, path, opts.timeout) {
+    match run_clam(binary, status.engine, path, opts.timeout, false) {
         Ok(mut report) => {
             report.duration_ms = elapsed_ms(started);
             report
@@ -295,23 +295,86 @@ pub fn scan_bytes_with(bytes: &[u8], hint_name: Option<&str>, opts: &ScanOptions
     report
 }
 
+/// Default budget for a recursive tree scan (folder import).
+pub const DEFAULT_TREE_SCAN_TIMEOUT_SECS: u64 = 300;
+
+/// Recursively scan a directory with one ClamAV process (`clamscan -r` / `clamdscan`).
+/// Prefer this for folder imports instead of spawning a scanner per file.
+pub fn scan_tree(path: &Path) -> ScanReport {
+    scan_tree_with(
+        path,
+        &ScanOptions {
+            timeout: Duration::from_secs(DEFAULT_TREE_SCAN_TIMEOUT_SECS),
+            ..ScanOptions::default()
+        },
+    )
+}
+
+pub fn scan_tree_with(path: &Path, opts: &ScanOptions) -> ScanReport {
+    let started = std::time::Instant::now();
+    let path_str = path.display().to_string();
+    let status = detect_engine();
+    if !status.available {
+        return ScanReport {
+            engine: AntivirusEngine::None,
+            verdict: ScanVerdict::Unavailable,
+            path: path_str,
+            threats: vec![],
+            raw_summary: status.detail,
+            duration_ms: elapsed_ms(started),
+        };
+    }
+    if !path.exists() {
+        return ScanReport {
+            engine: status.engine,
+            verdict: ScanVerdict::Unavailable,
+            path: path_str,
+            threats: vec![],
+            raw_summary: "path does not exist".into(),
+            duration_ms: elapsed_ms(started),
+        };
+    }
+
+    let binary = status.binary_path.as_deref().unwrap_or("clamscan");
+    match run_clam(binary, status.engine, path, opts.timeout, path.is_dir()) {
+        Ok(mut report) => {
+            report.duration_ms = elapsed_ms(started);
+            report
+        }
+        Err(msg) => ScanReport {
+            engine: status.engine,
+            verdict: ScanVerdict::Unavailable,
+            path: path_str,
+            threats: vec![],
+            raw_summary: msg,
+            duration_ms: elapsed_ms(started),
+        },
+    }
+}
+
 fn run_clam(
     binary: &str,
     engine: AntivirusEngine,
     path: &Path,
     timeout: Duration,
+    recursive: bool,
 ) -> Result<ScanReport, String> {
     let path_str = path.display().to_string();
     let mut cmd = Command::new(binary);
     match engine {
         AntivirusEngine::Clamdscan => {
-            cmd.arg("--fdpass").arg("--no-summary").arg(path);
+            cmd.arg("--fdpass").arg("--no-summary");
+            if recursive {
+                // clamdscan walks directories when given a directory path.
+            }
+            cmd.arg(path);
         }
         AntivirusEngine::Clamscan => {
-            cmd.arg("--no-summary")
-                .arg("--infected")
-                .arg("--stdout")
-                .arg(path);
+            cmd.arg("--no-summary").arg("--infected").arg("--stdout");
+            if recursive {
+                cmd.arg("-r");
+            }
+            cmd.arg(path);
         }
         AntivirusEngine::None => return Err("no engine".into()),
     }
@@ -913,6 +976,66 @@ pub fn gate_import_path(
                     path,
                     &path.display().to_string(),
                     &format!("import blocked: {threat}"),
+                    Some(threat),
+                )?;
+                Err(format!("AntivirusQuarantined:{threat}"))
+            } else {
+                Err(format!("AntivirusBlocked:{threat}"))
+            }
+        }
+    }
+}
+
+/// One recursive scan of a folder tree (folder import). Callers that pass this
+/// should then import files with `scan_on_import: false` to avoid N process spawns.
+pub fn gate_import_tree(
+    root: &Path,
+    policy: &AntivirusPolicy,
+    files_root: Option<&Path>,
+) -> Result<ImportGateDecision, String> {
+    if !policy.enabled || !policy.scan_on_import {
+        return Ok(ImportGateDecision {
+            action: ImportGateAction::Allow,
+            report: ScanReport {
+                engine: AntivirusEngine::None,
+                verdict: ScanVerdict::Skipped,
+                path: root.display().to_string(),
+                threats: vec![],
+                raw_summary: "policy disabled or scan-on-import off".into(),
+                duration_ms: 0,
+            },
+        });
+    }
+    let report = scan_tree(root);
+    let decision = decide_import_gate(&report, policy);
+    match decision.action {
+        ImportGateAction::Allow => Ok(decision),
+        ImportGateAction::WarnUnavailable => Err(format!(
+            "AntivirusUnavailable:{}",
+            decision.report.raw_summary
+        )),
+        ImportGateAction::Block => {
+            let threat = decision
+                .report
+                .threats
+                .first()
+                .map(|t| t.name.as_str())
+                .unwrap_or("malware");
+            Err(format!("AntivirusBlocked:{threat}"))
+        }
+        ImportGateAction::Quarantine => {
+            let threat = decision
+                .report
+                .threats
+                .first()
+                .map(|t| t.name.as_str())
+                .unwrap_or("malware");
+            if let Some(files_root) = files_root {
+                let _ = quarantine_copy(
+                    files_root,
+                    root,
+                    &root.display().to_string(),
+                    &format!("folder import blocked: {threat}"),
                     Some(threat),
                 )?;
                 Err(format!("AntivirusQuarantined:{threat}"))

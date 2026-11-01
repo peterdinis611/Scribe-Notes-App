@@ -4,6 +4,11 @@ description = "Allow cleanup_temp_import_file"
 commands.allow = ["cleanup_temp_import_file"]
 
 [[permission]]
+identifier = "allow-expand-import-paths"
+description = "Allow expand_import_paths"
+commands.allow = ["expand_import_paths"]
+
+[[permission]]
 identifier = "allow-export-document"
 description = "Allow export_document"
 commands.allow = ["export_document"]
@@ -49,6 +54,11 @@ description = "Allow pick_and_import_file"
 commands.allow = ["pick_and_import_file"]
 
 [[permission]]
+identifier = "allow-pick-and-import-folder"
+description = "Allow pick_and_import_folder"
+commands.allow = ["pick_and_import_folder"]
+
+[[permission]]
 identifier = "allow-prepare-keynote-import"
 description = "Allow prepare_keynote_import"
 commands.allow = ["prepare_keynote_import"]
@@ -88,6 +98,7 @@ identifier = "group-import-export"
 description = "Command group: import_export"
 permissions = [
   "allow-cleanup-temp-import-file",
+  "allow-expand-import-paths",
   "allow-export-document",
   "allow-export-pdf-bytes",
   "allow-force-save-document",
@@ -97,6 +108,7 @@ permissions = [
   "allow-pick-and-grant-path",
   "allow-pick-and-grant-save-path",
   "allow-pick-and-import-file",
+  "allow-pick-and-import-folder",
   "allow-prepare-keynote-import",
   "allow-prepare-numbers-import",
   "allow-prepare-pages-import",

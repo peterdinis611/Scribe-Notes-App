@@ -19,13 +19,13 @@ const EXAMPLES: Record<
     labelKey: 'settings.language.exampleMinimal',
     captionKey: 'settings.language.exampleMinimalCaption',
     snippet: `{
-  "code": "cs",
-  "name": "Čeština",
+  "code": "de",
+  "name": "Deutsch",
   "messages": {
     "common": {
-      "save": "Uložit",
-      "cancel": "Zrušit",
-      "close": "Zavřít"
+      "save": "Speichern",
+      "cancel": "Abbrechen",
+      "close": "Schließen"
     }
   }
 }`,
@@ -34,18 +34,18 @@ const EXAMPLES: Record<
     labelKey: 'settings.language.exampleNested',
     captionKey: 'settings.language.exampleNestedCaption',
     snippet: `{
-  "code": "cs",
-  "name": "Čeština",
+  "code": "de",
+  "name": "Deutsch",
   "messages": {
     "settings": {
       "language": {
-        "title": "Jazyk",
-        "customTitle": "Vlastní jazyk"
+        "title": "Sprache",
+        "customTitle": "Eigene Sprache"
       }
     },
     "library": {
-      "title": "Knihovna",
-      "searchPlaceholder": "Hledat dokumenty…"
+      "title": "Bibliothek",
+      "searchPlaceholder": "Dokumente suchen…"
     }
   }
 }`,
@@ -54,17 +54,17 @@ const EXAMPLES: Record<
     labelKey: 'settings.language.examplePartial',
     captionKey: 'settings.language.examplePartialCaption',
     snippet: `{
-  "code": "pl",
-  "name": "Polski",
+  "code": "fr",
+  "name": "Français",
   "messages": {
     "nav": {
-      "home": "Start",
-      "settings": "Ustawienia",
-      "library": "Biblioteka"
+      "home": "Accueil",
+      "settings": "Réglages",
+      "library": "Bibliothèque"
     },
     "welcome": {
       "brand": "Scribe",
-      "newDocument": "Nowy dokument"
+      "newDocument": "Nouveau document"
     }
   }
 }`,

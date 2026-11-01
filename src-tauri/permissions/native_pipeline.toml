@@ -153,6 +153,11 @@ identifier = "allow-render-document-html"
 description = "Allow render_document_html"
 commands.allow = ["render_document_html"]
 
+[[permission]]
+identifier = "allow-render-tiptap-html"
+description = "Allow render_tiptap_html"
+commands.allow = ["render_tiptap_html"]
+
 [[set]]
 identifier = "group-native-pipeline"
 description = "Command group: native_pipeline"
@@ -188,4 +193,5 @@ permissions = [
   "allow-phases-to-followups",
   "allow-publish-wiki-site",
   "allow-render-document-html",
+  "allow-render-tiptap-html",
 ]

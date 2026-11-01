@@ -51,21 +51,34 @@ async function runAutoBrief(documentId: string) {
     store.dispatch(setAgentPrefs(bumpAgentRunCount(prefs)))
     const preview = brief.answer.replace(/\s+/g, ' ').slice(0, 140)
     const answer = brief.answer
+    const autoMode = prefs.autoApplyOnSave
+
+    const insert = (mode: 'callout' | 'section') => {
+      const activeId = store.getState().documents.activeDocumentId
+      if (activeId !== documentId) {
+        toast.info(i18n.t('agent.autoBriefWrongDoc'))
+        return false
+      }
+      const ok = applyAgentAnswer(answer, mode, {
+        sourceTitle: i18n.t('agent.brandBadge'),
+        sectionTitle: i18n.t('agent.sectionBrief'),
+      })
+      if (ok) toast.success(i18n.t('agent.appliedToNote'))
+      else toast.error(i18n.t('agent.applyFailed'))
+      return ok
+    }
+
+    if (autoMode === 'callout' || autoMode === 'section') {
+      insert(autoMode)
+      return
+    }
+
     toast.success(i18n.t('agent.autoBriefToast'), preview, {
       duration: 10_000,
       action: {
         label: i18n.t('agent.autoBriefInsert'),
         onClick: () => {
-          const activeId = store.getState().documents.activeDocumentId
-          if (activeId !== documentId) {
-            toast.info(i18n.t('agent.autoBriefWrongDoc'))
-            return
-          }
-          const ok = applyAgentAnswer(answer, 'callout', {
-            sourceTitle: i18n.t('agent.brandBadge'),
-          })
-          if (ok) toast.success(i18n.t('agent.appliedToNote'))
-          else toast.error(i18n.t('agent.applyFailed'))
+          insert('callout')
         },
       },
     })

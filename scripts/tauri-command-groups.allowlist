@@ -113,6 +113,7 @@ images	list_library_assets
 images	remove_image_background
 images	save_document_image
 import_export	cleanup_temp_import_file
+import_export	expand_import_paths
 import_export	export_document
 import_export	export_pdf_bytes
 import_export	force_save_document
@@ -122,6 +123,7 @@ import_export	normalize_clipboard_html
 import_export	pick_and_grant_path
 import_export	pick_and_grant_save_path
 import_export	pick_and_import_file
+import_export	pick_and_import_folder
 import_export	prepare_keynote_import
 import_export	prepare_numbers_import
 import_export	prepare_pages_import
@@ -172,6 +174,7 @@ native_pipeline	parse_wiki_link_raw
 native_pipeline	phases_to_followups
 native_pipeline	publish_wiki_site
 native_pipeline	render_document_html
+native_pipeline	render_tiptap_html
 nlp	nlp_action_items
 nlp	nlp_agent_document_brief
 nlp	nlp_analyze_plaintext
@@ -324,6 +327,7 @@ ui	extract_title_from_content_ui
 ui	filter_diff_lines_ui
 ui	filter_documents_by_smart_filter_ui
 ui	filter_library_assets_ui
+ui	filter_side_by_side_ui
 ui	filter_tools_by_agents_ui
 ui	flashcards_to_anki_tsv
 ui	flashcards_to_markdown

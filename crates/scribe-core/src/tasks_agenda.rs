@@ -116,6 +116,15 @@ pub fn agenda_bucket_for_due(
     }
 }
 
+/// Local wall-clock millis + offset minutes east of UTC (for agenda bucketing).
+pub fn local_now_ms_and_offset_east() -> (i64, i32) {
+    let now = chrono::Local::now();
+    (
+        now.timestamp_millis(),
+        now.offset().local_minus_utc() / 60,
+    )
+}
+
 pub fn group_tasks_by_agenda(
     tasks: &[DocumentTask],
     now_ms: i64,

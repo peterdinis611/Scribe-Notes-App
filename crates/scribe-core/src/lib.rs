@@ -6,6 +6,7 @@ pub mod diff;
 pub mod document_assets;
 pub mod enhance;
 pub mod file_antivirus;
+pub mod file_import;
 pub mod file_integrity;
 pub mod html;
 pub mod html_paste;
@@ -38,13 +39,19 @@ pub use enhance::{
     EnhanceStatus,
 };
 pub use file_antivirus::{
-    decide_import_gate, detect_engine, gate_import_path, list_quarantine, probe_and_scan_path,
-    purge_all_quarantine, purge_quarantine, quarantine_copy, quarantine_file, restore_quarantine,
-    scan_bytes, scan_bytes_with, scan_directory, scan_path, scan_path_with, scan_paths,
-    scanner_status, self_test, AntivirusEngine, AntivirusPolicy, AntivirusStatus, BatchScanReport,
-    FileHealthReport, ImportGateAction, ImportGateDecision, QuarantineEntry, ScanOptions,
-    ScanReport, ScanVerdict, SelfTestReport, ThreatHit, DEFAULT_SCAN_TIMEOUT_SECS,
-    EICAR_TEST_STRING, QUARANTINE_DIR,
+    decide_import_gate, detect_engine, gate_import_path, gate_import_tree, list_quarantine,
+    probe_and_scan_path, purge_all_quarantine, purge_quarantine, quarantine_copy, quarantine_file,
+    restore_quarantine, scan_bytes, scan_bytes_with, scan_directory, scan_path, scan_path_with,
+    scan_paths, scan_tree, scan_tree_with, scanner_status, self_test, AntivirusEngine,
+    AntivirusPolicy, AntivirusStatus, BatchScanReport, FileHealthReport, ImportGateAction,
+    ImportGateDecision, QuarantineEntry, ScanOptions, ScanReport, ScanVerdict, SelfTestReport,
+    ThreatHit, DEFAULT_SCAN_TIMEOUT_SECS, DEFAULT_TREE_SCAN_TIMEOUT_SECS, EICAR_TEST_STRING,
+    QUARANTINE_DIR,
+};
+pub use file_import::{
+    bytes_to_tiptap_note, collect_importable_files, detect_import_kind, import_title_from_path,
+    CollectImportFilesOpts, ImportKind, DEFAULT_FOLDER_IMPORT_MAX_DEPTH,
+    DEFAULT_FOLDER_IMPORT_MAX_FILES,
 };
 pub use file_integrity::{
     detect_kind, is_healthy, probe_bytes, probe_path, FileKind, IntegrityIssue, IntegrityReport,
@@ -55,7 +62,9 @@ pub use diff::{
     DiffSegment, DiffSegmentType, SideBySideCell, SideBySideCellKind, SideBySideRow,
 };
 pub use html::{escape_html, tiptap_to_html};
-pub use syntax_highlight::{highlight_code_html, list_syntax_names, supports_language};
+pub use syntax_highlight::{
+    highlight_code_html, highlight_code_html_themed, list_syntax_names, supports_language,
+};
 pub use html_paste::{looks_like_dirty_html, normalize_clipboard_html, HtmlPasteResult};
 pub use journal::{JournalNote, JournalSlot, JournalSummary, JournalSummaryInput};
 pub use office_import::{
@@ -83,8 +92,8 @@ pub use source_code::{
 };
 pub use tasks::DocumentTask;
 pub use tasks_agenda::{
-    agenda_bucket_for_due, group_tasks_by_agenda, parse_due_hint_ms, start_of_local_day_ms,
-    AgendaBucket, AgendaBucketId,
+    agenda_bucket_for_due, group_tasks_by_agenda, local_now_ms_and_offset_east,
+    parse_due_hint_ms, start_of_local_day_ms, AgendaBucket, AgendaBucketId,
 };
 pub use plain_text::{tiptap_to_markdown, tiptap_to_plain_text};
 pub use vault_crypto::{

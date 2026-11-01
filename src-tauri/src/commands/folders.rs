@@ -154,6 +154,53 @@ fn sibling_name_taken(
     Ok(found.is_some())
 }
 
+/// Find a folder by name under `parent_id`, or create it (active library).
+pub(crate) fn find_or_create_folder(
+    conn: &Connection,
+    name: &str,
+    parent_id: Option<&str>,
+) -> Result<String, String> {
+    let name = name.trim();
+    if name.is_empty() {
+        return Err("Názov priečinka nemôže byť prázdny".to_string());
+    }
+    let library_id = crate::libraries::active_library_id(conn);
+    let existing: Option<String> = conn
+        .query_row(
+            "SELECT id FROM folders \
+             WHERE library_id = ?1 AND parent_id IS ?2 AND name = ?3 COLLATE NOCASE \
+             LIMIT 1",
+            params![library_id, parent_id, name],
+            |row| row.get(0),
+        )
+        .optional()
+        .map_err(|e| e.to_string())?;
+    if let Some(id) = existing {
+        return Ok(id);
+    }
+
+    let id = Uuid::new_v4().to_string();
+    let now = now_ts();
+    let next_order: i64 = conn
+        .query_row(
+            "SELECT COALESCE(MAX(sort_order), -1) + 1 FROM folders \
+             WHERE library_id = ?1 AND parent_id IS ?2",
+            params![library_id, parent_id],
+            |row| row.get(0),
+        )
+        .map_err(|e| e.to_string())?;
+
+    conn.execute(
+        "INSERT INTO folders \
+         (id, name, parent_id, created_at, updated_at, is_vault, vault_verifier, library_id, \
+          color, icon, sort_order) \
+         VALUES (?1, ?2, ?3, ?4, ?4, 0, NULL, ?5, NULL, NULL, ?6)",
+        params![id, name, parent_id, now, library_id, next_order],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(id)
+}
+
 // ---------------------------------------------------------------------------
 // List / create / rename
 // ---------------------------------------------------------------------------

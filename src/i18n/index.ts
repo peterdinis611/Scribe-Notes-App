@@ -2,11 +2,14 @@ import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 import en from '@/i18n/locales/en.json'
 import sk from '@/i18n/locales/sk.json'
+import cs from '@/i18n/locales/cs.json'
+import hu from '@/i18n/locales/hu.json'
+import pl from '@/i18n/locales/pl.json'
 import { isBuiltInLocaleCode } from '@/lib/i18n/custom-locales'
 import type { CustomLocalePack } from '@/lib/i18n/custom-locales'
 import { readCustomLocales, readLocale } from '@/store/persistence'
 
-export const BUILT_IN_LOCALES = ['sk', 'en'] as const
+export const BUILT_IN_LOCALES = ['sk', 'en', 'cs', 'hu', 'pl'] as const
 export type BuiltInLocale = (typeof BUILT_IN_LOCALES)[number]
 /** Built-in or imported custom language code. */
 export type AppLocale = string
@@ -35,6 +38,9 @@ void i18n.use(initReactI18next).init({
   resources: {
     sk: { translation: sk },
     en: { translation: en },
+    cs: { translation: cs },
+    hu: { translation: hu },
+    pl: { translation: pl },
   },
   lng: readLocale(),
   fallbackLng: DEFAULT_LOCALE,

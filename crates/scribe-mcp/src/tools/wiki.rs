@@ -208,3 +208,57 @@ pub struct ExpandStubParams {
     /// Optional heading for the outline block (default "Outline").
     pub heading: Option<String>,
 }
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct WikiNeighborhoodParams {
+    pub id: String,
+    /// Outbound wiki-link hops (default 2, max 8).
+    pub hops: Option<u32>,
+    /// Cap on collected note ids (default 80, max 500).
+    pub max_notes: Option<usize>,
+}
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct WikiGhostCandidateParam {
+    pub id: String,
+    pub title: String,
+    pub phrase: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct FindWikiGhostMatchParams {
+    /// Paragraph (or any plain text) to scan for a title/alias phrase.
+    pub paragraph: String,
+    /// Optional explicit candidates; when omitted, titles (+ aliases) from the active library.
+    pub candidates: Option<Vec<WikiGhostCandidateParam>>,
+    /// Skip this document when auto-building candidates (usually the note being edited).
+    pub exclude_document_id: Option<String>,
+    pub min_length: Option<usize>,
+    /// Max library docs to scan for auto-candidates (default 200, max 200).
+    pub candidate_limit: Option<i64>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct AddDocumentAliasParams {
+    pub id: String,
+    /// Alias value without the `alias:` prefix.
+    pub alias: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ParseAliasesParams {
+    /// Document id — reads its tags. Mutually preferred over `tags`.
+    pub id: Option<String>,
+    pub tags: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ExportDocumentSourceParams {
+    pub id: String,
+}

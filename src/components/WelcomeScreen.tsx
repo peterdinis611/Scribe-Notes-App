@@ -4,14 +4,16 @@ import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { DemoGuideButton } from '@/components/DemoGuideButton'
-import { pickAndImportFiles } from '@/lib/db/api'
+import { listFolders, pickAndImportFiles, pickAndImportFolder } from '@/lib/db/api'
+import { recordImportBatch } from '@/lib/import/record-import-batch'
 import { toastImportDocumentsResult } from '@/lib/import-document'
+import { setFolders } from '@/store/foldersSlice'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
 import { prefetchDocument } from '@/lib/cache/prefetch-document'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { openTodayNote } from '@/lib/journal-notes'
 import { closeScribeUiSurface } from '@/lib/scribe-ui-host'
-import { toast } from '@/lib/toast'
+import { dismissToast, toast } from '@/lib/toast'
 import { ROUTES } from '@/lib/routes'
 import { getDisplayKeysForShortcut } from '@/lib/shortcuts'
 import { formatRelativeTime } from '@/lib/utils'
@@ -53,19 +55,47 @@ export function WelcomeScreen() {
     return [...alive].sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 12)
   }, [documents, recentDocumentIds])
 
-  async function handleImport() {
-    const result = await pickAndImportFiles()
+  async function applyImportResult(
+    result: Awaited<ReturnType<typeof pickAndImportFiles>>,
+  ) {
     if (!result) return
     toastImportDocumentsResult(result, (key, options) => t(key, options))
     if (result.imported.length === 0) return
+    if (result.imported.some((doc) => doc.folderId)) {
+      try {
+        dispatch(setFolders(await listFolders()))
+      } catch {
+        // Documents still imported; folder tree refresh is best-effort.
+      }
+    }
     for (const doc of result.imported) {
       dispatch(updateDocuments((prev) => prependDocumentSummary(prev, doc)))
     }
+    recordImportBatch(dispatch, result.imported)
     const last = result.imported[result.imported.length - 1]!
     dispatch(setActiveDocumentId(last.id))
     dispatch(setActiveDocument(last))
     dispatch(setSaveStatus('saved'))
     navigate(ROUTES.document(last.id))
+  }
+
+  async function handleImport() {
+    try {
+      await applyImportResult(await pickAndImportFiles())
+    } catch (error) {
+      toast.error(t('fileDrop.failed', { count: 1 }), String(error))
+    }
+  }
+
+  async function handleImportFolder() {
+    const pendingId = toast.info(t('fileDrop.importing'), undefined, { duration: 0 })
+    try {
+      await applyImportResult(await pickAndImportFolder())
+    } catch (error) {
+      toast.error(t('fileDrop.failed', { count: 1 }), String(error))
+    } finally {
+      dismissToast(pendingId)
+    }
   }
 
   function handleToday() {
@@ -123,6 +153,14 @@ export function WelcomeScreen() {
             >
               <FolderInput className="h-4 w-4" />
               {t('welcome.import')}
+            </Button>
+            <Button
+              variant="ghost"
+              className="welcome-page-ghost"
+              onClick={() => void handleImportFolder()}
+            >
+              <FolderInput className="h-4 w-4" />
+              {t('welcome.importFolder')}
             </Button>
             <DemoGuideButton variant="link" className="welcome-page-link" />
           </div>

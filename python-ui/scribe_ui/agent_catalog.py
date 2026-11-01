@@ -12,6 +12,7 @@ AGENT_ROLE_IDS: tuple[str, ...] = (
     "study",
     "organizer",
     "developer",
+    "researcher",
 )
 
 AGENT_RECIPE_IDS: tuple[str, ...] = (
@@ -30,6 +31,12 @@ AGENT_RECIPE_IDS: tuple[str, ...] = (
     "canvas_board",
     "files_learn",
     "files_to_library",
+    "code_pass",
+    "code_audit",
+    "morning_brief",
+    "polish_and_apply",
+    "research_pass",
+    "deep_research",
 )
 
 
@@ -146,5 +153,41 @@ def agent_recipes() -> list[AgentRecipeDef]:
             "agent.recipes.filesToLibrary",
             ["files_ingest", "brief", "organize"],
             False,
+        ),
+        _recipe(
+            "code_pass",
+            "agent.recipes.codePass",
+            ["code_brief", "explain", "outline", "keywords"],
+            True,
+        ),
+        _recipe(
+            "code_audit",
+            "agent.recipes.codeAudit",
+            ["code_brief", "pii", "glossary"],
+            True,
+        ),
+        _recipe(
+            "morning_brief",
+            "agent.recipes.morningBrief",
+            ["dates", "open_loops", "forward_plan"],
+            True,
+        ),
+        _recipe(
+            "polish_and_apply",
+            "agent.recipes.polishAndApply",
+            ["grammar", "spellcheck", "rewrite"],
+            True,
+        ),
+        _recipe(
+            "research_pass",
+            "agent.recipes.researchPass",
+            ["research_pack", "timeline"],
+            True,
+        ),
+        _recipe(
+            "deep_research",
+            "agent.recipes.deepResearch",
+            ["research_pack", "citations", "similar", "timeline"],
+            True,
         ),
     ]

@@ -75,4 +75,22 @@ describe('agent roles', () => {
       ]),
     )
   })
+
+  it('researcher role owns research recipes and tools', async () => {
+    const { getAgentRole, normalizeAgentRoleId } = await import('@/lib/library/agent-roles')
+    expect(normalizeAgentRoleId('researcher')).toBe('researcher')
+    const researcher = getAgentRole('researcher')
+    expect(researcher.recipeIds).toEqual(['deep_research', 'research_pass'])
+    expect(researcher.tools).toEqual(
+      expect.arrayContaining([
+        'research_pack',
+        'timeline',
+        'translate',
+        'citations',
+        'similar',
+        'compare_notes',
+        'contradictions',
+      ]),
+    )
+  })
 })
