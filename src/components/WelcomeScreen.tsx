@@ -13,7 +13,7 @@ import { prefetchDocument } from '@/lib/cache/prefetch-document'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { openTodayNote } from '@/lib/journal-notes'
 import { closeScribeUiSurface } from '@/lib/scribe-ui-host'
-import { toast } from '@/lib/toast'
+import { dismissToast, toast } from '@/lib/toast'
 import { ROUTES } from '@/lib/routes'
 import { getDisplayKeysForShortcut } from '@/lib/shortcuts'
 import { formatRelativeTime } from '@/lib/utils'
@@ -88,10 +88,13 @@ export function WelcomeScreen() {
   }
 
   async function handleImportFolder() {
+    const pendingId = toast.info(t('fileDrop.importing'), undefined, { duration: 0 })
     try {
       await applyImportResult(await pickAndImportFolder())
     } catch (error) {
       toast.error(t('fileDrop.failed', { count: 1 }), String(error))
+    } finally {
+      dismissToast(pendingId)
     }
   }
 

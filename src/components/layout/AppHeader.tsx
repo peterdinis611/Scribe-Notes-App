@@ -31,7 +31,7 @@ import { listPluginExportFormats, listPluginImportFormats } from '@/lib/plugins'
 import { open } from '@tauri-apps/plugin-dialog'
 import { readFile } from '@tauri-apps/plugin-fs'
 import { getCachedParsedContent } from '@/lib/cache/document-cache'
-import { fileBasename, toast } from '@/lib/toast'
+import { dismissToast, fileBasename, toast } from '@/lib/toast'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
 import { tiptapJsonToHtmlPreferRust } from '@/lib/export/html-prefer-rust'
 import { tiptapJsonToMarkdown } from '@/lib/export/markdown'
@@ -453,10 +453,13 @@ function EditorChrome() {
   }
 
   async function handleImportFolder() {
+    const pendingId = toast.info(t('fileDrop.importing'), undefined, { duration: 0 })
     try {
       await applyImportResult(await pickAndImportFolder())
     } catch (error) {
       toast.error(t('fileDrop.failed', { count: 1 }), String(error))
+    } finally {
+      dismissToast(pendingId)
     }
   }
 

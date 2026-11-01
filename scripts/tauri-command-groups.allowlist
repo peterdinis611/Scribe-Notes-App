@@ -122,6 +122,8 @@ import_export	normalize_clipboard_html
 import_export	pick_and_grant_path
 import_export	pick_and_grant_save_path
 import_export	pick_and_import_file
+import_export	pick_and_import_folder
+import_export	expand_import_paths
 import_export	prepare_keynote_import
 import_export	prepare_numbers_import
 import_export	prepare_pages_import

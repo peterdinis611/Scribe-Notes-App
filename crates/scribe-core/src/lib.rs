@@ -39,13 +39,14 @@ pub use enhance::{
     EnhanceStatus,
 };
 pub use file_antivirus::{
-    decide_import_gate, detect_engine, gate_import_path, list_quarantine, probe_and_scan_path,
-    purge_all_quarantine, purge_quarantine, quarantine_copy, quarantine_file, restore_quarantine,
-    scan_bytes, scan_bytes_with, scan_directory, scan_path, scan_path_with, scan_paths,
-    scanner_status, self_test, AntivirusEngine, AntivirusPolicy, AntivirusStatus, BatchScanReport,
-    FileHealthReport, ImportGateAction, ImportGateDecision, QuarantineEntry, ScanOptions,
-    ScanReport, ScanVerdict, SelfTestReport, ThreatHit, DEFAULT_SCAN_TIMEOUT_SECS,
-    EICAR_TEST_STRING, QUARANTINE_DIR,
+    decide_import_gate, detect_engine, gate_import_path, gate_import_tree, list_quarantine,
+    probe_and_scan_path, purge_all_quarantine, purge_quarantine, quarantine_copy, quarantine_file,
+    restore_quarantine, scan_bytes, scan_bytes_with, scan_directory, scan_path, scan_path_with,
+    scan_paths, scan_tree, scan_tree_with, scanner_status, self_test, AntivirusEngine,
+    AntivirusPolicy, AntivirusStatus, BatchScanReport, FileHealthReport, ImportGateAction,
+    ImportGateDecision, QuarantineEntry, ScanOptions, ScanReport, ScanVerdict, SelfTestReport,
+    ThreatHit, DEFAULT_SCAN_TIMEOUT_SECS, DEFAULT_TREE_SCAN_TIMEOUT_SECS, EICAR_TEST_STRING,
+    QUARANTINE_DIR,
 };
 pub use file_import::{
     bytes_to_tiptap_note, collect_importable_files, detect_import_kind, import_title_from_path,

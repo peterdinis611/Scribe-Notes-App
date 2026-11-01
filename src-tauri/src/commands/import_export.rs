@@ -8,7 +8,7 @@ use scribe_core::file_antivirus::{self, AntivirusPolicy};
 use scribe_core::storage_fs;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Manager, State};
 use tauri_plugin_dialog::DialogExt;
 use uuid::Uuid;
 
@@ -351,29 +351,54 @@ pub fn pick_and_import_file(
 
 /// Folder picker → walk supported files → import each (same converters as multi-file pick).
 /// Mirrors the on-disk folder tree into Scribe folders under a root named after the pick.
+///
+/// Runs off the UI thread: blocking dialog + walk + AV tree scan + per-file import.
 #[tauri::command]
-pub fn pick_and_import_folder(
+pub async fn pick_and_import_folder(
     app: AppHandle,
-    state: State<'_, DbState>,
-    gate: State<'_, PathAccessGate>,
     antivirus_policy: Option<AntivirusPolicy>,
 ) -> Result<Option<PickAndImportResult>, String> {
-    let picked = app
-        .dialog()
-        .file()
-        .set_title("Importovať priečinok")
-        .blocking_pick_folder();
+    let dialog_app = app.clone();
+    let folder = tauri::async_runtime::spawn_blocking(move || {
+        let picked = dialog_app
+            .dialog()
+            .file()
+            .set_title("Importovať priečinok")
+            .blocking_pick_folder();
+        match picked {
+            None => Ok::<Option<PathBuf>, String>(None),
+            Some(path) => path
+                .into_path()
+                .map(Some)
+                .map_err(|_| "Neplatná cesta priečinka zo súborového dialógu.".to_string()),
+        }
+    })
+    .await
+    .map_err(|e| format!("Folder picker worker zlyhal: {e}"))??;
 
-    let Some(folder) = picked else {
+    let Some(folder) = folder else {
         return Ok(None);
     };
-    let folder = folder
-        .into_path()
-        .map_err(|_| "Neplatná cesta priečinka zo súborového dialógu.".to_string())?;
-    gate.grant_from_picker(&folder);
+
+    let work_app = app.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        run_folder_import(&work_app, &folder, antivirus_policy)
+    })
+    .await
+    .map_err(|e| format!("Folder import worker zlyhal: {e}"))?
+}
+
+fn run_folder_import(
+    app: &AppHandle,
+    folder: &Path,
+    antivirus_policy: Option<AntivirusPolicy>,
+) -> Result<Option<PickAndImportResult>, String> {
+    let state = app.state::<DbState>();
+    let gate = app.state::<PathAccessGate>();
+    gate.grant_from_picker(folder);
 
     let files = scribe_core::collect_importable_files(
-        &folder,
+        folder,
         scribe_core::CollectImportFilesOpts {
             include_apple_packages: true,
             ..Default::default()
@@ -387,6 +412,19 @@ pub fn pick_and_import_folder(
                 error: "V priečinku nie sú žiadne podporované súbory na import.".into(),
             }],
         }));
+    }
+
+    let base_policy = antivirus_policy.unwrap_or_else(AntivirusPolicy::default);
+    // One recursive ClamAV pass for the whole tree, then skip per-file scans.
+    let mut per_file_policy = base_policy.clone();
+    if base_policy.enabled && base_policy.scan_on_import {
+        let docs = {
+            let conn = state.conn.lock().map_err(|e| e.to_string())?;
+            storage::get_documents_dir(app, &conn)?
+        };
+        let files_root = storage_fs::ensure_files_root(&docs).ok();
+        file_antivirus::gate_import_tree(folder, &base_policy, files_root.as_deref())?;
+        per_file_policy.scan_on_import = false;
     }
 
     let root_name = folder
@@ -409,7 +447,7 @@ pub fn pick_and_import_folder(
     let mut failed = Vec::new();
     for path in files {
         gate.grant_from_picker(&path);
-        let folder_id = match ensure_import_folder_id(&state, &folder, &path, &mut folder_cache) {
+        let folder_id = match ensure_import_folder_id(&state, folder, &path, &mut folder_cache) {
             Ok(id) => Some(id),
             Err(error) => {
                 failed.push(PickAndImportFailure {
@@ -420,11 +458,11 @@ pub fn pick_and_import_folder(
             }
         };
         match import_file_at_path(
-            &app,
+            app,
             &state,
             &gate,
             &path,
-            antivirus_policy.as_ref(),
+            Some(&per_file_policy),
             folder_id.as_deref(),
         ) {
             Ok(doc) => imported.push(doc),
@@ -440,7 +478,7 @@ pub fn pick_and_import_folder(
 
 /// Resolve (and cache) the Scribe folder id for `file`'s parent relative to `root`.
 fn ensure_import_folder_id(
-    state: &State<'_, DbState>,
+    state: &DbState,
     root: &Path,
     file: &Path,
     cache: &mut std::collections::HashMap<PathBuf, String>,
@@ -656,8 +694,8 @@ pub fn import_file(
 
 fn import_file_at_path(
     app: &AppHandle,
-    state: &State<'_, DbState>,
-    gate: &State<'_, PathAccessGate>,
+    state: &DbState,
+    gate: &PathAccessGate,
     path: &Path,
     antivirus_policy: Option<&AntivirusPolicy>,
     folder_id: Option<&str>,
