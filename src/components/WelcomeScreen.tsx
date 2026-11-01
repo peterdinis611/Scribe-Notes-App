@@ -4,9 +4,10 @@ import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { DemoGuideButton } from '@/components/DemoGuideButton'
-import { pickAndImportFiles, pickAndImportFolder } from '@/lib/db/api'
+import { listFolders, pickAndImportFiles, pickAndImportFolder } from '@/lib/db/api'
 import { recordImportBatch } from '@/lib/import/record-import-batch'
 import { toastImportDocumentsResult } from '@/lib/import-document'
+import { setFolders } from '@/store/foldersSlice'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
 import { prefetchDocument } from '@/lib/cache/prefetch-document'
 import { prependDocumentSummary } from '@/lib/db/library-sync'
@@ -60,6 +61,13 @@ export function WelcomeScreen() {
     if (!result) return
     toastImportDocumentsResult(result, (key, options) => t(key, options))
     if (result.imported.length === 0) return
+    if (result.imported.some((doc) => doc.folderId)) {
+      try {
+        dispatch(setFolders(await listFolders()))
+      } catch {
+        // Documents still imported; folder tree refresh is best-effort.
+      }
+    }
     for (const doc of result.imported) {
       dispatch(updateDocuments((prev) => prependDocumentSummary(prev, doc)))
     }
@@ -72,11 +80,19 @@ export function WelcomeScreen() {
   }
 
   async function handleImport() {
-    await applyImportResult(await pickAndImportFiles())
+    try {
+      await applyImportResult(await pickAndImportFiles())
+    } catch (error) {
+      toast.error(t('fileDrop.failed', { count: 1 }), String(error))
+    }
   }
 
   async function handleImportFolder() {
-    await applyImportResult(await pickAndImportFolder())
+    try {
+      await applyImportResult(await pickAndImportFolder())
+    } catch (error) {
+      toast.error(t('fileDrop.failed', { count: 1 }), String(error))
+    }
   }
 
   function handleToday() {

@@ -23,9 +23,10 @@ import { SidebarToggle } from '@/components/SidebarToggle'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { IconTooltip } from '@/components/ui/tooltip'
-import { exportDocument, pickAndImportFiles, pickAndImportFolder, revealInFinder } from '@/lib/db/api'
+import { exportDocument, listFolders, pickAndImportFiles, pickAndImportFolder, revealInFinder } from '@/lib/db/api'
 import { recordImportBatch } from '@/lib/import/record-import-batch'
 import { toastImportDocumentsResult } from '@/lib/import-document'
+import { setFolders } from '@/store/foldersSlice'
 import { listPluginExportFormats, listPluginImportFormats } from '@/lib/plugins'
 import { open } from '@tauri-apps/plugin-dialog'
 import { readFile } from '@tauri-apps/plugin-fs'
@@ -425,6 +426,13 @@ function EditorChrome() {
     if (!result) return
     toastImportDocumentsResult(result, (key, options) => t(key, options))
     if (result.imported.length === 0) return
+    if (result.imported.some((doc) => doc.folderId)) {
+      try {
+        dispatch(setFolders(await listFolders()))
+      } catch {
+        // Documents still imported; folder tree refresh is best-effort.
+      }
+    }
     for (const doc of result.imported) {
       dispatch(updateDocuments((prev) => prependDocumentSummary(prev, doc)))
     }
@@ -437,11 +445,19 @@ function EditorChrome() {
   }
 
   async function handleImport() {
-    await applyImportResult(await pickAndImportFiles())
+    try {
+      await applyImportResult(await pickAndImportFiles())
+    } catch (error) {
+      toast.error(t('fileDrop.failed', { count: 1 }), String(error))
+    }
   }
 
   async function handleImportFolder() {
-    await applyImportResult(await pickAndImportFolder())
+    try {
+      await applyImportResult(await pickAndImportFolder())
+    } catch (error) {
+      toast.error(t('fileDrop.failed', { count: 1 }), String(error))
+    }
   }
 
   async function handlePluginExport(entryId: string) {

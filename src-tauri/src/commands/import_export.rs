@@ -42,9 +42,15 @@ pub fn pick_and_grant_path(
         dialog = dialog.set_title(title);
     }
     let picked = if directory.unwrap_or(false) {
-        dialog.blocking_pick_folder().map(|p| PathBuf::from(p.to_string()))
+        dialog
+            .blocking_pick_folder()
+            .map(|p| p.into_path().map_err(|_| "Neplatná cesta priečinka.".to_string()))
+            .transpose()?
     } else {
-        dialog.blocking_pick_file().map(|p| PathBuf::from(p.to_string()))
+        dialog
+            .blocking_pick_file()
+            .map(|p| p.into_path().map_err(|_| "Neplatná cesta súboru.".to_string()))
+            .transpose()?
     };
     let Some(path) = picked else {
         return Ok(None);
@@ -99,7 +105,9 @@ pub fn pick_and_grant_save_path(
     let Some(path) = dialog.blocking_save_file() else {
         return Ok(None);
     };
-    let path = PathBuf::from(path.to_string());
+    let path = path
+        .into_path()
+        .map_err(|_| "Neplatná cesta na uloženie.".to_string())?;
     gate.grant_from_picker(&path);
     crate::security::log_security(
         &app,
@@ -325,9 +333,11 @@ pub fn pick_and_import_file(
     let mut imported = Vec::new();
     let mut failed = Vec::new();
     for path in paths {
-        let path = PathBuf::from(path.to_string());
+        let path = path
+            .into_path()
+            .map_err(|_| "Neplatná cesta zo súborového dialógu.".to_string())?;
         gate.grant_from_picker(&path);
-        match import_file_at_path(&app, &state, &gate, &path, antivirus_policy.as_ref()) {
+        match import_file_at_path(&app, &state, &gate, &path, antivirus_policy.as_ref(), None) {
             Ok(doc) => imported.push(doc),
             Err(error) => failed.push(PickAndImportFailure {
                 path: path.to_string_lossy().to_string(),
@@ -340,6 +350,7 @@ pub fn pick_and_import_file(
 }
 
 /// Folder picker → walk supported files → import each (same converters as multi-file pick).
+/// Mirrors the on-disk folder tree into Scribe folders under a root named after the pick.
 #[tauri::command]
 pub fn pick_and_import_folder(
     app: AppHandle,
@@ -356,7 +367,9 @@ pub fn pick_and_import_folder(
     let Some(folder) = picked else {
         return Ok(None);
     };
-    let folder = PathBuf::from(folder.to_string());
+    let folder = folder
+        .into_path()
+        .map_err(|_| "Neplatná cesta priečinka zo súborového dialógu.".to_string())?;
     gate.grant_from_picker(&folder);
 
     let files = scribe_core::collect_importable_files(
@@ -376,11 +389,44 @@ pub fn pick_and_import_folder(
         }));
     }
 
+    let root_name = folder
+        .file_name()
+        .and_then(|name| name.to_str())
+        .map(str::trim)
+        .filter(|name| !name.is_empty())
+        .unwrap_or("Import")
+        .to_string();
+
+    let mut folder_cache: std::collections::HashMap<PathBuf, String> =
+        std::collections::HashMap::new();
+    {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        let root_id = crate::commands::folders::find_or_create_folder(&conn, &root_name, None)?;
+        folder_cache.insert(PathBuf::new(), root_id);
+    }
+
     let mut imported = Vec::new();
     let mut failed = Vec::new();
     for path in files {
         gate.grant_from_picker(&path);
-        match import_file_at_path(&app, &state, &gate, &path, antivirus_policy.as_ref()) {
+        let folder_id = match ensure_import_folder_id(&state, &folder, &path, &mut folder_cache) {
+            Ok(id) => Some(id),
+            Err(error) => {
+                failed.push(PickAndImportFailure {
+                    path: path.to_string_lossy().to_string(),
+                    error,
+                });
+                continue;
+            }
+        };
+        match import_file_at_path(
+            &app,
+            &state,
+            &gate,
+            &path,
+            antivirus_policy.as_ref(),
+            folder_id.as_deref(),
+        ) {
             Ok(doc) => imported.push(doc),
             Err(error) => failed.push(PickAndImportFailure {
                 path: path.to_string_lossy().to_string(),
@@ -390,6 +436,53 @@ pub fn pick_and_import_folder(
     }
 
     Ok(Some(PickAndImportResult { imported, failed }))
+}
+
+/// Resolve (and cache) the Scribe folder id for `file`'s parent relative to `root`.
+fn ensure_import_folder_id(
+    state: &State<'_, DbState>,
+    root: &Path,
+    file: &Path,
+    cache: &mut std::collections::HashMap<PathBuf, String>,
+) -> Result<String, String> {
+    let rel_parent = file
+        .strip_prefix(root)
+        .map_err(|_| format!("Súbor mimo vybraného priečinka: {}", file.display()))?
+        .parent()
+        .map(|parent| parent.to_path_buf())
+        .unwrap_or_default();
+
+    if let Some(id) = cache.get(&rel_parent) {
+        return Ok(id.clone());
+    }
+
+    let mut current = PathBuf::new();
+    let mut parent_id = cache
+        .get(&PathBuf::new())
+        .cloned()
+        .ok_or_else(|| "Chýba koreňový priečinok importu.".to_string())?;
+
+    for segment in rel_parent.components() {
+        let std::path::Component::Normal(os) = segment else {
+            continue;
+        };
+        let name = os.to_string_lossy();
+        let trimmed = name.trim();
+        if trimmed.is_empty() || trimmed == "." {
+            continue;
+        }
+        current.push(trimmed);
+        if let Some(id) = cache.get(&current) {
+            parent_id = id.clone();
+            continue;
+        }
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        let id = crate::commands::folders::find_or_create_folder(&conn, trimmed, Some(&parent_id))?;
+        cache.insert(current.clone(), id.clone());
+        parent_id = id;
+    }
+
+    Ok(parent_id)
 }
 
 /// Expand dropped paths: directories become all importable files underneath (files stay as-is).
@@ -558,7 +651,7 @@ pub fn import_file(
     antivirus_policy: Option<AntivirusPolicy>,
 ) -> Result<Document, String> {
     let path = Path::new(&path);
-    import_file_at_path(&app, &state, &gate, path, antivirus_policy.as_ref())
+    import_file_at_path(&app, &state, &gate, path, antivirus_policy.as_ref(), None)
 }
 
 fn import_file_at_path(
@@ -567,6 +660,7 @@ fn import_file_at_path(
     gate: &State<'_, PathAccessGate>,
     path: &Path,
     antivirus_policy: Option<&AntivirusPolicy>,
+    folder_id: Option<&str>,
 ) -> Result<Document, String> {
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
     let validated = gate.validate_read(app, &conn, path)?;
@@ -829,6 +923,9 @@ fn import_file_at_path(
         .optional()
         .map_err(|e| e.to_string())?;
 
+    let library_id = crate::libraries::active_library_id(&conn);
+    let folder_id = folder_id.map(|value| value.to_string());
+
     if existing.is_some() {
         conn.execute(
             "UPDATE documents SET title = ?1, content_json = ?2, updated_at = ?3 WHERE id = ?4",
@@ -837,8 +934,10 @@ fn import_file_at_path(
         .map_err(|e| e.to_string())?;
     } else {
         conn.execute(
-            "INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at) VALUES (?1, ?2, ?3, NULL, NULL, ?4, ?5)",
-            params![id, title, content_json, created_at, now],
+            "INSERT INTO documents \
+             (id, title, content_json, folder_id, file_path, created_at, updated_at, library_id) \
+             VALUES (?1, ?2, ?3, ?4, NULL, ?5, ?6, ?7)",
+            params![id, title, content_json, folder_id, created_at, now, library_id],
         )
         .map_err(|e| e.to_string())?;
     }
@@ -851,7 +950,7 @@ fn import_file_at_path(
         id,
         title,
         content_json,
-        folder_id: None,
+        folder_id,
         file_path: Some(file_path),
         created_at,
         updated_at: now,
@@ -1262,15 +1361,19 @@ pub fn scan_scribe_files(
 
             match existing {
                 None => {
+                    let library_id = crate::libraries::active_library_id(&conn);
                     conn.execute(
-                        "INSERT INTO documents (id, title, content_json, folder_id, file_path, created_at, updated_at) VALUES (?1, ?2, ?3, NULL, ?4, ?5, ?6)",
+                        "INSERT INTO documents \
+                         (id, title, content_json, folder_id, file_path, created_at, updated_at, library_id) \
+                         VALUES (?1, ?2, ?3, NULL, ?4, ?5, ?6, ?7)",
                         rusqlite::params![
                             disk.id,
                             disk.title,
                             disk.content_json,
                             path_str,
                             disk.created_at,
-                            disk.updated_at
+                            disk.updated_at,
+                            library_id
                         ],
                     )
                     .map_err(|e| e.to_string())?;
