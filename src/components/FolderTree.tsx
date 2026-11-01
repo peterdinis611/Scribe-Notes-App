@@ -32,6 +32,7 @@ import { useMoveDocumentToFolder } from '@/hooks/useMoveDocumentToFolder'
 import { invalidateDocumentCache, peekCachedDocument } from '@/lib/cache/document-cache'
 import { prefetchDocument } from '@/lib/cache/prefetch-document'
 import { isLibraryDocumentVisible } from '@/lib/db/library-sync'
+import { fuzzyFilter } from '@/lib/search/fuzzy'
 import { trashDocuments, removeDocumentsFromLibraryUi, restoreTrashedDocuments } from '@/lib/trash-document'
 import {
   buildDeleteFolderConfirmMessage,
@@ -171,10 +172,8 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
   const deferredQuery = useDeferredValue(query)
 
   const filteredDocuments = useMemo(() => {
-    const q = deferredQuery.trim().toLowerCase()
-    return documents.filter((doc) => {
+    const scoped = documents.filter((doc) => {
       if (!isLibraryDocumentVisible(doc)) return false
-      if (q && !doc.title.toLowerCase().includes(q)) return false
       if (favoritesOnly && !doc.isFavorite) return false
       if (activeTag && !doc.tags.includes(activeTag)) return false
       if (!documentMatchesMetaFilters(doc.tags, metaFilters)) return false
@@ -192,6 +191,10 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
       }
       return true
     })
+    const q = deferredQuery.trim()
+    if (!q) return scoped
+    // Regular title/tag search via fuse.js (diacritic-aware, ranked).
+    return fuzzyFilter(scoped, q, (doc) => [doc.title, ...(doc.tags ?? [])])
   }, [
     documents,
     deferredQuery,

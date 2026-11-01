@@ -2946,6 +2946,7 @@
     "addProjectTag": "Filter by project",
     "projectPlaceholder": "Project name",
     "searchResults": "Content results",
+    "titleSearchResults": "Title results",
     "searching": "Searching…",
     "searchEmpty": "Nothing found",
     "moveToFolder": "Move to folder",

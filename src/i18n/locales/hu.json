@@ -2946,6 +2946,7 @@
     "addProjectTag": "Szűrés projekt szerint",
     "projectPlaceholder": "Projekt neve",
     "searchResults": "Tartalmi eredmények",
+    "titleSearchResults": "Cím szerinti találatok",
     "searching": "Keresés…",
     "searchEmpty": "Nincs találat",
     "moveToFolder": "Áthelyezés mappába",
