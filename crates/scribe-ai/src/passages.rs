@@ -1,6 +1,6 @@
 use serde_json::{json, Value};
 
-use crate::db::RankedDocumentChunk;
+use crate::types::RankedPassageChunk;
 
 pub const DOCUMENT_PASSAGE_TARGET_CHARS: usize = 560;
 pub const DOCUMENT_PASSAGE_MAX: usize = 64;
@@ -32,7 +32,7 @@ pub fn build_document_answer_passages(
     title: &str,
     text: &str,
     question: &str,
-    ranked: &[RankedDocumentChunk],
+    ranked: &[RankedPassageChunk],
 ) -> Value {
     let full = chunk_document_passages(document_id, title, text);
     let mut combined: Vec<Value> = Vec::new();
@@ -285,7 +285,7 @@ fn significant_terms(text: &str) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db::RankedDocumentChunk;
+    use crate::types::RankedPassageChunk;
 
     #[test]
     fn chunks_cover_long_document_tail() {
@@ -303,7 +303,7 @@ mod tests {
     #[test]
     fn merges_ranked_with_full_document_and_ranks_by_question() {
         let text = "Alpha section talks about milk.\n\nBeta section explains the release plan.\n\nGamma has the deadline Friday.";
-        let ranked = vec![RankedDocumentChunk {
+        let ranked = vec![RankedPassageChunk {
             snippet: "Beta section explains the release plan.".into(),
             score: 0.4,
             chunk_index: 1,

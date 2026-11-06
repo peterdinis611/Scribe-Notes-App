@@ -4,6 +4,7 @@ members = [
   "crates/scribe-core",
   "crates/scribe-mcp",
   "crates/scribe-agent",
+  "crates/scribe-ai",
   "crates/scribe-audit",
   "crates/scribe-ui",
   "crates/scribe-video",

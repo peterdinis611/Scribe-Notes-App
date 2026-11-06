@@ -1,3 +1,5 @@
+//! Chat turns and memory passages for document / agent Q&A prompts.
+
 use serde_json::{json, Value};
 
 pub const DOCUMENT_CHAT_CONTEXT_LIMIT: usize = 16;

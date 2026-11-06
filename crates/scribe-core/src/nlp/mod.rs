@@ -1,12 +1,10 @@
 mod agent_phases;
 mod agent_slash;
-mod chat_context;
 mod chat_intent;
 pub mod commitments;
 pub mod forward_plan;
 pub mod continuation;
 pub mod decisions;
-mod document_passages;
 mod duplicates;
 pub mod jobs;
 mod memory;
@@ -29,9 +27,12 @@ pub mod tone;
 mod types;
 pub mod vault_index;
 
-pub use chat_context::{
-    followups_from_sidecar, is_chat_memory_citation_title, merge_chat_memory_passages, ChatTurn,
-    DOCUMENT_CHAT_CONTEXT_LIMIT, MERGED_PASSAGE_LIMIT,
+// Context packing lives in `scribe-ai` (pure; no DB / sidecar I/O).
+pub use scribe_ai::{
+    followups_from_sidecar, is_chat_memory_citation_title, merge_chat_memory_passages,
+    build_document_answer_passages, chunk_document_passages, ChatTurn, RankedPassageChunk,
+    DOCUMENT_ANSWER_PASSAGE_LIMIT, DOCUMENT_CHAT_CONTEXT_LIMIT, DOCUMENT_EMBED_RANK_LIMIT,
+    DOCUMENT_PASSAGE_MAX, DOCUMENT_PASSAGE_TARGET_CHARS, MERGED_PASSAGE_LIMIT,
 };
 pub use agent_phases::{
     decode_phase_followup, encode_phase_followup, is_phase_followup, is_weak_agent_answer,
@@ -56,10 +57,6 @@ pub use task_rank::rank_tasks;
 pub use template_hints::{template_fill_hints, template_fill_hints_value};
 pub use title::suggest_title;
 pub use tone::{tone_pack, NlpTonePack};
-pub use document_passages::{
-    build_document_answer_passages, chunk_document_passages, DOCUMENT_ANSWER_PASSAGE_LIMIT,
-    DOCUMENT_EMBED_RANK_LIMIT,
-};
 pub use duplicates::find_duplicates_from_embeddings;
 pub use jobs::{
     collect_index_documents, document_needs_reindex, ensure_document_indexed, index_collected_documents,

@@ -27,6 +27,7 @@ uuid = { version = "1", features = ["v4"] }
 chrono = { version = "0.4", features = ["clock"] }
 regex = "1"
 dirs = "6"
+scribe-ai = { path = "../scribe-ai" }
 scribe-video = { path = "../scribe-video" }
 zip = { version = "9", default-features = false, features = ["deflate", "time"] }
 quick-xml = "0.42"

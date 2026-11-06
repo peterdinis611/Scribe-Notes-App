@@ -150,6 +150,7 @@ dependencies = [
  "regex",
  "rusqlite",
  "scribe-agent",
+ "scribe-ai",
  "scribe-audit",
  "scribe-capture",
  "scribe-core",
@@ -4519,6 +4520,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "scribe-ai"
+version = "5.2.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "scribe-audit"
 version = "5.2.0"
 dependencies = [
@@ -4559,6 +4568,7 @@ dependencies = [
  "rayon",
  "regex",
  "rusqlite",
+ "scribe-ai",
  "scribe-video",
  "serde",
  "serde_json",
