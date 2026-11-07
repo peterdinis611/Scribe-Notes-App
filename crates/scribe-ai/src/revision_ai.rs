@@ -1,6 +1,5 @@
 //! Dedicated local revision / diff AI (Rust fallback when Python NLP is off).
 
-use crate::diff::diff_lines;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -79,6 +78,58 @@ fn todo_re() -> &'static Regex {
 fn word_re() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
     RE.get_or_init(|| Regex::new(r"[\w\u00C0-\u024F]{2,}").expect("word regex"))
+}
+
+
+/// LCS-based line add/remove counts (same numbers DiffResult exposes for line diffs).
+fn count_line_edits(old_text: &str, new_text: &str) -> (usize, usize) {
+    let old_lines: Vec<&str> = old_text.split('\n').collect();
+    let new_lines: Vec<&str> = new_text.split('\n').collect();
+    let lcs = lcs_length(&old_lines, &new_lines);
+    let removed = old_lines.len().saturating_sub(lcs);
+    let added = new_lines.len().saturating_sub(lcs);
+    (added, removed)
+}
+
+fn lcs_length(old_lines: &[&str], new_lines: &[&str]) -> usize {
+    let n = old_lines.len();
+    let m = new_lines.len();
+    // Cap matrix to avoid huge allocations on pathological notes.
+    if n.saturating_mul(m) > 4_000_000 {
+        // Fallback: set-ish approximation via sorted unique equality walk.
+        let mut oi = 0usize;
+        let mut ni = 0usize;
+        let mut matched = 0usize;
+        while oi < n && ni < m {
+            if old_lines[oi] == new_lines[ni] {
+                matched += 1;
+                oi += 1;
+                ni += 1;
+            } else if oi + 1 < n && old_lines[oi + 1] == new_lines[ni] {
+                oi += 1;
+            } else if ni + 1 < m && old_lines[oi] == new_lines[ni + 1] {
+                ni += 1;
+            } else {
+                oi += 1;
+                ni += 1;
+            }
+        }
+        return matched;
+    }
+    let mut prev = vec![0usize; m + 1];
+    let mut cur = vec![0usize; m + 1];
+    for i in 1..=n {
+        for j in 1..=m {
+            cur[j] = if old_lines[i - 1] == new_lines[j - 1] {
+                prev[j - 1] + 1
+            } else {
+                prev[j].max(cur[j - 1])
+            };
+        }
+        std::mem::swap(&mut prev, &mut cur);
+        cur.fill(0);
+    }
+    prev[m]
 }
 
 fn sentence_split(text: &str) -> Vec<String> {
@@ -184,9 +235,7 @@ pub fn analyze_revision_diff(
     let old_word_count = old.split_whitespace().count() as i64;
     let new_word_count = new.split_whitespace().count() as i64;
 
-    let diff = diff_lines(old, new);
-    let lines_added = diff.added;
-    let lines_removed = diff.removed;
+    let (lines_added, lines_removed) = count_line_edits(old, new);
 
     let old_headings = extract_headings(old);
     let new_headings = extract_headings(new);

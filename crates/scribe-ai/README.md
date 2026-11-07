@@ -1,27 +1,24 @@
 # scribe-ai
 
-Pure AI **context packing**, **agent routing**, and **offline NLP fallbacks** for Scribe.
+Pure AI helpers for Scribe: context packing, agent routing, offline NLP fallbacks, prompts, and scoring.
 
-No SQLite, no Python sidecar process, no Tauri. Callers (Tauri / `scribe-core` / MCP) own retrieval and model I/O.
+No SQLite, no Python sidecar process, no Tauri.
 
 ## Owns
 
 | Area | Modules |
 |------|---------|
-| Context | `context`, `passages`, `types` (`RankedPassageChunk` + report DTOs) |
-| Agent routing | `chat_intent`, `agent_slash`, `agent_phases` |
-| Planning / tasks | `commitments`, `forward_plan`, `task_rank`, `open_loops` |
-| Note extractors | `title`, `tone`, `quotes`, `decisions`, `mentions`, `pii`, `note_pulse` |
-| Structure | `section_summaries`, `reading_plan`, `template_hints` |
-| Offline UX | `placeholder`, `continuation` |
+| Context | `context`, `passages`, `budget`, `types` |
+| Agent | `chat_intent`, `agent_slash`, `agent_phases`, `tool_plan` |
+| Extractors | `title`, `tone`, `quotes`, `decisions`, `mentions`, `pii`, `note_pulse`, `commitments`, `forward_plan`, `task_rank`, `open_loops`, `section_summaries`, `reading_plan`, `template_hints` |
+| Offline UX | `placeholder`, `continuation`, `revision_ai`, `query_rewrite` |
+| Retrieval helpers | `citation_pack`, `duplicates` + `vectors`, `prompts` |
 
 ## Does not own
 
-- Embedding / LLM inference → Python `nlp/scribe_nlp`
-- Sidecar spawn / JSON-RPC → `scribe-core::nlp::NlpSidecar`
-- Index jobs / vault / memory persistence / duplicates → `scribe-core::nlp`
-- Sidecar JSON parsers (`parse.rs`) → `scribe-core::nlp` (uses these DTOs)
-- Agent prefs DB → `scribe-agent`
-- Revision diff AI → `scribe-core::nlp::revision_ai` (depends on `crate::diff`)
+- Sidecar / seatbelt / index jobs / memory / vault index → `scribe-core::nlp`
+- Embeddings storage & FTS → `scribe-core` DB
+- Agent prefs SQLite → `scribe-agent`
+- Model inference → Python `nlp/scribe_nlp`
 
 `scribe-core::nlp` re-exports this surface for compatibility.

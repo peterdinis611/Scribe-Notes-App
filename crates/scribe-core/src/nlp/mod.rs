@@ -2,7 +2,6 @@ mod duplicates;
 pub mod jobs;
 mod memory;
 mod parse;
-pub mod revision_ai;
 mod seatbelt;
 mod sidecar;
 mod types;
@@ -10,23 +9,27 @@ pub mod vault_index;
 
 // Pure AI extractors / routing / context packing live in `scribe-ai`.
 pub use scribe_ai::{
-    build_document_answer_passages, chunk_document_passages, decode_phase_followup, detect_pii,
-    encode_phase_followup, extract_commitments, extract_decisions, extract_mentions, extract_quotes,
-    filter_agent_slash_commands, followups_from_sidecar, forward_plan, generate_placeholder,
-    is_chat_memory_citation_title, is_phase_followup, is_weak_agent_answer, list_agent_slash_commands,
-    match_agent_intents, match_document_chat_intent, merge_chat_memory_passages, normalize_plan_phases,
-    note_pulse, now_tools_from_phases, open_loops, parse_agent_slash, phases_to_followups, rank_tasks,
-    reading_plan, section_summaries, suggest_continuation, suggest_title, template_fill_hints,
-    template_fill_hints_value, tone_pack, AgentPhaseWhen, AgentPlanPhase, AgentSlashCommandDef,
-    AgentSlashScope, ChatTurn, ContinuationResult, ContinuationSuggestion, NlpCommitment,
-    NlpCommitments, NlpDecision, NlpDecisions, NlpForwardCounts, NlpForwardItem, NlpForwardPlan,
-    NlpMentionEdge, NlpMentionLink, NlpMentions, NlpMentionsReport, NlpNotePulse, NlpOpenLoop,
-    NlpOpenLoops, NlpPiiFinding, NlpPiiReport, NlpQuote, NlpQuotes, NlpRankedTask, NlpRankedTasks,
-    NlpReadingPlan, NlpReadingStep, NlpSectionSummaries, NlpSectionSummary, NlpTemplateHints,
-    NlpTitleSuggestion, NlpTonePack, ParsedAgentSlash, PlaceholderLanguage, PlaceholderResult,
-    PlaceholderUnit, RankedPassageChunk, DOCUMENT_ANSWER_PASSAGE_LIMIT, DOCUMENT_CHAT_CONTEXT_LIMIT,
+    analyze_revision_diff, build_document_answer_passages, chunk_document_passages, citation_pack,
+    decode_phase_followup, detect_pii, encode_phase_followup, extract_commitments, extract_decisions,
+    extract_mentions, extract_quotes, filter_agent_slash_commands, followups_from_sidecar,
+    forward_plan, generate_placeholder, is_chat_memory_citation_title, is_phase_followup,
+    is_weak_agent_answer, list_agent_slash_commands, match_agent_intents, match_document_chat_intent,
+    merge_chat_memory_passages, normalize_plan_phases, note_pulse, now_tools_from_phases, open_loops,
+    parse_agent_slash, phases_to_followups, plan_tools_from_question, rank_tasks, reading_plan,
+    rewrite_query, score_duplicate_pairs, section_summaries, suggest_continuation, suggest_title,
+    system_prompt, template_fill_hints, template_fill_hints_value, tone_pack, trim_passages_to_char_budget,
+    user_prompt, AgentPhaseWhen, AgentPlanPhase, AgentSlashCommandDef, AgentSlashScope, ChatTurn,
+    CitationDocInput, CitationPack, ContinuationResult, ContinuationSuggestion, EmbeddingDocRef,
+    NlpCitation, NlpCommitment, NlpCommitments, NlpDecision, NlpDecisions, NlpDuplicatePair,
+    NlpDuplicates, NlpForwardCounts, NlpForwardItem, NlpForwardPlan, NlpMentionEdge, NlpMentionLink,
+    NlpMentions, NlpMentionsReport, NlpNotePulse, NlpOpenLoop, NlpOpenLoops, NlpPiiFinding, NlpPiiReport,
+    NlpQuote, NlpQuotes, NlpRankedTask, NlpRankedTasks, NlpReadingPlan, NlpReadingStep,
+    NlpSectionSummaries, NlpSectionSummary, NlpTemplateHints, NlpTitleSuggestion, NlpTonePack,
+    ParsedAgentSlash, PlaceholderLanguage, PlaceholderResult, PlaceholderUnit, PromptKind, QueryRewrite,
+    RankedPassageChunk, RevisionAiBullet, RevisionAiReport, RevisionAiStats, RevisionChangeKind,
+    RevisionHeadingChanges, DOCUMENT_ANSWER_PASSAGE_LIMIT, DOCUMENT_CHAT_CONTEXT_LIMIT,
     DOCUMENT_EMBED_RANK_LIMIT, DOCUMENT_PASSAGE_MAX, DOCUMENT_PASSAGE_TARGET_CHARS,
-    MERGED_PASSAGE_LIMIT, PHASE_PREFIX,
+    DEFAULT_PASSAGE_CHAR_BUDGET, MERGED_PASSAGE_LIMIT, PHASE_PREFIX,
 };
 pub use duplicates::find_duplicates_from_embeddings;
 pub use jobs::{
@@ -47,10 +50,6 @@ pub use parse::{
     parse_spellcheck, parse_summary, parse_tasks, parse_template_hints, parse_title_suggestion,
     parse_wiki_suggestions,
 };
-pub use revision_ai::{
-    analyze_revision_diff, RevisionAiBullet, RevisionAiReport, RevisionAiStats, RevisionChangeKind,
-    RevisionHeadingChanges,
-};
 pub use sidecar::{
     resolve_script_path, script_path_label, EmbedChunk, EmbedChunksResult, NlpHealth, NlpSidecar,
 };
@@ -58,7 +57,6 @@ pub use types::{
     normalize_rewrite_mode,
     NlpAnswer,
     NlpChunks,
-    NlpCitation,
     NlpContradictionHint,
     NlpContradictionHints,
     NlpDateEvent,
@@ -66,8 +64,6 @@ pub use types::{
     NlpDiffModifiedSentence,
     NlpDiffSummary,
     NlpDocumentAnalysis,
-    NlpDuplicatePair,
-    NlpDuplicates,
     NlpEntities,
     NlpEntity,
     NlpExtractedTask,

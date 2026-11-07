@@ -180,3 +180,37 @@ pub struct NlpPiiReport {
     #[serde(default)]
     pub source: String,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpDuplicatePair {
+    pub left_id: String,
+    pub left_title: String,
+    pub right_id: String,
+    pub right_title: String,
+    #[serde(default)]
+    pub score: f64,
+    #[serde(default)]
+    pub jaccard: f64,
+    #[serde(default)]
+    pub embed_score: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpDuplicates {
+    #[serde(default)]
+    pub pairs: Vec<NlpDuplicatePair>,
+    #[serde(default)]
+    pub compared: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpCitation {
+    pub document_id: String,
+    pub title: String,
+    pub snippet: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub chunk_index: Option<i32>,
+}
