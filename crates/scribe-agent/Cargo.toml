@@ -8,7 +8,7 @@ authors = ["Peter Dinis"]
 description = "Local agent prefs, teachings, and run log — separate SQLite from the notes DB"
 
 [dependencies]
-rusqlite = { version = "0.32", features = ["bundled"] }
+rusqlite = { version = "0.41", features = ["bundled"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 uuid = { version = "1", features = ["v4"] }
