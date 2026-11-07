@@ -5,8 +5,9 @@ edition = "2021"
 rust-version = "1.77.2"
 license = "MIT"
 authors = ["Peter Dinis"]
-description = "Pure AI context packing — chat turns, passages, prompt budgets (no DB / sidecar I/O)"
+description = "Pure AI context packing, agent routing, and offline NLP fallbacks (no DB / sidecar I/O)"
 
 [dependencies]
+regex = "1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"

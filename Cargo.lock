@@ -133,7 +133,7 @@ checksum = "330a5ed07fa54e4702c9d6c4174f74427fc0ef6e214bbd677ae50a5099946470"
 
 [[package]]
 name = "app"
-version = "5.2.0"
+version = "5.3.0"
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -4509,7 +4509,7 @@ checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
 
 [[package]]
 name = "scribe-agent"
-version = "5.2.0"
+version = "5.3.0"
 dependencies = [
  "chrono",
  "regex",
@@ -4521,15 +4521,16 @@ dependencies = [
 
 [[package]]
 name = "scribe-ai"
-version = "5.2.0"
+version = "5.3.0"
 dependencies = [
+ "regex",
  "serde",
  "serde_json",
 ]
 
 [[package]]
 name = "scribe-audit"
-version = "5.2.0"
+version = "5.3.0"
 dependencies = [
  "chrono",
  "hex",
@@ -4542,7 +4543,7 @@ dependencies = [
 
 [[package]]
 name = "scribe-capture"
-version = "5.2.0"
+version = "5.3.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -4551,7 +4552,7 @@ dependencies = [
 
 [[package]]
 name = "scribe-core"
-version = "5.2.0"
+version = "5.3.0"
 dependencies = [
  "aes-gcm",
  "base64 0.22.1",
@@ -4582,7 +4583,7 @@ dependencies = [
 
 [[package]]
 name = "scribe-mcp"
-version = "5.2.0"
+version = "5.3.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -4606,7 +4607,7 @@ dependencies = [
 
 [[package]]
 name = "scribe-sync"
-version = "5.2.0"
+version = "5.3.0"
 dependencies = [
  "dirs 6.0.0",
  "log",
@@ -4618,7 +4619,7 @@ dependencies = [
 
 [[package]]
 name = "scribe-toast"
-version = "5.2.0"
+version = "5.3.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -4626,7 +4627,7 @@ dependencies = [
 
 [[package]]
 name = "scribe-ui"
-version = "5.2.0"
+version = "5.3.0"
 dependencies = [
  "chrono",
  "dioxus",
@@ -4644,7 +4645,7 @@ dependencies = [
 
 [[package]]
 name = "scribe-video"
-version = "5.2.0"
+version = "5.3.0"
 dependencies = [
  "serde",
  "serde_json",

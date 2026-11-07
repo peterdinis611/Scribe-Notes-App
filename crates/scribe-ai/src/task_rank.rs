@@ -1,10 +1,34 @@
 //! Offline open-task ranking (Rust fallback when Python NLP is off).
 
 use regex::Regex;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::sync::OnceLock;
 
-use super::types::{NlpRankedTask, NlpRankedTasks};
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpRankedTask {
+    pub text: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub due_hint: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    #[serde(default)]
+    pub score: f64,
+    #[serde(default)]
+    pub reasons: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpRankedTasks {
+    #[serde(default)]
+    pub tasks: Vec<NlpRankedTask>,
+    #[serde(default)]
+    pub count: i64,
+    #[serde(default)]
+    pub source: String,
+}
 
 fn checkbox_re() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
