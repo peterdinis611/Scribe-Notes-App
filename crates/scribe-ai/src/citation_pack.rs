@@ -87,6 +87,7 @@ pub fn citation_pack(claim: &str, documents: &[CitationDocInput], limit: usize) 
                         doc.title.clone()
                     },
                     snippet,
+                    score: Some((best_score * 1000.0).round() / 1000.0),
                     chunk_index: None,
                 },
             ));

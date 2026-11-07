@@ -363,6 +363,7 @@ impl ScribeStore {
                     document_id: hit.document_id.clone(),
                     title: hit.title.clone(),
                     snippet: hit.snippet.clone(),
+                    score: None,
                     chunk_index: hit.chunk_index,
                 })
                 .collect();
@@ -773,6 +774,7 @@ impl ScribeStore {
                         document_id: document_id.to_string(),
                         title: title.clone(),
                         snippet: item.get("snippet")?.as_str()?.to_string(),
+                        score: item.get("score").and_then(|value| value.as_f64()),
                         chunk_index: item
                             .get("chunkIndex")
                             .and_then(|value| value.as_i64())

@@ -1,5 +1,5 @@
 import { invokeMatchAgentIntents, invokeMatchDocumentChatIntent } from '@/lib/db/api'
-import { nlpAgentDocumentBrief, nlpPlanAgentGoal } from '@/lib/db/nlp-api'
+import { nlpAgentDocumentBrief, nlpPlanAgentGoal, nlpPlanTools } from '@/lib/db/nlp-api'
 import {
   AGENT_MAX_STEPS_HARD,
   applyAgentOptimize,
@@ -513,12 +513,27 @@ export async function planAgentGoal(
     }
   } catch {
     try {
-      intents = await invokeMatchAgentIntents(trimmed)
+      const planned = await nlpPlanTools({
+        question: trimmed,
+        allowedTools: [...toolsAllowedByAgents(effective.agents)],
+        limit: effective.maxSteps,
+      })
+      if (planned.tools.length > 0) {
+        intents = planned.tools
+        planMeta = { source: planned.source || 'rust' }
+      } else {
+        intents = await invokeMatchAgentIntents(trimmed)
+        planMeta = { source: 'fallback' }
+      }
     } catch {
-      // Rust intent router unavailable (e.g. vitest without Tauri).
-      intents = []
+      try {
+        intents = await invokeMatchAgentIntents(trimmed)
+      } catch {
+        // Rust intent router unavailable (e.g. vitest without Tauri).
+        intents = []
+      }
+      planMeta = { source: 'fallback' }
     }
-    planMeta = { source: 'fallback' }
   }
 
   let fromIntent = dedupeTools(

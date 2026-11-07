@@ -19,6 +19,11 @@ description = "Allow nlp_analyze_revision_diff"
 commands.allow = ["nlp_analyze_revision_diff"]
 
 [[permission]]
+identifier = "allow-nlp-build-prompt"
+description = "Allow nlp_build_prompt"
+commands.allow = ["nlp_build_prompt"]
+
+[[permission]]
 identifier = "allow-nlp-calendar-events"
 description = "Allow nlp_calendar_events"
 commands.allow = ["nlp_calendar_events"]
@@ -239,6 +244,11 @@ description = "Allow nlp_plan_agent_goal"
 commands.allow = ["nlp_plan_agent_goal"]
 
 [[permission]]
+identifier = "allow-nlp-plan-tools"
+description = "Allow nlp_plan_tools"
+commands.allow = ["nlp_plan_tools"]
+
+[[permission]]
 identifier = "allow-nlp-rank-tasks"
 description = "Allow nlp_rank_tasks"
 commands.allow = ["nlp_rank_tasks"]
@@ -252,6 +262,11 @@ commands.allow = ["nlp_reading_plan"]
 identifier = "allow-nlp-render-ui-surface"
 description = "Allow nlp_render_ui_surface"
 commands.allow = ["nlp_render_ui_surface"]
+
+[[permission]]
+identifier = "allow-nlp-rewrite-query"
+description = "Allow nlp_rewrite_query"
+commands.allow = ["nlp_rewrite_query"]
 
 [[permission]]
 identifier = "allow-nlp-rewrite-selection"
@@ -381,6 +396,7 @@ permissions = [
   "allow-nlp-agent-document-brief",
   "allow-nlp-analyze-plaintext",
   "allow-nlp-analyze-revision-diff",
+  "allow-nlp-build-prompt",
   "allow-nlp-calendar-events",
   "allow-nlp-cancel",
   "allow-nlp-check-terminology",
@@ -425,9 +441,11 @@ permissions = [
   "allow-nlp-open-loops",
   "allow-nlp-outline-quiz",
   "allow-nlp-plan-agent-goal",
+  "allow-nlp-plan-tools",
   "allow-nlp-rank-tasks",
   "allow-nlp-reading-plan",
   "allow-nlp-render-ui-surface",
+  "allow-nlp-rewrite-query",
   "allow-nlp-rewrite-selection",
   "allow-nlp-search",
   "allow-nlp-section-summaries",

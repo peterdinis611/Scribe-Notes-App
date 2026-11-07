@@ -16,6 +16,7 @@ mod decisions;
 mod duplicates;
 mod forward_plan;
 mod mentions;
+mod normalize;
 mod note_pulse;
 mod open_loops;
 mod passages;
@@ -59,6 +60,7 @@ pub use forward_plan::{
     forward_plan, forward_plan_value, NlpForwardCounts, NlpForwardItem, NlpForwardPlan,
 };
 pub use mentions::{extract_mentions, extract_mentions_value, NlpMentionsReport};
+pub use normalize::{collapse_ws, fold_text, strip_diacritic};
 pub use note_pulse::{note_pulse, note_pulse_value, NlpNotePulse};
 pub use open_loops::{open_loops, open_loops_value, NlpOpenLoop, NlpOpenLoops};
 pub use passages::{

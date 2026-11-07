@@ -656,8 +656,111 @@ fn rewrite_query_for_embed(sidecar: &NlpSidecar, query: &str) -> String {
             .filter(|item| !item.trim().is_empty())
             .unwrap_or(query)
             .to_string(),
-        Err(_) => query.to_string(),
+        Err(_) => {
+            let rust = scribe_core::nlp::rewrite_query(query);
+            if rust.rewritten.trim().is_empty() {
+                query.to_string()
+            } else {
+                rust.rewritten
+            }
+        }
     }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpRewriteQueryInput {
+    pub query: String,
+    pub max_expansions: Option<i64>,
+}
+
+/// Expand SK/EN synonyms for search — Python sidecar preferred, Rust `scribe-ai` fallback.
+#[tauri::command]
+pub fn nlp_rewrite_query(
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpRewriteQueryInput,
+) -> Result<serde_json::Value, String> {
+    let query = input.query.trim();
+    if query.is_empty() {
+        return Ok(json!({
+            "query": "",
+            "rewritten": "",
+            "expansions": [],
+            "source": "rust",
+        }));
+    }
+    let max = input.max_expansions.unwrap_or(8).clamp(1, 16) as usize;
+    if let Ok(value) = sidecar.rewrite_query(query, max as i64) {
+        let mut out = value;
+        if let Some(object) = out.as_object_mut() {
+            object.entry("source".to_string()).or_insert(json!("python"));
+        }
+        return Ok(out);
+    }
+    let rust = scribe_core::nlp::rewrite_query(query);
+    Ok(json!({
+        "query": rust.query,
+        "rewritten": rust.rewritten,
+        "expansions": rust.expansions.into_iter().take(max).collect::<Vec<_>>(),
+        "source": rust.source,
+    }))
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpPlanToolsInput {
+    pub question: String,
+    pub allowed_tools: Vec<String>,
+    pub limit: Option<i64>,
+}
+
+/// Pure Rust tool planner from intents (`scribe-ai::plan_tools_from_question`).
+#[tauri::command]
+pub fn nlp_plan_tools(input: NlpPlanToolsInput) -> Result<serde_json::Value, String> {
+    let question = input.question.trim();
+    if question.is_empty() {
+        return Ok(json!({ "tools": [], "source": "rust" }));
+    }
+    let limit = input.limit.unwrap_or(4).clamp(1, 8) as usize;
+    let tools = scribe_core::nlp::plan_tools_from_question(question, &input.allowed_tools, limit);
+    Ok(json!({ "tools": tools, "source": "rust" }))
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NlpBuildPromptInput {
+    pub kind: String,
+    pub question_or_text: String,
+    pub passages: Option<Value>,
+    pub language: Option<String>,
+    pub char_budget: Option<i64>,
+}
+
+/// Build system+user prompts via `scribe-ai` (no sidecar).
+#[tauri::command]
+pub fn nlp_build_prompt(input: NlpBuildPromptInput) -> Result<serde_json::Value, String> {
+    use scribe_core::nlp::PromptKind;
+    let kind = match input.kind.trim().to_ascii_lowercase().as_str() {
+        "document" | "documentchat" | "document_chat" => PromptKind::DocumentChat,
+        "library" | "librarychat" | "library_chat" => PromptKind::LibraryChat,
+        "agent" => PromptKind::Agent,
+        "rewrite" => PromptKind::Rewrite,
+        other => return Err(format!("unknown prompt kind: {other}")),
+    };
+    let language = input.language.as_deref();
+    let system = scribe_core::nlp::system_prompt(kind, language);
+    let user = scribe_core::nlp::user_prompt(
+        kind,
+        &input.question_or_text,
+        input.passages,
+        input.char_budget.map(|n| n.clamp(256, 100_000) as usize),
+    );
+    Ok(json!({
+        "kind": input.kind,
+        "system": system,
+        "user": user,
+        "source": "rust",
+    }))
 }
 
 #[tauri::command]
@@ -2747,12 +2850,12 @@ pub fn nlp_citation_pack(
         return Err("claim is required".to_string());
     }
     let limit = input.limit.unwrap_or(8).clamp(1, 20);
-    let docs = {
+    let (docs, nlp_on) = {
         let conn = state.conn.lock().map_err(|e| e.to_string())?;
-        if !is_nlp_enabled(&conn)? {
-            return Err("NLP is disabled".to_string());
+        let nlp_on = is_nlp_enabled(&conn)?;
+        if nlp_on {
+            let _ = sync_sidecar_backend(&sidecar, &conn);
         }
-        let _ = sync_sidecar_backend(&sidecar, &conn);
         let library_id = crate::libraries::active_library_id(&conn);
         let fetch = limit.saturating_mul(3).clamp(6, 24);
         let hits = search_documents_for_library(&conn, claim, fetch, &library_id)?;
@@ -2776,9 +2879,41 @@ pub fn nlp_citation_pack(
                 }));
             }
         }
-        docs
+        (docs, nlp_on)
     };
-    sidecar.citation_pack(claim, &serde_json::json!(docs), limit)
+
+    if nlp_on {
+        if let Ok(value) = sidecar.citation_pack(claim, &serde_json::json!(docs), limit) {
+            return Ok(value);
+        }
+    }
+
+    // Offline / sidecar-down fallback — pure `scribe-ai`.
+    let inputs: Vec<scribe_core::nlp::CitationDocInput> = docs
+        .iter()
+        .filter_map(|doc| {
+            Some(scribe_core::nlp::CitationDocInput {
+                id: doc.get("id")?.as_str()?.to_string(),
+                title: doc
+                    .get("title")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("Untitled")
+                    .to_string(),
+                text: doc
+                    .get("text")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string(),
+                snippet: doc
+                    .get("snippet")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string(),
+            })
+        })
+        .collect();
+    let pack = scribe_core::nlp::citation_pack(claim, &inputs, limit as usize);
+    serde_json::to_value(pack).map_err(|e| e.to_string())
 }
 
 #[derive(Debug, Deserialize)]
@@ -3317,6 +3452,7 @@ pub fn nlp_library_answer(
                 document_id: item.document_id.clone(),
                 title: item.title.clone(),
                 snippet: item.snippet.clone(),
+                score: None,
                 chunk_index: item.chunk_index,
             })
             .collect();

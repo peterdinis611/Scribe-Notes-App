@@ -179,6 +179,7 @@ nlp	nlp_action_items
 nlp	nlp_agent_document_brief
 nlp	nlp_analyze_plaintext
 nlp	nlp_analyze_revision_diff
+nlp	nlp_build_prompt
 nlp	nlp_calendar_events
 nlp	nlp_cancel
 nlp	nlp_check_terminology
@@ -223,9 +224,11 @@ nlp	nlp_note_pulse
 nlp	nlp_open_loops
 nlp	nlp_outline_quiz
 nlp	nlp_plan_agent_goal
+nlp	nlp_plan_tools
 nlp	nlp_rank_tasks
 nlp	nlp_reading_plan
 nlp	nlp_render_ui_surface
+nlp	nlp_rewrite_query
 nlp	nlp_rewrite_selection
 nlp	nlp_search
 nlp	nlp_section_summaries

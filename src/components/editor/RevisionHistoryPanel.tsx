@@ -39,7 +39,7 @@ import {
   findRevisionOption,
   normalizeComparePair,
 } from '@/lib/revisions/revision-compare'
-import { nlpAnalyzeRevisionDiff, type RevisionAiReport } from '@/lib/db/nlp-api'
+import { analyzeRevisionDiff, type RevisionAiReport } from '@/lib/ai'
 import { toast } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
 import {
@@ -226,7 +226,7 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
 
       let ai: RevisionAiReport | null = null
       try {
-        ai = await nlpAnalyzeRevisionDiff({
+        ai = await analyzeRevisionDiff({
           oldText: olderText,
           newText: newerText,
           maxBullets: 6,
@@ -317,7 +317,7 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
       const currentPlain = tiptapToPlainText(activeDocument.contentJson)
       let ai: RevisionAiReport | null = null
       try {
-        ai = await nlpAnalyzeRevisionDiff({
+        ai = await analyzeRevisionDiff({
           oldText: plainText,
           newText: currentPlain,
           maxBullets: 6,

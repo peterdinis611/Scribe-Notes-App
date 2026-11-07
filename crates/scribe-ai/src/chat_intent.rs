@@ -1,32 +1,10 @@
 //! Document chat + agent intent router (EN/SK) — canonical for app + MCP.
 
-fn strip_diacritic(ch: char) -> char {
-    match ch {
-        'á' | 'ä' | 'à' | 'â' | 'ã' => 'a',
-        'é' | 'ě' | 'è' | 'ê' => 'e',
-        'í' | 'ì' | 'î' => 'i',
-        'ó' | 'ô' | 'ö' | 'ò' | 'õ' => 'o',
-        'ú' | 'ů' | 'ü' | 'ù' | 'û' => 'u',
-        'ý' | 'ỳ' => 'y',
-        'č' | 'ć' => 'c',
-        'ď' => 'd',
-        'ň' | 'ń' => 'n',
-        'ř' => 'r',
-        'š' | 'ś' => 's',
-        'ť' => 't',
-        'ž' | 'ź' => 'z',
-        'ľ' | 'ĺ' => 'l',
-        other => other,
-    }
-}
+use crate::normalize::fold_text;
 
 /// Fold for intent / slash matching: lowercase + strip common SK/CS diacritics.
 pub(crate) fn fold_intent(question: &str) -> String {
-    question
-        .trim()
-        .chars()
-        .map(|ch| strip_diacritic(ch.to_lowercase().next().unwrap_or(ch)))
-        .collect()
+    fold_text(question)
 }
 
 fn contains_any(hay: &str, needles: &[&str]) -> bool {
