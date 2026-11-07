@@ -109,7 +109,7 @@ fn split_document_text(text: &str, target_chars: usize, max_passages: usize) -> 
                 buffer.push_str(paragraph);
                 continue;
             }
-            if buffer.len() + paragraph.len() + 1 <= target_chars {
+            if buffer.len() + paragraph.len() < target_chars {
                 buffer.push('\n');
                 buffer.push_str(paragraph);
             } else {
@@ -136,7 +136,7 @@ fn split_document_text(text: &str, target_chars: usize, max_passages: usize) -> 
             }
             if current.is_empty() {
                 current.push_str(piece);
-            } else if current.len() + piece.len() + 1 <= target_chars {
+            } else if current.len() + piece.len() < target_chars {
                 current.push(' ');
                 current.push_str(piece);
             } else {
@@ -345,6 +345,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::assertions_on_constants)]
     fn passage_limit_constant_is_wide_for_bm25() {
         assert!(DOCUMENT_ANSWER_PASSAGE_LIMIT >= 64);
         assert!(DOCUMENT_PASSAGE_MAX <= DOCUMENT_ANSWER_PASSAGE_LIMIT);

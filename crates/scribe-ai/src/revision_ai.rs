@@ -206,14 +206,14 @@ pub fn analyze_revision_diff(
     let added_sentences: Vec<String> = new_sentences
         .iter()
         .filter(|s| !old_set.contains(*s))
-        .cloned()
         .take(max_bullets)
+        .cloned()
         .collect();
     let removed_sentences: Vec<String> = old_sentences
         .iter()
         .filter(|s| !new_set.contains(*s))
-        .cloned()
         .take(max_bullets)
+        .cloned()
         .collect();
 
     let old_tokens = tokens(old);
@@ -325,6 +325,7 @@ pub fn analyze_revision_diff(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn classify(
     old_words: i64,
     new_words: i64,
@@ -471,6 +472,7 @@ fn rich_summary(
     parts.join(" ")
 }
 
+#[allow(clippy::too_many_arguments)]
 fn build_bullets(
     _kind: RevisionChangeKind,
     added: &[String],

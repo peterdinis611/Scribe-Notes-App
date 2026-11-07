@@ -107,6 +107,9 @@ jobs:
       - name: Clippy scribe-audit
         run: cargo clippy -p scribe-audit --locked --all-targets -- -D warnings
 
+      - name: Clippy scribe-ai
+        run: cargo clippy -p scribe-ai --locked --all-targets -- -D warnings
+
       - name: Test workspace crates (exclude app)
         run: cargo test --workspace --exclude app --locked
 

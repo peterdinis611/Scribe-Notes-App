@@ -45,7 +45,7 @@ pub fn tone_pack(text: &str) -> NlpTonePack {
     let words: Vec<&str> = text.split_whitespace().collect();
     let word_count = words.len() as i64;
     let sentence_count = text
-        .split(|c: char| matches!(c, '.' | '!' | '?'))
+        .split(['.', '!', '?'])
         .filter(|s| !s.trim().is_empty())
         .count()
         .max(1) as f64;
