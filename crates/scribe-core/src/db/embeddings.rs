@@ -699,12 +699,8 @@ pub fn semantic_search_filtered(
     semantic_search_documents(conn, query_vector, max, model)
 }
 
-#[derive(Debug, Clone)]
-pub struct RankedDocumentChunk {
-    pub snippet: String,
-    pub score: f64,
-    pub chunk_index: i32,
-}
+/// Alias kept for DB call sites — canonical type lives in `scribe-ai`.
+pub type RankedDocumentChunk = scribe_ai::RankedPassageChunk;
 
 pub fn rank_document_chunks(
     conn: &Connection,

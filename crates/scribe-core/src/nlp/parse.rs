@@ -500,6 +500,7 @@ pub fn parse_library_answer(result: &Value) -> NlpAnswer {
                             .and_then(Value::as_str)
                             .unwrap_or("")
                             .to_string(),
+                        score: item.get("score").and_then(Value::as_f64),
                         chunk_index: item
                             .get("chunkIndex")
                             .and_then(Value::as_i64)

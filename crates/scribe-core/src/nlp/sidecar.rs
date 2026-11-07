@@ -1397,6 +1397,7 @@ pub fn rpc_timeout(method: &str) -> Duration {
     match method {
         "health" | "set_embed_backend" => Duration::from_secs(8),
         "embed" | "rewrite_query" | "chunk_text" | "suggest_continuation" | "generate_placeholder"
+        | "plan_tools" | "build_prompt"
         | "analyze_revision_diff" | "summarize_diff" | "extract_flashcards" | "check_terminology"
         | "extract_takeaways" | "writing_coach" | "outline_quiz" | "meeting_notes_pack"
         | "check_terminology_library" | "citation_pack" | "extract_paint_ocr"

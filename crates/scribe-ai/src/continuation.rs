@@ -186,12 +186,10 @@ fn truncate_end(text: &str, max_chars: usize) -> &str {
         return text;
     }
     let skip = text.chars().count() - max_chars;
-    let mut idx = 0;
-    for (i, _) in text.char_indices().skip(skip) {
-        idx = i;
-        break;
+    match text.char_indices().nth(skip) {
+        Some((idx, _)) => &text[idx..],
+        None => "",
     }
-    &text[idx..]
 }
 
 fn generate_candidates(

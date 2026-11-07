@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-use super::section_summaries::section_summaries;
+use crate::section_summaries::section_summaries;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]

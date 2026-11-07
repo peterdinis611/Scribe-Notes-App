@@ -1035,6 +1035,45 @@ export type CitationPackResult = {
 export const nlpCitationPack = (input: { claim: string; limit?: number }) =>
   invoke<CitationPackResult>('nlp_citation_pack', { input })
 
+export type QueryRewriteResult = {
+  query: string
+  rewritten: string
+  expansions: string[]
+  source: string
+}
+
+/** Expand SK/EN synonyms for search (Python preferred, Rust `scribe-ai` fallback). */
+export const nlpRewriteQuery = (input: { query: string; maxExpansions?: number }) =>
+  invoke<QueryRewriteResult>('nlp_rewrite_query', { input })
+
+export type PlanToolsResult = {
+  tools: string[]
+  source: string
+}
+
+/** Pure Rust tool planner from intents (`scribe-ai::plan_tools_from_question`). */
+export const nlpPlanTools = (input: {
+  question: string
+  allowedTools: string[]
+  limit?: number
+}) => invoke<PlanToolsResult>('nlp_plan_tools', { input })
+
+export type BuildPromptResult = {
+  kind: string
+  system: string
+  user: string
+  source: string
+}
+
+/** Build system+user prompts via Rust `scribe-ai` (no sidecar). */
+export const nlpBuildPrompt = (input: {
+  kind: string
+  questionOrText: string
+  passages?: unknown
+  language?: string
+  charBudget?: number
+}) => invoke<BuildPromptResult>('nlp_build_prompt', { input })
+
 export const nlpCheckTerminologyLibrary = (input?: {
   limit?: number
   documentLimit?: number

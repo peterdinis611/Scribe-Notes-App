@@ -297,6 +297,7 @@ mod tests {
                 document_id: "d1".into(),
                 title: "Atlas".into(),
                 snippet: "Friday".into(),
+                score: None,
                 chunk_index: None,
             }],
         )

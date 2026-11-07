@@ -549,11 +549,53 @@ def _handle_request_inner(
             )
             result = {"chunks": chunks, "count": len(chunks)}
         elif method == "rewrite_query":
-            from .query_rewrite import rewrite_query
+            from .scribe_ai import rewrite_query
 
             query = _validate_text(str(params.get("query") or params.get("text") or ""))
             max_expansions = max(0, min(int(params.get("maxExpansions") or 8), 16))
             result = rewrite_query(query, max_expansions=max_expansions)
+        elif method == "plan_tools":
+            from .scribe_ai import plan_tools_from_question
+
+            question = _validate_text(str(params.get("question") or params.get("goal") or ""))
+            raw_allowed = params.get("allowedTools") or params.get("allowed_tools") or []
+            if isinstance(raw_allowed, str):
+                allowed = [raw_allowed]
+            elif isinstance(raw_allowed, list):
+                allowed = [str(item) for item in raw_allowed]
+            else:
+                allowed = []
+            limit = max(1, min(int(params.get("limit") or 4), 8))
+            tools = plan_tools_from_question(question, allowed, limit=limit)
+            result = {"tools": tools, "source": "python"}
+        elif method == "build_prompt":
+            from .scribe_ai import PromptKind, system_prompt, user_prompt
+
+            kind_raw = str(params.get("kind") or "library_chat").strip().lower()
+            kind_map = {
+                "document": PromptKind.DOCUMENT_CHAT,
+                "documentchat": PromptKind.DOCUMENT_CHAT,
+                "document_chat": PromptKind.DOCUMENT_CHAT,
+                "library": PromptKind.LIBRARY_CHAT,
+                "librarychat": PromptKind.LIBRARY_CHAT,
+                "library_chat": PromptKind.LIBRARY_CHAT,
+                "agent": PromptKind.AGENT,
+                "rewrite": PromptKind.REWRITE,
+            }
+            kind = kind_map.get(kind_raw)
+            if kind is None:
+                raise ValueError(f"unknown prompt kind: {kind_raw}")
+            question = str(params.get("questionOrText") or params.get("question") or params.get("text") or "")
+            language = params.get("language")
+            language_value = str(language) if language else None
+            budget_raw = params.get("charBudget") or params.get("char_budget")
+            budget = int(budget_raw) if budget_raw is not None else None
+            result = {
+                "kind": kind.value,
+                "system": system_prompt(kind, language_value),
+                "user": user_prompt(kind, question, params.get("passages"), budget),
+                "source": "python",
+            }
         elif method == "spellcheck":
             from .spellcheck import spellcheck_text
 

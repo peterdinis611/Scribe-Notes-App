@@ -5,7 +5,7 @@ use serde_json::{json, Value};
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
 
-use super::types::{NlpPiiFinding, NlpPiiReport};
+use crate::types::{NlpPiiFinding, NlpPiiReport};
 
 struct Pattern {
     kind: &'static str,

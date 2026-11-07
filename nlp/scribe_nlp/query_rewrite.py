@@ -47,7 +47,7 @@ def rewrite_query(query: str, *, max_expansions: int = 8) -> dict[str, object]:
     """Expand SK/EN synonyms for semantic search without changing user intent."""
     source = (query or "").strip()
     if not source:
-        return {"query": "", "rewritten": "", "expansions": []}
+        return {"query": "", "rewritten": "", "expansions": [], "source": "python"}
 
     tokens = tokenize(source)
     expansions: list[str] = []
@@ -75,4 +75,5 @@ def rewrite_query(query: str, *, max_expansions: int = 8) -> dict[str, object]:
         "query": source,
         "rewritten": rewritten,
         "expansions": expansions,
+        "source": "python",
     }

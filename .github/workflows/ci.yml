@@ -107,6 +107,9 @@ jobs:
       - name: Clippy scribe-audit
         run: cargo clippy -p scribe-audit --locked --all-targets -- -D warnings
 
+      - name: Clippy scribe-ai
+        run: cargo clippy -p scribe-ai --locked --all-targets -- -D warnings
+
       - name: Test workspace crates (exclude app)
         run: cargo test --workspace --exclude app --locked
 
@@ -117,8 +120,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Pin macOS image — macos-latest (arm64) often cancels after ~15m waiting for a runner.
-        os: [macos-14, ubuntu-24.04, windows-latest]
+        # Required platforms. Soft macOS jobs below — hosted arm64 often cancels
+        # waiting for a runner and was marking the whole CI suite cancelled.
+        os: [ubuntu-24.04, windows-latest]
     steps:
       - uses: actions/checkout@v4
 
@@ -145,6 +149,30 @@ jobs:
           workspaces: |
             . -> target
             src-tauri -> target
+
+      - name: Cargo test (workspace + app)
+        run: cargo test --workspace --locked
+
+  # Optional macOS smoke test. Use macos-15 only — macos-14 hosted runners
+  # frequently cancel before acquire, and a cancelled job still marks the whole
+  # workflow conclusion as "cancelled" even with continue-on-error.
+  # Hard macOS release gate remains in Build (primary + fallback).
+  rust-macos:
+    name: Rust (macos-15)
+    runs-on: macos-15
+    timeout-minutes: 60
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            . -> target
+            src-tauri -> target
+          prefix-key: rust-macos-15
 
       - name: Cargo test (workspace + app)
         run: cargo test --workspace --locked

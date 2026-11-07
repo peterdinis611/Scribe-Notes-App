@@ -4,7 +4,7 @@ use regex::Regex;
 use serde_json::{json, Value};
 use std::sync::OnceLock;
 
-use super::types::NlpTitleSuggestion;
+use crate::types::NlpTitleSuggestion;
 
 fn heading_re() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
@@ -26,10 +26,8 @@ fn slugify(value: &str) -> String {
     for ch in cleaned.chars() {
         if ch.is_alphanumeric() || ch == '-' {
             out.push(ch);
-        } else if ch.is_whitespace() || ch == '_' {
-            if !out.ends_with('-') {
-                out.push('-');
-            }
+        } else if (ch.is_whitespace() || ch == '_') && !out.ends_with('-') {
+            out.push('-');
         }
     }
     out.trim_matches('-').chars().take(80).collect()

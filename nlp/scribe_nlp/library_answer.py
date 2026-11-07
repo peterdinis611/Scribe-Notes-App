@@ -473,9 +473,12 @@ def _try_llm_answer(
     context = "\n\n".join(blocks)
     scope_hint = "this open document" if scope == "document" else "the user's local notes"
     intent_hint = f" Question intent hint: {intent}." if intent else ""
+    from .scribe_ai import PromptKind, system_prompt
+
+    # Base prompt from shared `scribe_ai` (Rust parity), plus grounded-answer extras.
     system = (
-        "You are Scribe's local library assistant. Answer ONLY from the provided passages. "
-        "If the passages are insufficient, say what is missing. "
+        system_prompt(PromptKind.LIBRARY_CHAT if scope != "document" else PromptKind.DOCUMENT_CHAT)
+        + " If the passages are insufficient, say what is missing. "
         "Do not invent facts. Prefer concise prose with short bullets when listing items. "
         "Reply in the same language as the question."
     )

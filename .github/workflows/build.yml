@@ -125,6 +125,9 @@ jobs:
     name: Tauri (macOS)
     runs-on: macos-14
     timeout-minutes: 90
+    # Soft: hosted arm64 often cancels before acquire. Gate job below still
+    # requires primary or macos-15 fallback to succeed for the release.
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
         with:

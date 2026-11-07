@@ -5,7 +5,7 @@ use serde_json::{json, Value};
 use std::collections::HashSet;
 use std::sync::OnceLock;
 
-use super::types::{NlpQuote, NlpQuotes};
+use crate::types::{NlpQuote, NlpQuotes};
 
 fn quoted_re() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();

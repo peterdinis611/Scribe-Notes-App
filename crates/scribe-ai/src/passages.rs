@@ -1,6 +1,6 @@
 use serde_json::{json, Value};
 
-use crate::db::RankedDocumentChunk;
+use crate::types::RankedPassageChunk;
 
 pub const DOCUMENT_PASSAGE_TARGET_CHARS: usize = 560;
 pub const DOCUMENT_PASSAGE_MAX: usize = 64;
@@ -32,7 +32,7 @@ pub fn build_document_answer_passages(
     title: &str,
     text: &str,
     question: &str,
-    ranked: &[RankedDocumentChunk],
+    ranked: &[RankedPassageChunk],
 ) -> Value {
     let full = chunk_document_passages(document_id, title, text);
     let mut combined: Vec<Value> = Vec::new();
@@ -109,7 +109,7 @@ fn split_document_text(text: &str, target_chars: usize, max_passages: usize) -> 
                 buffer.push_str(paragraph);
                 continue;
             }
-            if buffer.len() + paragraph.len() + 1 <= target_chars {
+            if buffer.len() + paragraph.len() < target_chars {
                 buffer.push('\n');
                 buffer.push_str(paragraph);
             } else {
@@ -136,7 +136,7 @@ fn split_document_text(text: &str, target_chars: usize, max_passages: usize) -> 
             }
             if current.is_empty() {
                 current.push_str(piece);
-            } else if current.len() + piece.len() + 1 <= target_chars {
+            } else if current.len() + piece.len() < target_chars {
                 current.push(' ');
                 current.push_str(piece);
             } else {
@@ -285,7 +285,7 @@ fn significant_terms(text: &str) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db::RankedDocumentChunk;
+    use crate::types::RankedPassageChunk;
 
     #[test]
     fn chunks_cover_long_document_tail() {
@@ -303,7 +303,7 @@ mod tests {
     #[test]
     fn merges_ranked_with_full_document_and_ranks_by_question() {
         let text = "Alpha section talks about milk.\n\nBeta section explains the release plan.\n\nGamma has the deadline Friday.";
-        let ranked = vec![RankedDocumentChunk {
+        let ranked = vec![RankedPassageChunk {
             snippet: "Beta section explains the release plan.".into(),
             score: 0.4,
             chunk_index: 1,
@@ -345,6 +345,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::assertions_on_constants)]
     fn passage_limit_constant_is_wide_for_bm25() {
         assert!(DOCUMENT_ANSWER_PASSAGE_LIMIT >= 64);
         assert!(DOCUMENT_PASSAGE_MAX <= DOCUMENT_ANSWER_PASSAGE_LIMIT);
