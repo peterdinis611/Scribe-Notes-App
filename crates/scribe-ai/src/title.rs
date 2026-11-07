@@ -4,7 +4,7 @@ use regex::Regex;
 use serde_json::{json, Value};
 use std::sync::OnceLock;
 
-use super::types::NlpTitleSuggestion;
+use crate::types::NlpTitleSuggestion;
 
 fn heading_re() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();

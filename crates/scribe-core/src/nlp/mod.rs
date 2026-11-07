@@ -1,46 +1,33 @@
-pub mod decisions;
 mod duplicates;
 pub mod jobs;
 mod memory;
-pub mod mentions;
-pub mod note_pulse;
 mod parse;
-pub mod pii;
-pub mod quotes;
-pub mod reading_plan;
 pub mod revision_ai;
-pub mod section_summaries;
 mod seatbelt;
 mod sidecar;
-pub mod template_hints;
-pub mod title;
 mod types;
 pub mod vault_index;
 
 // Pure AI extractors / routing / context packing live in `scribe-ai`.
 pub use scribe_ai::{
-    build_document_answer_passages, chunk_document_passages, decode_phase_followup,
-    encode_phase_followup, extract_commitments, filter_agent_slash_commands,
-    followups_from_sidecar, forward_plan, generate_placeholder, is_chat_memory_citation_title,
-    is_phase_followup, is_weak_agent_answer, list_agent_slash_commands, match_agent_intents,
-    match_document_chat_intent, merge_chat_memory_passages, normalize_plan_phases,
-    now_tools_from_phases, open_loops, parse_agent_slash, phases_to_followups, rank_tasks,
-    suggest_continuation, tone_pack, AgentPhaseWhen, AgentPlanPhase, AgentSlashCommandDef,
+    build_document_answer_passages, chunk_document_passages, decode_phase_followup, detect_pii,
+    encode_phase_followup, extract_commitments, extract_decisions, extract_mentions, extract_quotes,
+    filter_agent_slash_commands, followups_from_sidecar, forward_plan, generate_placeholder,
+    is_chat_memory_citation_title, is_phase_followup, is_weak_agent_answer, list_agent_slash_commands,
+    match_agent_intents, match_document_chat_intent, merge_chat_memory_passages, normalize_plan_phases,
+    note_pulse, now_tools_from_phases, open_loops, parse_agent_slash, phases_to_followups, rank_tasks,
+    reading_plan, section_summaries, suggest_continuation, suggest_title, template_fill_hints,
+    template_fill_hints_value, tone_pack, AgentPhaseWhen, AgentPlanPhase, AgentSlashCommandDef,
     AgentSlashScope, ChatTurn, ContinuationResult, ContinuationSuggestion, NlpCommitment,
-    NlpCommitments, NlpForwardCounts, NlpForwardItem, NlpForwardPlan, NlpOpenLoop, NlpOpenLoops,
-    NlpRankedTask, NlpRankedTasks, NlpTonePack, ParsedAgentSlash, PlaceholderLanguage,
-    PlaceholderResult, PlaceholderUnit, RankedPassageChunk, DOCUMENT_ANSWER_PASSAGE_LIMIT,
-    DOCUMENT_CHAT_CONTEXT_LIMIT, DOCUMENT_EMBED_RANK_LIMIT, DOCUMENT_PASSAGE_MAX,
-    DOCUMENT_PASSAGE_TARGET_CHARS, MERGED_PASSAGE_LIMIT, PHASE_PREFIX,
+    NlpCommitments, NlpDecision, NlpDecisions, NlpForwardCounts, NlpForwardItem, NlpForwardPlan,
+    NlpMentionEdge, NlpMentionLink, NlpMentions, NlpMentionsReport, NlpNotePulse, NlpOpenLoop,
+    NlpOpenLoops, NlpPiiFinding, NlpPiiReport, NlpQuote, NlpQuotes, NlpRankedTask, NlpRankedTasks,
+    NlpReadingPlan, NlpReadingStep, NlpSectionSummaries, NlpSectionSummary, NlpTemplateHints,
+    NlpTitleSuggestion, NlpTonePack, ParsedAgentSlash, PlaceholderLanguage, PlaceholderResult,
+    PlaceholderUnit, RankedPassageChunk, DOCUMENT_ANSWER_PASSAGE_LIMIT, DOCUMENT_CHAT_CONTEXT_LIMIT,
+    DOCUMENT_EMBED_RANK_LIMIT, DOCUMENT_PASSAGE_MAX, DOCUMENT_PASSAGE_TARGET_CHARS,
+    MERGED_PASSAGE_LIMIT, PHASE_PREFIX,
 };
-pub use decisions::extract_decisions;
-pub use mentions::{extract_mentions, NlpMentionsReport};
-pub use note_pulse::{note_pulse, NlpNotePulse};
-pub use quotes::extract_quotes;
-pub use reading_plan::{reading_plan, NlpReadingPlan, NlpReadingStep};
-pub use section_summaries::section_summaries;
-pub use template_hints::{template_fill_hints, template_fill_hints_value};
-pub use title::suggest_title;
 pub use duplicates::find_duplicates_from_embeddings;
 pub use jobs::{
     collect_index_documents, document_needs_reindex, ensure_document_indexed, index_collected_documents,
@@ -60,7 +47,6 @@ pub use parse::{
     parse_spellcheck, parse_summary, parse_tasks, parse_template_hints, parse_title_suggestion,
     parse_wiki_suggestions,
 };
-pub use pii::detect_pii;
 pub use revision_ai::{
     analyze_revision_diff, RevisionAiBullet, RevisionAiReport, RevisionAiStats, RevisionChangeKind,
     RevisionHeadingChanges,
@@ -69,15 +55,41 @@ pub use sidecar::{
     resolve_script_path, script_path_label, EmbedChunk, EmbedChunksResult, NlpHealth, NlpSidecar,
 };
 pub use types::{
-    normalize_rewrite_mode, NlpAnswer, NlpChunks, NlpCitation, NlpContradictionHint,
-    NlpContradictionHints, NlpDateEvent, NlpDates, NlpDecision, NlpDecisions, NlpDiffModifiedSentence,
+    normalize_rewrite_mode,
+    NlpAnswer,
+    NlpChunks,
+    NlpCitation,
+    NlpContradictionHint,
+    NlpContradictionHints,
+    NlpDateEvent,
+    NlpDates,
+    NlpDiffModifiedSentence,
     NlpDiffSummary,
-    NlpDocumentAnalysis, NlpDuplicatePair, NlpDuplicates, NlpEntities, NlpEntity, NlpExtractedTask,
-    NlpKeyword, NlpKeywordsResult, NlpLanguage, NlpLibraryReport, NlpMentionEdge, NlpMentionLink,
-    NlpMentions, NlpOrganize, NlpOrganizeSuggestion, NlpOutline, NlpOutlineItem, NlpPiiFinding,
-    NlpPiiReport, NlpQueryRewrite, NlpQuote, NlpQuotes, NlpReadingStats, NlpRewriteResult,
-    NlpSectionSummaries, NlpSectionSummary, NlpSentiment,
-    NlpSpellIssue, NlpSpellcheck, NlpSummary, NlpTasks, NlpTemplateHints, NlpTitleSuggestion,
-    NlpWikiSuggestion, NlpWikiSuggestions, DEFAULT_REWRITE_MODE, REWRITE_MODES,
+    NlpDocumentAnalysis,
+    NlpDuplicatePair,
+    NlpDuplicates,
+    NlpEntities,
+    NlpEntity,
+    NlpExtractedTask,
+    NlpKeyword,
+    NlpKeywordsResult,
+    NlpLanguage,
+    NlpLibraryReport,
+    NlpOrganize,
+    NlpOrganizeSuggestion,
+    NlpOutline,
+    NlpOutlineItem,
+    NlpQueryRewrite,
+    NlpReadingStats,
+    NlpRewriteResult,
+    NlpSentiment,
+    NlpSpellIssue,
+    NlpSpellcheck,
+    NlpSummary,
+    NlpTasks,
+    NlpWikiSuggestion,
+    NlpWikiSuggestions,
+    DEFAULT_REWRITE_MODE,
+    REWRITE_MODES,
 };
 pub use vault_index::{UnlockedVaultIndex, UnlockedVaultNote};
