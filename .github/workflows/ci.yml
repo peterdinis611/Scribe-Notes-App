@@ -120,8 +120,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Pin macOS image — macos-latest (arm64) often cancels after ~15m waiting for a runner.
-        os: [macos-14, ubuntu-24.04, windows-latest]
+        # Required platforms. Soft macOS jobs below — hosted arm64 often cancels
+        # waiting for a runner and was marking the whole CI suite cancelled.
+        os: [ubuntu-24.04, windows-latest]
     steps:
       - uses: actions/checkout@v4
 
@@ -148,6 +149,50 @@ jobs:
           workspaces: |
             . -> target
             src-tauri -> target
+
+      - name: Cargo test (workspace + app)
+        run: cargo test --workspace --locked
+
+  # Soft macOS coverage (same pattern as Build: primary + fallback).
+  # continue-on-error so a cancelled runner does not fail required CI checks.
+  rust-macos:
+    name: Rust (macos-14)
+    runs-on: macos-14
+    timeout-minutes: 60
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            . -> target
+            src-tauri -> target
+          prefix-key: rust-macos-14
+
+      - name: Cargo test (workspace + app)
+        run: cargo test --workspace --locked
+
+  rust-macos-fallback:
+    name: Rust (macos-15 fallback)
+    needs: rust-macos
+    if: ${{ always() && (needs.rust-macos.result == 'failure' || needs.rust-macos.result == 'cancelled') }}
+    runs-on: macos-15
+    timeout-minutes: 60
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            . -> target
+            src-tauri -> target
+          prefix-key: rust-macos-15
 
       - name: Cargo test (workspace + app)
         run: cargo test --workspace --locked
