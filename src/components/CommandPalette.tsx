@@ -95,6 +95,7 @@ import {
   setDocumentTags,
   type TitleMatch,
 } from '@/lib/db/api'
+import { expandSearchQuery } from '@/lib/ai'
 import { nlpSearch, nlpStatus, type NlpStatus } from '@/lib/db/nlp-api'
 import { describeNlpSearchFailure } from '@/lib/nlp/errors'
 import { isHybridSearchScope } from '@/lib/nlp/hybrid-search'
@@ -1599,9 +1600,13 @@ export function CommandPalette() {
   const searchDebouncer = useDebouncer(
     async (value: string, scope: SearchScope) => {
         const q = value.trim()
+        const expanded = q.length >= 1 ? await expandSearchQuery(q, 4) : null
+        const titleQ = expanded?.rewritten || q
+        const contentQ = expanded?.rewritten || q
+
         if (q.length >= 1 && (scope === 'all' || scope === 'titles' || scope === 'wiki')) {
           try {
-            setTitleMatches(await findDocumentsByTitle(q, 12))
+            setTitleMatches(await findDocumentsByTitle(titleQ, 12))
           } catch {
             setTitleMatches([])
           }
@@ -1620,7 +1625,7 @@ export function CommandPalette() {
         if (runSemantic && nlpEnabled) {
           try {
             const mode = scope === 'semantic' ? 'semantic' : 'hybrid'
-            const results = await nlpSearch(q, { limit: 12, mode })
+            const results = await nlpSearch(contentQ, { limit: 12, mode })
             if (mode === 'semantic') {
               setSemanticHits(results)
               setHits([])
@@ -1696,7 +1701,7 @@ export function CommandPalette() {
         }
 
         try {
-          const results = await searchDocuments(q, 12)
+          const results = await searchDocuments(contentQ, 12)
           setHits(results)
         } catch {
           setHits([])

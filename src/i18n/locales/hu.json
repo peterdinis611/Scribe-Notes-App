@@ -642,8 +642,8 @@
     "badge": "Mi újság a {{version}}‑ban",
     "kicker": "Kiadási megjegyzések",
     "title": "Scribe {{version}}",
-    "subtitle": "A jegyzetmotor több része Rust-ban fut — wiki linkek, feladatnapló és forrásexport — továbbra is teljesen helyi ezen a Mac-en.",
-    "editionMark": "Natív · Könyvtár",
+    "subtitle": "Offline AI you can feel — search rewrite, shared prompts, and Python/Rust parity — still fully local on this Mac.",
+    "editionMark": "Local AI · Library",
     "tagsLabel": "Témák ebben a kiadásban",
     "tags": {
       "agent": "Ügynök",
@@ -1046,6 +1046,22 @@
     "libraryPolish": {
       "title": "Könyvtár finomhangolás",
       "description": "A feladatok szűrhetők mappa szerint, és rendezhetők határidő szerint. A duplikátumok lexikális és beágyazott pontszámokat mutatnak. A piszkos fülek és a wiki/feladat számlálók segítenek tájékozódni."
+    },
+    "offlineAiFelt": {
+      "title": "Offline AI you feel",
+      "description": "Rust scribe-ai helpers power search, planning, and prompts even when the Python sidecar is off."
+    },
+    "searchRewrite": {
+      "title": "Smarter search rewrite",
+      "description": "SK/EN synonym expansion lifts Command Palette, sidebar hybrid search, and title fuzzy matching."
+    },
+    "aiSurface": {
+      "title": "One AI surface",
+      "description": "Frontend @/lib/ai, Tauri commands, and MCP share rewrite, plan_tools, and build_prompt."
+    },
+    "pythonParity": {
+      "title": "Python scribe_ai parity",
+      "description": "Sidecar mirrors Rust prompts, intent routing, citation pack, and revision AI for local agents."
     }
   },
   "wikiNav": {

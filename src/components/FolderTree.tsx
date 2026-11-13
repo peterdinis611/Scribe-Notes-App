@@ -32,6 +32,7 @@ import { useMoveDocumentToFolder } from '@/hooks/useMoveDocumentToFolder'
 import { invalidateDocumentCache, peekCachedDocument } from '@/lib/cache/document-cache'
 import { prefetchDocument } from '@/lib/cache/prefetch-document'
 import { isLibraryDocumentVisible } from '@/lib/db/library-sync'
+import { expandSearchQuery } from '@/lib/ai'
 import { fuzzyFilter } from '@/lib/search/fuzzy'
 import { trashDocuments, removeDocumentsFromLibraryUi, restoreTrashedDocuments } from '@/lib/trash-document'
 import {
@@ -170,6 +171,22 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
 
   // Keep the search input snappy; rebuild the tree on the deferred query.
   const deferredQuery = useDeferredValue(query)
+  const [searchNeedle, setSearchNeedle] = useState('')
+
+  useEffect(() => {
+    let cancelled = false
+    const q = deferredQuery.trim()
+    if (!q) {
+      setSearchNeedle('')
+      return
+    }
+    void expandSearchQuery(q, 4).then((result) => {
+      if (!cancelled) setSearchNeedle(result.rewritten || q)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [deferredQuery])
 
   const filteredDocuments = useMemo(() => {
     const scoped = documents.filter((doc) => {
@@ -193,11 +210,13 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
     })
     const q = deferredQuery.trim()
     if (!q) return scoped
-    // Regular title/tag search via fuse.js (diacritic-aware, ranked).
-    return fuzzyFilter(scoped, q, (doc) => [doc.title, ...(doc.tags ?? [])])
+    const needle = searchNeedle.trim() || q
+    // Regular title/tag search via fuse.js (diacritic-aware, ranked) + synonym expand.
+    return fuzzyFilter(scoped, needle, (doc) => [doc.title, ...(doc.tags ?? [])])
   }, [
     documents,
     deferredQuery,
+    searchNeedle,
     favoritesOnly,
     activeTag,
     metaFilters,

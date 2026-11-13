@@ -30,3 +30,5 @@ export {
   type QueryRewriteResult,
   type RevisionAiReport,
 } from '@/lib/db/nlp-api'
+
+export { expandSearchQuery, searchNeedle } from '@/lib/ai/expand-search-query'

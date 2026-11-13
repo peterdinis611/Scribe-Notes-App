@@ -642,8 +642,8 @@
     "badge": "Novinky {{version}}",
     "kicker": "Poznámky k vydaniu",
     "title": "Scribe {{version}}",
-    "subtitle": "Viac jadra poznámok beží v Ruste — wiki odkazy, agenda úloh a export zdrojáku — stále lokálne na tomto Macu.",
-    "editionMark": "Native · Knižnica",
+    "subtitle": "Offline AI, ktoré cítiš — prepísanie vyhľadávania, spoločné promptov a parita Python/Rust — stále lokálne na tomto Macu.",
+    "editionMark": "Lokálne AI · Knižnica",
     "tagsLabel": "Témy tohto vydania",
     "tags": {
       "agent": "Agent",
@@ -1046,6 +1046,22 @@
     "libraryPolish": {
       "title": "Knižnica polish",
       "description": "Úlohy filtrujú podľa priečinka a triedia podľa termínu. Duplikáty ukazujú lexikálne vs embed skóre. Dirty taby a počty wiki/úloh."
+    },
+    "offlineAiFelt": {
+      "title": "Offline AI, ktoré cítiš",
+      "description": "Rust scribe-ai poháňa vyhľadávanie, plánovanie a promptov aj bez Python sidecar."
+    },
+    "searchRewrite": {
+      "title": "Inteligentnejšie vyhľadávanie",
+      "description": "SK/EN synonymá vylepšujú Command Palette, hybridné vyhľadávanie v sidebare aj fuzzy názvy."
+    },
+    "aiSurface": {
+      "title": "Jeden AI povrch",
+      "description": "Frontend @/lib/ai, Tauri príkazy a MCP zdieľajú rewrite, plan_tools a build_prompt."
+    },
+    "pythonParity": {
+      "title": "Python scribe_ai parita",
+      "description": "Sidecar zrkadlí Rust promptov, intent routing, citation pack a revision AI pre lokálnych agentov."
     }
   },
   "wikiNav": {
@@ -3190,68 +3206,242 @@
         "hint": "Hľadanie naprieč poznámkami",
         "defaultGoal": "Aké témy sa ukazujú v mojich poznámkach?"
       },
-      "summary": { "label": "Zhrnutie", "hint": "Krátke zhrnutie poznámky" },
-      "outline": { "label": "Osnova", "hint": "Štruktúrovaná osnova" },
-      "brief": { "label": "Brief + pulse", "hint": "Brief poznámky a pulse" },
-      "meeting": { "label": "Meeting pack", "hint": "Poznámky, rozhodnutia, follow-upy" },
-      "wrap": { "label": "Meeting wrap-up", "hint": "Celý meeting recept" },
-      "plan": { "label": "Plán dopredu", "hint": "Ďalšie kroky z poznámky" },
-      "tasks": { "label": "Úlohy", "hint": "Úlohy a akčné body" },
-      "actions": { "label": "Akčné body", "hint": "Akcie podľa priority" },
-      "decisions": { "label": "Rozhodnutia", "hint": "Log rozhodnutí" },
-      "loops": { "label": "Otvorené slučky", "hint": "Nevyriešené vlákna" },
-      "commitments": { "label": "Záväzky", "hint": "Sľuby a vlastníctvo" },
-      "dates": { "label": "Termíny", "hint": "Dátumy a deadliny" },
-      "spell": { "label": "Pravopis", "hint": "Offline kontrola preklepov" },
-      "grammar": { "label": "Gramatika", "hint": "Gramatická kontrola" },
-      "polish": { "label": "Vylepšiť", "hint": "Pravopis + gramatika + tón" },
-      "rewrite": { "label": "Prepis", "hint": "Prepísať výber alebo poznámku", "defaultGoal": "Prepíš to jasnejšie" },
-      "tone": { "label": "Tón", "hint": "Tón a čitateľnosť" },
-      "style": { "label": "Writing coach", "hint": "Štylistické tipy" },
-      "explain": { "label": "Vysvetliť", "hint": "Vysvetli túto poznámku", "defaultGoal": "Vysvetli túto poznámku" },
-      "simplify": { "label": "Zjednodušiť", "hint": "Jednoduchší jazyk" },
-      "takeaways": { "label": "Závery", "hint": "Hlavné závery" },
-      "study": { "label": "Štúdium", "hint": "Osnova, plán čítania, kvíz" },
-      "deep": { "label": "Deep read", "hint": "Sekcie, tón, kartičky" },
-      "cards": { "label": "Kartičky", "hint": "Flashcards z poznámky" },
-      "quiz": { "label": "Kvíz", "hint": "Kvíz z osnovy" },
-      "glossary": { "label": "Slovník", "hint": "Pojmy a definície" },
-      "read": { "label": "Plán čítania", "hint": "Ako čítať túto poznámku" },
-      "sections": { "label": "Zhrnutia sekcií", "hint": "Zhrnúť každú sekciu" },
-      "wiki": { "label": "Wiki odkazy", "hint": "Navrhnúť [[odkazy]]" },
-      "similar": { "label": "Súvisiace", "hint": "Nájsť podobné poznámky" },
-      "compare": { "label": "Porovnať", "hint": "Diff s inou poznámkou" },
-      "pii": { "label": "Súkromie", "hint": "Nájsť PII a tajomstvá" },
-      "title": { "label": "Názov", "hint": "Návrhy názvu" },
-      "continue": { "label": "Pokračovať", "hint": "Navrhnúť pokračovanie" },
-      "keywords": { "label": "Kľúčové slová", "hint": "Tagy a kľúčové slová" },
-      "quotes": { "label": "Citácie", "hint": "Vytiahnuť citovateľné vety" },
-      "mentions": { "label": "Mentions", "hint": "Ľudia a zmienky" },
-      "organize": { "label": "Organizácia", "hint": "Tagy a priečinok" },
-      "cleanup": { "label": "Upratanie knižnice", "hint": "Duplicity, názvy, organizácia" },
-      "digest": { "label": "Denný digest", "hint": "Brief knižnice" },
-      "report": { "label": "Týždenný review", "hint": "Report + terminológia + termíny" },
-      "files": { "label": "Opýtať sa files/", "hint": "Dotaz na sandbox files/", "defaultGoal": "Čo je v sandboxe files/?" },
-      "filesdigest": { "label": "Files digest", "hint": "Zhrnúť sandbox files/" },
-      "tolibrary": { "label": "Files → knižnica", "hint": "Importovať súbory do poznámok" },
-      "code": { "label": "Code brief", "hint": "Review kódu v poznámke" },
-      "codepass": { "label": "Code pass", "hint": "Brief + vysvetlenie + osnova + kľúčové slová" },
-      "codeaudit": { "label": "Code audit", "hint": "Brief + sken tajomstiev + glossár" },
-      "canvas": { "label": "Canvas board", "hint": "Canvas → poznámka" },
-      "privacy": { "label": "Privacy pass", "hint": "PII + upratanie" },
-      "handoff": { "label": "Handoff", "hint": "Poslať prácu inej roli agenta" },
-      "wikihealth": { "label": "Wiki health", "hint": "Report orphan / stub / hub" },
-      "template": { "label": "Poznámka → šablóna", "hint": "Hinty + osnova + uložiť šablónu" },
-      "wikiclean": { "label": "Wiki upratanie", "hint": "Health + odkazy + organizácia" },
-      "ingest": { "label": "Učiť sa z files/", "hint": "Opýtať sandbox a importovať poznámky" },
-      "revision": { "label": "Revision AI", "hint": "Prehľad nedávnych zmien poznámky" },
+      "summary": {
+        "label": "Zhrnutie",
+        "hint": "Krátke zhrnutie poznámky"
+      },
+      "outline": {
+        "label": "Osnova",
+        "hint": "Štruktúrovaná osnova"
+      },
+      "brief": {
+        "label": "Brief + pulse",
+        "hint": "Brief poznámky a pulse"
+      },
+      "meeting": {
+        "label": "Meeting pack",
+        "hint": "Poznámky, rozhodnutia, follow-upy"
+      },
+      "wrap": {
+        "label": "Meeting wrap-up",
+        "hint": "Celý meeting recept"
+      },
+      "plan": {
+        "label": "Plán dopredu",
+        "hint": "Ďalšie kroky z poznámky"
+      },
+      "tasks": {
+        "label": "Úlohy",
+        "hint": "Úlohy a akčné body"
+      },
+      "actions": {
+        "label": "Akčné body",
+        "hint": "Akcie podľa priority"
+      },
+      "decisions": {
+        "label": "Rozhodnutia",
+        "hint": "Log rozhodnutí"
+      },
+      "loops": {
+        "label": "Otvorené slučky",
+        "hint": "Nevyriešené vlákna"
+      },
+      "commitments": {
+        "label": "Záväzky",
+        "hint": "Sľuby a vlastníctvo"
+      },
+      "dates": {
+        "label": "Termíny",
+        "hint": "Dátumy a deadliny"
+      },
+      "spell": {
+        "label": "Pravopis",
+        "hint": "Offline kontrola preklepov"
+      },
+      "grammar": {
+        "label": "Gramatika",
+        "hint": "Gramatická kontrola"
+      },
+      "polish": {
+        "label": "Vylepšiť",
+        "hint": "Pravopis + gramatika + tón"
+      },
+      "rewrite": {
+        "label": "Prepis",
+        "hint": "Prepísať výber alebo poznámku",
+        "defaultGoal": "Prepíš to jasnejšie"
+      },
+      "tone": {
+        "label": "Tón",
+        "hint": "Tón a čitateľnosť"
+      },
+      "style": {
+        "label": "Writing coach",
+        "hint": "Štylistické tipy"
+      },
+      "explain": {
+        "label": "Vysvetliť",
+        "hint": "Vysvetli túto poznámku",
+        "defaultGoal": "Vysvetli túto poznámku"
+      },
+      "simplify": {
+        "label": "Zjednodušiť",
+        "hint": "Jednoduchší jazyk"
+      },
+      "takeaways": {
+        "label": "Závery",
+        "hint": "Hlavné závery"
+      },
+      "study": {
+        "label": "Štúdium",
+        "hint": "Osnova, plán čítania, kvíz"
+      },
+      "deep": {
+        "label": "Deep read",
+        "hint": "Sekcie, tón, kartičky"
+      },
+      "cards": {
+        "label": "Kartičky",
+        "hint": "Flashcards z poznámky"
+      },
+      "quiz": {
+        "label": "Kvíz",
+        "hint": "Kvíz z osnovy"
+      },
+      "glossary": {
+        "label": "Slovník",
+        "hint": "Pojmy a definície"
+      },
+      "read": {
+        "label": "Plán čítania",
+        "hint": "Ako čítať túto poznámku"
+      },
+      "sections": {
+        "label": "Zhrnutia sekcií",
+        "hint": "Zhrnúť každú sekciu"
+      },
+      "wiki": {
+        "label": "Wiki odkazy",
+        "hint": "Navrhnúť [[odkazy]]"
+      },
+      "similar": {
+        "label": "Súvisiace",
+        "hint": "Nájsť podobné poznámky"
+      },
+      "compare": {
+        "label": "Porovnať",
+        "hint": "Diff s inou poznámkou"
+      },
+      "pii": {
+        "label": "Súkromie",
+        "hint": "Nájsť PII a tajomstvá"
+      },
+      "title": {
+        "label": "Názov",
+        "hint": "Návrhy názvu"
+      },
+      "continue": {
+        "label": "Pokračovať",
+        "hint": "Navrhnúť pokračovanie"
+      },
+      "keywords": {
+        "label": "Kľúčové slová",
+        "hint": "Tagy a kľúčové slová"
+      },
+      "quotes": {
+        "label": "Citácie",
+        "hint": "Vytiahnuť citovateľné vety"
+      },
+      "mentions": {
+        "label": "Mentions",
+        "hint": "Ľudia a zmienky"
+      },
+      "organize": {
+        "label": "Organizácia",
+        "hint": "Tagy a priečinok"
+      },
+      "cleanup": {
+        "label": "Upratanie knižnice",
+        "hint": "Duplicity, názvy, organizácia"
+      },
+      "digest": {
+        "label": "Denný digest",
+        "hint": "Brief knižnice"
+      },
+      "report": {
+        "label": "Týždenný review",
+        "hint": "Report + terminológia + termíny"
+      },
+      "files": {
+        "label": "Opýtať sa files/",
+        "hint": "Dotaz na sandbox files/",
+        "defaultGoal": "Čo je v sandboxe files/?"
+      },
+      "filesdigest": {
+        "label": "Files digest",
+        "hint": "Zhrnúť sandbox files/"
+      },
+      "tolibrary": {
+        "label": "Files → knižnica",
+        "hint": "Importovať súbory do poznámok"
+      },
+      "code": {
+        "label": "Code brief",
+        "hint": "Review kódu v poznámke"
+      },
+      "codepass": {
+        "label": "Code pass",
+        "hint": "Brief + vysvetlenie + osnova + kľúčové slová"
+      },
+      "codeaudit": {
+        "label": "Code audit",
+        "hint": "Brief + sken tajomstiev + glossár"
+      },
+      "canvas": {
+        "label": "Canvas board",
+        "hint": "Canvas → poznámka"
+      },
+      "privacy": {
+        "label": "Privacy pass",
+        "hint": "PII + upratanie"
+      },
+      "handoff": {
+        "label": "Handoff",
+        "hint": "Poslať prácu inej roli agenta"
+      },
+      "wikihealth": {
+        "label": "Wiki health",
+        "hint": "Report orphan / stub / hub"
+      },
+      "template": {
+        "label": "Poznámka → šablóna",
+        "hint": "Hinty + osnova + uložiť šablónu"
+      },
+      "wikiclean": {
+        "label": "Wiki upratanie",
+        "hint": "Health + odkazy + organizácia"
+      },
+      "ingest": {
+        "label": "Učiť sa z files/",
+        "hint": "Opýtať sandbox a importovať poznámky"
+      },
+      "revision": {
+        "label": "Revision AI",
+        "hint": "Prehľad nedávnych zmien poznámky"
+      },
       "translate": {
         "label": "Preložiť",
         "hint": "Preklad výberu alebo poznámky (en/sk)",
         "defaultGoal": "Preložiť do angličtiny"
       },
-      "timeline": { "label": "Timeline", "hint": "Chronológia dátumov v poznámke" },
-      "research": { "label": "Research pass", "hint": "Citácie + súvisiace + timeline" }
+      "timeline": {
+        "label": "Timeline",
+        "hint": "Chronológia dátumov v poznámke"
+      },
+      "research": {
+        "label": "Research pass",
+        "hint": "Citácie + súvisiace + timeline"
+      }
     },
     "send": "Spustiť",
     "thinking": "Agent spúšťa lokálne nástroje…",

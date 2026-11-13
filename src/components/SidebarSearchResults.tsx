@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
 import { FileText, Sparkles, Type } from 'lucide-react'
+import { expandSearchQuery, searchNeedle } from '@/lib/ai'
 import { searchDocuments, type SearchHit } from '@/lib/db/api'
 import { isLibraryDocumentVisible } from '@/lib/db/library-sync'
 import { nlpSearch, nlpStatus } from '@/lib/db/nlp-api'
@@ -32,13 +33,29 @@ export function SidebarSearchResults({ query, onNavigate }: SidebarSearchResults
   const [hits, setHits] = useState<SearchHit[]>([])
   const [loading, setLoading] = useState(false)
   const [nlpEnabled, setNlpEnabled] = useState(false)
+  const [titleNeedle, setTitleNeedle] = useState('')
 
   const trimmed = query.trim()
 
+  useEffect(() => {
+    let cancelled = false
+    if (trimmed.length < 2) {
+      setTitleNeedle('')
+      return
+    }
+    void expandSearchQuery(trimmed, 4).then((result) => {
+      if (!cancelled) setTitleNeedle(result.rewritten || trimmed)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [trimmed])
+
   const titleHits = useMemo((): TitleHit[] => {
     if (trimmed.length < 2) return []
+    const needle = titleNeedle.trim() || trimmed
     const visible = documents.filter(isLibraryDocumentVisible)
-    return fuzzyFilter(visible, trimmed, (doc) => [doc.title, ...(doc.tags ?? [])], {
+    return fuzzyFilter(visible, needle, (doc) => [doc.title, ...(doc.tags ?? [])], {
       limit: 12,
       // Stricter than command-palette fuzzy — “regular” title search.
       threshold: 0.28,
@@ -47,7 +64,7 @@ export function SidebarSearchResults({ query, onNavigate }: SidebarSearchResults
       title: doc.title,
       tags: doc.tags ?? [],
     }))
-  }, [documents, trimmed])
+  }, [documents, trimmed, titleNeedle])
 
   useEffect(() => {
     let cancelled = false
@@ -72,10 +89,11 @@ export function SidebarSearchResults({ query, onNavigate }: SidebarSearchResults
       }
       setLoading(true)
       try {
+        const needle = await searchNeedle(value)
         if (nlpEnabled) {
-          setHits(await nlpSearch(value.trim(), { limit: 20, mode: 'hybrid' }))
+          setHits(await nlpSearch(needle, { limit: 20, mode: 'hybrid' }))
         } else {
-          setHits(await searchDocuments(value.trim(), 20))
+          setHits(await searchDocuments(needle, 20))
         }
       } catch {
         try {

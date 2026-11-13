@@ -642,8 +642,8 @@
     "badge": "Co nowego w {{version}}",
     "kicker": "Notatki wydawnicze",
     "title": "Scribe {{version}}",
-    "subtitle": "Więcej podstawowych funkcji Note działa w Rust — linki wiki, plan zadań i eksport źródeł — nadal w pełni lokalne na tym Macu.",
-    "editionMark": "Natywny · Biblioteka",
+    "subtitle": "Offline AI you can feel — search rewrite, shared prompts, and Python/Rust parity — still fully local on this Mac.",
+    "editionMark": "Local AI · Library",
     "tagsLabel": "Motywy w tym wydaniu",
     "tags": {
       "agent": "Agent",
@@ -1046,6 +1046,22 @@
     "libraryPolish": {
       "title": "Biblioteka polska",
       "description": "Zadania filtrują według folderów i sortują według terminu. Duplikaty pokazują wyniki leksykalne i wyniki osadzania. Brudne zakładki i liczniki wiki/zadań zapewniają orientację."
+    },
+    "offlineAiFelt": {
+      "title": "Offline AI you feel",
+      "description": "Rust scribe-ai helpers power search, planning, and prompts even when the Python sidecar is off."
+    },
+    "searchRewrite": {
+      "title": "Smarter search rewrite",
+      "description": "SK/EN synonym expansion lifts Command Palette, sidebar hybrid search, and title fuzzy matching."
+    },
+    "aiSurface": {
+      "title": "One AI surface",
+      "description": "Frontend @/lib/ai, Tauri commands, and MCP share rewrite, plan_tools, and build_prompt."
+    },
+    "pythonParity": {
+      "title": "Python scribe_ai parity",
+      "description": "Sidecar mirrors Rust prompts, intent routing, citation pack, and revision AI for local agents."
     }
   },
   "wikiNav": {

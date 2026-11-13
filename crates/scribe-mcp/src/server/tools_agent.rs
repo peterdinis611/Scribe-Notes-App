@@ -395,7 +395,7 @@ impl ScribeMcp {
         })
     }
 
-    #[tool(description = "Expand / rewrite a search query for better hybrid/semantic retrieval.")]
+    #[tool(description = "Expand / rewrite a search query for better hybrid/semantic retrieval. Python preferred; Rust scribe-ai fallback.")]
     fn rewrite_query(
         &self,
         Parameters(params): Parameters<tools::RewriteQueryParams>,
@@ -407,6 +407,61 @@ impl ScribeMcp {
                 params.max_expansions,
             )?))
         })
+    }
+
+    #[tool(
+        description = "Pure Rust tool planner from question intents (scribe-ai::plan_tools_from_question). No Local AI required. Pass allowed tool ids."
+    )]
+    fn plan_tools(
+        &self,
+        Parameters(params): Parameters<tools::PlanToolsParams>,
+    ) -> Result<String, String> {
+        let question = params.question.trim();
+        if question.is_empty() {
+            return Ok(tools::json(&serde_json::json!({
+                "tools": [],
+                "source": "rust",
+            })));
+        }
+        let limit = params.limit.unwrap_or(4).clamp(1, 8) as usize;
+        let tools_list =
+            scribe_core::nlp::plan_tools_from_question(question, &params.allowed_tools, limit);
+        Ok(tools::json(&serde_json::json!({
+            "tools": tools_list,
+            "source": "rust",
+        })))
+    }
+
+    #[tool(
+        description = "Build system+user prompts via scribe-ai (document_chat | library_chat | agent | rewrite). No Local AI / DB required."
+    )]
+    fn build_prompt(
+        &self,
+        Parameters(params): Parameters<tools::BuildPromptParams>,
+    ) -> Result<String, String> {
+        use scribe_core::nlp::PromptKind;
+        let kind = match params.kind.trim().to_ascii_lowercase().as_str() {
+            "document" | "documentchat" | "document_chat" => PromptKind::DocumentChat,
+            "library" | "librarychat" | "library_chat" => PromptKind::LibraryChat,
+            "agent" => PromptKind::Agent,
+            "rewrite" => PromptKind::Rewrite,
+            other => return Err(format!("unknown prompt kind: {other}")),
+        };
+        let system = scribe_core::nlp::system_prompt(kind, params.language.as_deref());
+        let user = scribe_core::nlp::user_prompt(
+            kind,
+            &params.question_or_text,
+            params.passages,
+            params
+                .char_budget
+                .map(|n| n.clamp(256, 100_000) as usize),
+        );
+        Ok(tools::json(&serde_json::json!({
+            "kind": params.kind,
+            "system": system,
+            "user": user,
+            "source": "rust",
+        })))
     }
 
     #[tool(

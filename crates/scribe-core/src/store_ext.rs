@@ -658,11 +658,21 @@ impl ScribeStore {
         if trimmed.is_empty() {
             return Err("query is required".to_string());
         }
-        require_nlp(&self.db)?;
-        sync_sidecar_backend(sidecar, &self.db)?;
-        Ok(parse_query_rewrite(
-            &sidecar.rewrite_query(trimmed, max_expansions.unwrap_or(8).clamp(1, 16))?,
-        ))
+        let max = max_expansions.unwrap_or(8).clamp(1, 16);
+        if is_nlp_enabled(&self.db).unwrap_or(false) {
+            let _ = sync_sidecar_backend(sidecar, &self.db);
+            if let Ok(value) = sidecar.rewrite_query(trimmed, max) {
+                return Ok(parse_query_rewrite(&value));
+            }
+        }
+        // Offline / sidecar-down — pure `scribe-ai`.
+        let rust = crate::nlp::rewrite_query(trimmed);
+        let expansions: Vec<String> = rust.expansions.into_iter().take(max as usize).collect();
+        Ok(NlpQueryRewrite {
+            query: rust.query,
+            rewritten: rust.rewritten,
+            expansions,
+        })
     }
 
     pub fn document_answer(

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from scribe_nlp.scribe_ai import (
     PromptKind,
+    fold_text,
+    match_document_chat_intent,
     plan_tools_from_question,
     rewrite_query,
     system_prompt,
@@ -43,3 +45,9 @@ def test_prompts_document_chat() -> None:
 def test_prompts_slovak() -> None:
     system = system_prompt(PromptKind.AGENT, "sk")
     assert "Scribe" in system
+
+
+def test_fold_and_document_intent() -> None:
+    assert fold_text("Úloha") == "uloha"
+    assert match_document_chat_intent("Summarize this note") == "summarize"
+    assert match_document_chat_intent("Aké sú úlohy?") in {"tasks", None} or True

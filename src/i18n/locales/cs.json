@@ -642,8 +642,8 @@
     "badge": "Co je nového v {{version}}",
     "kicker": "Poznámky k edici",
     "title": "Scribe {{version}}",
-    "subtitle": "Větší část jádra poznámek běží v Rustu — wiki odkazy, agenda úkolů a export zdrojů — stále zcela lokálně na tomto Macu.",
-    "editionMark": "Nativní · Knihovna",
+    "subtitle": "Offline AI you can feel — search rewrite, shared prompts, and Python/Rust parity — still fully local on this Mac.",
+    "editionMark": "Local AI · Library",
     "tagsLabel": "Motivy v tomto vydání",
     "tags": {
       "agent": "Agent",
@@ -1046,6 +1046,22 @@
     "libraryPolish": {
       "title": "Vylepšení knihovny",
       "description": "Filtr úkolů podle složky a řazení podle termínu. Duplikáty ukazují lexikální vs vložené skóre. Špinavé karty a počty wiki/úkolů vás udržují orientované."
+    },
+    "offlineAiFelt": {
+      "title": "Offline AI you feel",
+      "description": "Rust scribe-ai helpers power search, planning, and prompts even when the Python sidecar is off."
+    },
+    "searchRewrite": {
+      "title": "Smarter search rewrite",
+      "description": "SK/EN synonym expansion lifts Command Palette, sidebar hybrid search, and title fuzzy matching."
+    },
+    "aiSurface": {
+      "title": "One AI surface",
+      "description": "Frontend @/lib/ai, Tauri commands, and MCP share rewrite, plan_tools, and build_prompt."
+    },
+    "pythonParity": {
+      "title": "Python scribe_ai parity",
+      "description": "Sidecar mirrors Rust prompts, intent routing, citation pack, and revision AI for local agents."
     }
   },
   "wikiNav": {
