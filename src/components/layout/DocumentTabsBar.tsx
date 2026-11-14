@@ -12,7 +12,11 @@ import { useNavigate, useRouterState } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { ChevronLeft, ChevronRight, Pin, X } from 'lucide-react'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
-import { prefetchDocument } from '@/lib/cache/prefetch-document'
+import {
+  cancelHoverPrefetch,
+  prefetchDocument,
+  scheduleHoverPrefetch,
+} from '@/lib/cache/prefetch-document'
 import { TAB_DND_TYPE, type TabDragItem } from '@/lib/dnd/types'
 import { closeActiveDocumentAndMaybeHome } from '@/lib/navigation'
 import { ROUTES } from '@/lib/routes'
@@ -294,7 +298,8 @@ function DocumentTab({
         type="button"
         className="document-tab-label"
         onClick={() => onActivate(tab.id)}
-        onPointerEnter={() => prefetchDocument(tab.id, 'low')}
+        onPointerEnter={() => scheduleHoverPrefetch(tab.id)}
+        onPointerLeave={() => cancelHoverPrefetch(tab.id)}
         title={tab.title}
       >
         {tab.dirty ? <span className="document-tab-dirty" aria-hidden /> : null}

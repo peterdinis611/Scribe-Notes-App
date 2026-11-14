@@ -21,7 +21,7 @@ import {
 } from 'lucide-react'
 import { DocumentTitleField } from '@/components/DocumentTitleField'
 import { isKnownCanvasDocument } from '@/lib/canvas/known'
-import { prefetchDocument } from '@/lib/cache/prefetch-document'
+import { cancelHoverPrefetch, scheduleHoverPrefetch } from '@/lib/cache/prefetch-document'
 import {
   ContextMenu,
   ContextMenuContent,
@@ -350,7 +350,8 @@ export const FolderTreeDocumentRow = memo(function FolderTreeDocumentRow({
           role="button"
           tabIndex={0}
           onClick={() => onOpen(document.id)}
-          onPointerEnter={() => prefetchDocument(document.id, 'low')}
+          onPointerEnter={() => scheduleHoverPrefetch(document.id)}
+          onPointerLeave={() => cancelHoverPrefetch(document.id)}
           onKeyDown={(event) => {
             if (event.key === 'Enter' || event.key === ' ') {
               event.preventDefault()

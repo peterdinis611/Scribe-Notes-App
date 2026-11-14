@@ -559,8 +559,16 @@ export function DocumentEditor() {
 
   const saveStatus = useAppSelector((state) => state.documents.saveStatus)
 
-  // Clear content hashes before syncing so a later effect cannot wipe in-progress edits.
+  // Seed hashes from the document already passed as TipTap `content` so the
+  // view-sync effect does not parse + setContent a second time on open.
   useEffect(() => {
+    const doc = activeDocumentRef.current
+    if (doc && doc.id === activeId) {
+      const hash = getCachedContentHash(doc)
+      editorContentHashRef.current = hash
+      lastPersistedHashRef.current = hash
+      return
+    }
     editorContentHashRef.current = null
     lastPersistedHashRef.current = null
   }, [activeId, editorContentHashRef, lastPersistedHashRef])

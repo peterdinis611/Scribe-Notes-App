@@ -71,6 +71,36 @@ export function prefetchDocument(
   enqueue(id, priority)
 }
 
+const hoverTimers = new Map<string, number>()
+
+/**
+ * Delayed hover prefetch — cancels when the pointer leaves before the delay,
+ * so scrolling the sidebar does not flood `get_document`.
+ */
+export function scheduleHoverPrefetch(
+  id: string | null | undefined,
+  options?: { delayMs?: number; priority?: PrefetchPriority },
+) {
+  if (!id) return
+  const delayMs = options?.delayMs ?? 180
+  const priority = options?.priority ?? 'low'
+  const existing = hoverTimers.get(id)
+  if (existing != null) window.clearTimeout(existing)
+  const timer = window.setTimeout(() => {
+    hoverTimers.delete(id)
+    prefetchDocument(id, priority)
+  }, delayMs)
+  hoverTimers.set(id, timer)
+}
+
+export function cancelHoverPrefetch(id: string | null | undefined) {
+  if (!id) return
+  const existing = hoverTimers.get(id)
+  if (existing == null) return
+  window.clearTimeout(existing)
+  hoverTimers.delete(id)
+}
+
 /**
  * Prefetch a capped set of open tabs so large libraries do not flood IPC.
  * Prefer calling with active id first in `ids`.

@@ -15,27 +15,45 @@ pub fn plugin_presets() -> Vec<PluginPreset> {
             id: "writing".into(),
             plugin_ids: vec![
                 "scribe.daily-journal".into(),
+                "scribe.weekly-review".into(),
+                "scribe.decision-log".into(),
                 "scribe.meeting-wrap".into(),
                 "scribe.plaintext-export".into(),
+                "scribe.reading-time".into(),
             ],
         },
         PluginPreset {
             id: "study".into(),
-            plugin_ids: vec!["scribe.flashcards".into(), "scribe.citation-pack".into()],
+            plugin_ids: vec![
+                "scribe.flashcards".into(),
+                "scribe.cornell-notes".into(),
+                "scribe.zettel-stub".into(),
+                "scribe.citation-pack".into(),
+            ],
         },
         PluginPreset {
             id: "workspace".into(),
-            plugin_ids: vec!["scribe.status-meta".into(), "scribe.theme-pack".into()],
+            plugin_ids: vec![
+                "scribe.status-meta".into(),
+                "scribe.outline-checklist".into(),
+                "scribe.theme-pack".into(),
+            ],
         },
         PluginPreset {
             id: "all".into(),
             plugin_ids: vec![
                 "scribe.daily-journal".into(),
+                "scribe.weekly-review".into(),
+                "scribe.decision-log".into(),
                 "scribe.meeting-wrap".into(),
                 "scribe.plaintext-export".into(),
+                "scribe.reading-time".into(),
                 "scribe.flashcards".into(),
+                "scribe.cornell-notes".into(),
+                "scribe.zettel-stub".into(),
                 "scribe.citation-pack".into(),
                 "scribe.status-meta".into(),
+                "scribe.outline-checklist".into(),
                 "scribe.theme-pack".into(),
                 "scribe.standup".into(),
             ],
@@ -68,6 +86,8 @@ mod tests {
     #[test]
     fn categories() {
         assert_eq!(category_for_plugin_id("scribe.flashcards"), "study");
+        assert_eq!(category_for_plugin_id("scribe.weekly-review"), "writing");
+        assert_eq!(category_for_plugin_id("scribe.outline-checklist"), "workspace");
         assert_eq!(plugin_preset_ids().len(), 4);
     }
 }

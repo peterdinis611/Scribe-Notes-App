@@ -143,7 +143,7 @@ export interface NlpDocumentAnalysis {
   dates?: NlpDateEvent[]
 }
 
-const STATUS_TTL_MS = 20_000
+const STATUS_TTL_MS = 60_000
 const ANALYSIS_TTL_MS = 30_000
 let statusCache: { value: NlpStatus; at: number } | null = null
 let statusInflight: Promise<NlpStatus> | null = null

@@ -22,26 +22,32 @@ export function WikiGhostHint({ editor }: WikiGhostHintProps) {
       return
     }
     let cancelled = false
-    void nlpStatus()
-      .then((status) => {
-        if (!status.enabled || !status.sidecarOk) return []
-        return nlpSuggestWikiLinks(activeId, 8)
-      })
-      .then((rows) => {
-        if (cancelled || !Array.isArray(rows)) return
-        setNlpCandidates(
-          rows.map((row) => ({
-            id: row.documentId,
-            title: row.title,
-            phrase: row.phrase || row.title,
-          })),
-        )
-      })
-      .catch(() => {
-        if (!cancelled) setNlpCandidates([])
-      })
+    // Defer sidecar RPCs off the critical document-open path (status + wiki links
+    // share the DB mutex / NLP worker with get_document).
+    const timer = window.setTimeout(() => {
+      if (cancelled) return
+      void nlpStatus()
+        .then((status) => {
+          if (cancelled || !status.enabled || !status.sidecarOk) return []
+          return nlpSuggestWikiLinks(activeId, 8)
+        })
+        .then((rows) => {
+          if (cancelled || !Array.isArray(rows)) return
+          setNlpCandidates(
+            rows.map((row) => ({
+              id: row.documentId,
+              title: row.title,
+              phrase: row.phrase || row.title,
+            })),
+          )
+        })
+        .catch(() => {
+          if (!cancelled) setNlpCandidates([])
+        })
+    }, 1600)
     return () => {
       cancelled = true
+      window.clearTimeout(timer)
     }
   }, [activeId])
 

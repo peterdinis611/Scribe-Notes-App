@@ -16,6 +16,12 @@ describe('vault crypto', () => {
     expect(await decryptContentJson(password, cipher)).toBe(plain)
   })
 
+  it('rejects plain TipTap JSON without parsing the whole body twice', () => {
+    const plain = `{"type":"doc","content":[${'{"type":"paragraph"},'.repeat(200)}{"type":"paragraph"}]}`
+    expect(isVaultCipherJson(plain)).toBe(false)
+    expect(isVaultCipherJson('not-json')).toBe(false)
+  })
+
   it('verifies vault password', async () => {
     const password = 'vault-secret'
     const verifier = await createVaultVerifier(password)
