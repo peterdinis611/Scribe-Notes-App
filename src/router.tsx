@@ -6,6 +6,7 @@ import {
   Outlet,
   redirect,
 } from '@tanstack/react-router'
+import { SuspenseFallback } from '@/components/ui/spinner'
 import { AppLayout } from '@/layouts/AppLayout'
 import { HomePage } from '@/pages/HomePage'
 import { DocumentPage } from '@/pages/DocumentPage'
@@ -42,7 +43,7 @@ const AgentPage = lazyPage(() => import('@/pages/settings/AgentPage'), 'AgentPag
 function withSuspense(Page: ComponentType) {
   return function SuspendedPage() {
     return (
-      <Suspense fallback={null}>
+      <Suspense fallback={<SuspenseFallback className="min-h-[12rem]" />}>
         <Page />
       </Suspense>
     )

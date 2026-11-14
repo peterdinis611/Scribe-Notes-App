@@ -1,9 +1,16 @@
-import { Activity, Copy, RefreshCw, Terminal } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { Activity, Copy, Eraser, RefreshCw, Terminal } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getVersion } from '@tauri-apps/api/app'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { Button } from '@/components/ui/button'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   SettingsSection,
   SettingsSectionHeader,
@@ -14,11 +21,23 @@ import {
   type BackendStats,
 } from '@/lib/db/api'
 import { isFrontendDebug, setFrontendDebug } from '@/lib/debug'
+import {
+  loggingClear,
+  loggingPing,
+  loggingRecent,
+  loggingSetLevel,
+  loggingStatus,
+  type LogLine,
+  type LoggingStatus,
+} from '@/lib/logging'
+import type { LoggingLevel } from '@/lib/logging/settings'
+import { isTauriRuntime } from '@/lib/tauri'
 import { toast } from '@/lib/toast'
 import { useAppDispatch } from '@/store/hooks'
 import { applyDiskPersistResult, runFolderReconcile } from '@/lib/disk-sync'
 
 const RELEASES_URL = 'https://github.com/peterdinis611/Scribe-Notes-App/releases'
+const LEVELS: LoggingLevel[] = ['error', 'warn', 'info', 'debug', 'trace']
 
 function StatRow({ label, value }: { label: string; value: string | number }) {
   return (
@@ -31,23 +50,91 @@ function StatRow({ label, value }: { label: string; value: string | number }) {
   )
 }
 
+function formatLogTime(tsMs: number): string {
+  const d = new Date(tsMs)
+  if (Number.isNaN(d.getTime())) return '—'
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(
+    d.getSeconds(),
+  ).padStart(2, '0')}`
+}
+
 export function DiagnosticsSection() {
   const { t } = useTranslation()
   const dispatch = useAppDispatch()
   const [stats, setStats] = useState<BackendStats | null>(null)
+  const [logging, setLogging] = useState<LoggingStatus | null>(null)
+  const [lines, setLines] = useState<LogLine[]>([])
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
   const [checkingUpdates, setCheckingUpdates] = useState(false)
+  const [pinging, setPinging] = useState(false)
   const [feVerbose, setFeVerbose] = useState(() => isFrontendDebug())
+
+  const refreshLogs = useCallback(async () => {
+    if (!isTauriRuntime()) return
+    try {
+      const [status, recent] = await Promise.all([
+        loggingStatus(),
+        loggingRecent({ limit: 80 }),
+      ])
+      setLogging(status)
+      setLines(recent)
+    } catch {
+      setLogging(null)
+      setLines([])
+    }
+  }, [])
 
   async function refresh() {
     setLoading(true)
     try {
       setStats(await getBackendStats())
+      await refreshLogs()
     } catch (error) {
       toast.error(t('diagnostics.loadError'), String(error))
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleLoggingPing() {
+    if (!isTauriRuntime()) {
+      toast.error(t('diagnostics.terminalUnavailable'))
+      return
+    }
+    setPinging(true)
+    try {
+      const status = await loggingPing()
+      setLogging(status)
+      setLines(await loggingRecent({ limit: 80 }))
+      toast.success(t('diagnostics.terminalPingOk'), t('diagnostics.terminalPingHint'))
+    } catch (error) {
+      toast.error(t('diagnostics.terminalPingError'), String(error))
+    } finally {
+      setPinging(false)
+    }
+  }
+
+  async function handleClearLogs() {
+    if (!isTauriRuntime()) return
+    try {
+      const nextStats = await loggingClear()
+      setLogging((prev) => (prev ? { ...prev, stats: nextStats } : prev))
+      setLines([])
+      toast.success(t('diagnostics.logsCleared'))
+    } catch (error) {
+      toast.error(t('diagnostics.logsClearError'), String(error))
+    }
+  }
+
+  async function handleSetLevel(level: string) {
+    if (!isTauriRuntime()) return
+    try {
+      const status = await loggingSetLevel(level)
+      setLogging(status)
+      toast.success(t('diagnostics.levelChanged'), level)
+    } catch (error) {
+      toast.error(t('diagnostics.levelChangeError'), String(error))
     }
   }
 
@@ -88,7 +175,7 @@ export function DiagnosticsSection() {
       return
     }
     try {
-      const payload = JSON.stringify(stats, null, 2)
+      const payload = JSON.stringify({ stats, logging, lines: lines.slice(-40) }, null, 2)
       await navigator.clipboard.writeText(payload)
       toast.success(t('diagnostics.copied'))
     } catch (error) {
@@ -104,6 +191,7 @@ export function DiagnosticsSection() {
       next ? t('diagnostics.feDebugOn') : t('diagnostics.feDebugOff'),
       t('diagnostics.feDebugHint'),
     )
+    void refreshLogs()
   }
 
   async function handleCheckUpdates() {
@@ -121,6 +209,8 @@ export function DiagnosticsSection() {
       setCheckingUpdates(false)
     }
   }
+
+  const runtimeLevel = (logging?.runtimeLevel ?? logging?.level ?? 'info') as LoggingLevel
 
   return (
     <SettingsSection>
@@ -149,6 +239,75 @@ export function DiagnosticsSection() {
           <StatRow label={t('diagnostics.pendingDisk')} value={stats.pendingDiskJobs} />
           <StatRow label={t('diagnostics.dbPath')} value={stats.dbPath} />
           <StatRow label={t('diagnostics.documentsDir')} value={stats.documentsDir} />
+          {logging ? (
+            <>
+              <StatRow
+                label={t('diagnostics.terminalLogger')}
+                value={
+                  logging.ready
+                    ? t('diagnostics.terminalReady', { level: logging.runtimeLevel })
+                    : t('diagnostics.terminalOff')
+                }
+              />
+              <StatRow
+                label={t('diagnostics.logRing')}
+                value={`${logging.stats.retained}/${logging.stats.capacity} · e${logging.stats.error} w${logging.stats.warn} i${logging.stats.info}`}
+              />
+              {logging.filePath ? (
+                <StatRow label={t('diagnostics.logFile')} value={logging.filePath} />
+              ) : null}
+            </>
+          ) : null}
+        </div>
+      ) : null}
+
+      {isTauriRuntime() ? (
+        <div className="mt-5 space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[12px] font-medium text-[var(--color-muted-foreground)]">
+              {t('diagnostics.runtimeLevel')}
+            </span>
+            <Select value={runtimeLevel} onValueChange={(v) => void handleSetLevel(v)}>
+              <SelectTrigger className="h-8 w-[120px]" size="sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {LEVELS.map((level) => (
+                  <SelectItem key={level} value={level}>
+                    {level}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button variant="outline" size="sm" onClick={() => void refreshLogs()}>
+              <RefreshCw className="h-3.5 w-3.5" />
+              {t('diagnostics.refreshLogs')}
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => void handleClearLogs()}>
+              <Eraser className="h-3.5 w-3.5" />
+              {t('diagnostics.clearLogs')}
+            </Button>
+          </div>
+          <div
+            className="max-h-56 overflow-auto rounded-lg border border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-canvas)_88%,var(--color-foreground))] px-3 py-2 font-mono text-[11px] leading-relaxed text-[var(--color-foreground)]"
+            role="log"
+            aria-label={t('diagnostics.recentLogs')}
+          >
+            {lines.length === 0 ? (
+              <p className="text-[var(--color-muted-foreground)]">{t('diagnostics.logsEmpty')}</p>
+            ) : (
+              lines.map((line) => (
+                <div key={line.seq} className="whitespace-pre-wrap break-all">
+                  <span className="text-[var(--color-muted-foreground)]">
+                    {formatLogTime(line.tsMs)}
+                  </span>{' '}
+                  <span className="uppercase">{line.level.padEnd(5, ' ')}</span>{' '}
+                  <span className="text-[var(--color-muted-foreground)]">[{line.target}]</span>{' '}
+                  {line.message}
+                </div>
+              ))
+            )}
+          </div>
         </div>
       ) : null}
 
@@ -172,6 +331,16 @@ export function DiagnosticsSection() {
           onClick={() => void handleCheckUpdates()}
         >
           {checkingUpdates ? t('diagnostics.updatesChecking') : t('diagnostics.checkUpdates')}
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={pinging || !isTauriRuntime()}
+          onClick={() => void handleLoggingPing()}
+          title={t('diagnostics.terminalPingHint')}
+        >
+          <Terminal className="h-3.5 w-3.5" />
+          {pinging ? t('diagnostics.terminalPinging') : t('diagnostics.terminalPing')}
         </Button>
         <Button
           variant={feVerbose ? 'default' : 'outline'}

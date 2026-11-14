@@ -1,6 +1,7 @@
 import { forwardRef, useId } from 'react'
 import { useTranslation } from 'react-i18next'
 import { MarkdownView } from '@/components/MarkdownView'
+import { htmlLang } from '@/lib/i18n/locale-tags'
 import { cn } from '@/lib/utils'
 
 type MarkdownSourceEditorProps = {
@@ -24,7 +25,7 @@ export const MarkdownSourceEditor = forwardRef<HTMLTextAreaElement, MarkdownSour
             value={value}
             onChange={(event) => onChange(event.target.value)}
             spellCheck={spellCheck}
-            lang={i18n.language?.startsWith('sk') ? 'sk' : 'en'}
+            lang={htmlLang(i18n.language)}
             aria-label={t('editor.markdownAria', { defaultValue: 'Markdown editor' })}
             aria-describedby={previewId}
             placeholder={t('editor.markdownPlaceholder')}

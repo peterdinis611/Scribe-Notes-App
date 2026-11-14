@@ -1102,6 +1102,35 @@ html:not([data-ui-skin]) .toolbar-cluster {
   background: color-mix(in srgb, var(--color-hover) 88%, transparent);
 }
 
+.document-tabs-close-all {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  margin-left: 4px;
+  padding: 0 8px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+  color: var(--color-muted-foreground);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.document-tabs-close-all:hover {
+  border-color: color-mix(in srgb, var(--color-destructive, #c23b22) 35%, var(--color-border));
+  background: color-mix(in srgb, var(--color-destructive, #c23b22) 10%, var(--color-surface));
+  color: var(--color-foreground);
+}
+
+.document-tabs-close-all-label {
+  white-space: nowrap;
+}
+
 .document-tabs-scroll-btn.is-disabled,
 .document-tabs-scroll-btn:disabled {
   opacity: 0.28;
@@ -5033,18 +5062,29 @@ html:not([data-ui-skin]) .agent-workspace-dock {
 
 .agent-dock-header {
   display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 75%, transparent);
+  overflow: hidden;
+}
+
+.agent-dock-header-top {
+  display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
-  padding: 14px 14px 10px;
-  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 75%, transparent);
+  min-width: 0;
+  width: 100%;
 }
 
 .agent-dock-identity {
   display: flex;
   min-width: 0;
+  flex: 1 1 auto;
   align-items: center;
   gap: 10px;
+  overflow: hidden;
 }
 
 .agent-dock-face {
@@ -5053,6 +5093,7 @@ html:not([data-ui-skin]) .agent-workspace-dock {
 
 .agent-dock-copy {
   min-width: 0;
+  overflow: hidden;
 }
 
 .agent-dock-kicker {
@@ -5079,6 +5120,9 @@ html:not([data-ui-skin]) .agent-dock-kicker {
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--color-foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 html[data-ui-skin='page'] .agent-dock-title,
@@ -5116,34 +5160,53 @@ html:not([data-ui-skin]) .agent-persona-tab.is-active {
 
 .agent-dock-actions {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
-.agent-persona-switch {
+.agent-persona-trigger {
   display: inline-flex;
-  flex-wrap: wrap;
+  max-width: 8.5rem;
   align-items: center;
-  justify-content: flex-end;
-  gap: 2px;
-  max-width: min(100%, 22rem);
-  padding: 2px;
+  gap: 4px;
+  height: 30px;
+  padding: 0 8px 0 10px;
   border-radius: 999px;
   border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
   background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+  color: var(--color-foreground);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.agent-persona-trigger:hover {
+  border-color: color-mix(in srgb, var(--color-accent) 35%, var(--color-border));
+  background: color-mix(in srgb, var(--color-hover) 70%, transparent);
+}
+
+.agent-persona-trigger-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agent-persona-menu [data-slot='dropdown-menu-item'].is-active,
+.agent-persona-menu .is-active {
+  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+  font-weight: 600;
+}
+
+.agent-persona-switch {
+  display: none;
 }
 
 .agent-persona-tab {
-  border: none;
-  background: transparent;
-  color: var(--color-muted-foreground);
-  font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  padding: 4px 8px;
-  border-radius: 999px;
-  cursor: pointer;
-  white-space: nowrap;
+  display: none;
 }
 
 .agent-dock-empty-roles {
@@ -5758,6 +5821,11 @@ html:not([data-ui-skin]) .agent-persona-tab.is-active {
   color: color-mix(in srgb, var(--color-foreground) 78%, var(--color-muted-foreground));
   font-size: 11px;
   line-height: 1.4;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  word-break: break-word;
 }
 
 .library-chat-clear {
@@ -8736,8 +8804,24 @@ body.is-block-dragging .tiptap {
   background: color-mix(in srgb, var(--color-accent) 14%, var(--color-surface));
 }
 
-.tiptap .paint-block__btn--danger:hover {
+.tiptap .paint-block__btn--danger {
+  border-color: color-mix(in srgb, #b91c1c 35%, var(--color-border));
   color: #b91c1c;
+}
+
+.tiptap .paint-block__btn--danger:hover {
+  background: color-mix(in srgb, #b91c1c 12%, var(--color-surface));
+  color: #991b1b;
+}
+
+.tiptap .paint-block__btn--delete {
+  width: auto;
+  gap: 6px;
+  padding: 0 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 
 .tiptap .paint-block__size input[type='range'] {
@@ -10244,12 +10328,18 @@ body.is-block-dragging .tiptap {
 }
 
 .tiptap .footnotes-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
   font-size: 12.5px;
   line-height: 1.5;
   color: var(--color-foreground);
 }
 
 .tiptap .footnotes-item-text {
+  flex: 1 1 auto;
+  min-width: 0;
   cursor: pointer;
 }
 
@@ -10263,14 +10353,17 @@ body.is-block-dragging .tiptap {
 }
 
 .tiptap .footnotes-item-edit {
-  margin-left: 8px;
-  padding: 0 6px;
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 2px 8px;
   border: 1px solid var(--color-border);
   border-radius: 6px;
-  background: transparent;
+  background: color-mix(in srgb, var(--color-canvas) 88%, var(--color-muted-foreground));
   font-size: 10.5px;
+  line-height: 1.4;
   color: var(--color-muted-foreground);
-  cursor: default;
+  cursor: pointer;
+  pointer-events: auto;
 }
 
 .tiptap .footnotes-item-edit:hover {
@@ -16801,20 +16894,25 @@ html:not([data-ui-skin]) .folder-tree-row--doc.is-selected {
 
 .wiki-ghost-hint {
   position: absolute;
-  right: 18px;
-  bottom: 52px;
-  z-index: 8;
-  border: none;
-  border-radius: 999px;
-  background: transparent;
-  padding: 4px 8px;
-  color: color-mix(in srgb, var(--color-foreground) 42%, var(--color-muted-foreground));
+  top: 0;
+  left: 0;
+  z-index: 12;
+  max-width: min(280px, calc(100% - 24px));
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-canvas) 92%, var(--color-accent));
+  padding: 5px 10px;
+  color: color-mix(in srgb, var(--color-foreground) 72%, var(--color-muted-foreground));
   font-family: var(--font-mono);
   font-size: 12px;
   font-style: italic;
   font-weight: 500;
   letter-spacing: 0.01em;
-  opacity: 0.78;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--color-foreground) 8%, transparent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: auto;
 }
 
 /* ── Error folio (runtime crash screen) ───────────────────────────────────── */
@@ -17602,6 +17700,24 @@ html[data-ui-skin='press'] .error-folio__title {
   color: var(--color-muted-foreground);
 }
 
+button.agent-settings-role-chip {
+  cursor: pointer;
+  appearance: none;
+  text-align: left;
+  transition: border-color 120ms ease, background 120ms ease, color 120ms ease;
+}
+
+button.agent-settings-role-chip:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--role-tone, var(--color-accent)) 40%, var(--color-border));
+  background: color-mix(in srgb, var(--role-tone, var(--color-accent)) 12%, var(--color-background));
+  color: var(--color-foreground);
+}
+
+button.agent-settings-role-chip:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .agent-settings-role-chip > span {
   min-width: 0;
   white-space: normal;
@@ -17609,7 +17725,7 @@ html[data-ui-skin='press'] .error-folio__title {
 }
 
 .agent-settings-role-chip.is-memory.is-empty {
-  opacity: 0.78;
+  opacity: 0.92;
 }
 
 .agent-settings-role-chip.is-handoff {

@@ -21,7 +21,13 @@ import {
   clearDocumentChatMessages,
   listDocumentChatMessages,
 } from '@/lib/db/api'
-import { nlpDocumentAnalysis, nlpDocumentTasks, nlpStatus, type DocumentTask, type NlpDocumentAnalysis } from '@/lib/db/nlp-api'
+import {
+  documentAnalysis as nlpDocumentAnalysis,
+  documentTasks as nlpDocumentTasks,
+  status as nlpStatus,
+  type DocumentTask,
+  type NlpDocumentAnalysis,
+} from '@/lib/ai'
 import {
   buildDocumentAskActions,
   buildDocumentAskActionsAsync,

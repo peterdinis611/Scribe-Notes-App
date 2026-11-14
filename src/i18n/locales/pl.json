@@ -642,8 +642,8 @@
     "badge": "Co nowego w {{version}}",
     "kicker": "Notatki wydawnicze",
     "title": "Scribe {{version}}",
-    "subtitle": "Więcej podstawowych funkcji Note działa w Rust — linki wiki, plan zadań i eksport źródeł — nadal w pełni lokalne na tym Macu.",
-    "editionMark": "Natywny · Biblioteka",
+    "subtitle": "Offline AI you can feel — search rewrite, shared prompts, and Python/Rust parity — still fully local on this Mac.",
+    "editionMark": "Local AI · Library",
     "tagsLabel": "Motywy w tym wydaniu",
     "tags": {
       "agent": "Agent",
@@ -1046,6 +1046,22 @@
     "libraryPolish": {
       "title": "Biblioteka polska",
       "description": "Zadania filtrują według folderów i sortują według terminu. Duplikaty pokazują wyniki leksykalne i wyniki osadzania. Brudne zakładki i liczniki wiki/zadań zapewniają orientację."
+    },
+    "offlineAiFelt": {
+      "title": "Offline AI you feel",
+      "description": "Rust scribe-ai helpers power search, planning, and prompts even when the Python sidecar is off."
+    },
+    "searchRewrite": {
+      "title": "Smarter search rewrite",
+      "description": "SK/EN synonym expansion lifts Command Palette, sidebar hybrid search, and title fuzzy matching."
+    },
+    "aiSurface": {
+      "title": "One AI surface",
+      "description": "Frontend @/lib/ai, Tauri commands, and MCP share rewrite, plan_tools, and build_prompt."
+    },
+    "pythonParity": {
+      "title": "Python scribe_ai parity",
+      "description": "Sidecar mirrors Rust prompts, intent routing, citation pack, and revision AI for local agents."
     }
   },
   "wikiNav": {
@@ -2019,9 +2035,10 @@
       "rolesLiveCount": "{{count}} / {{total}} na żywo",
       "rolesNetworkHint": "Handoffy · prywatna baza danych",
       "rolePanelSpell": "Interfejs zaklęć",
-      "roleMemoryEmpty": "Nie ma jeszcze żadnych nauk",
+      "roleMemoryEmpty": "Nie ma jeszcze żadnych nauk — naucz",
       "roleMemoryCount": "{{count}} nauki",
       "roleMemoryHint": "Nauki przechowywane na partycji tego agenta w scribe-agent.db",
+      "roleMemoryTeach": "Otwórz formularz nauczania dla tego agenta",
       "roleHandoffTo": "Ręce do {{name}}",
       "roleHandoffHint": "Domyślny element równorzędny, który ten agent powiadamia po istotnych uruchomieniach",
       "roleEnabledToast": "{{name}} włączone",
@@ -2539,6 +2556,35 @@
       "purgeOk": "Usunięto z kwarantanny",
       "purgeAllOk": "Usunięto elementy kwarantanny {{count}}",
       "purgeError": "Czyszczenie nie powiodło się"
+    },
+    "audit": {
+      "title": "Dziennik audytu",
+      "description": "Przeglądaj lokalne zdarzenia audytu, statystyki i skopiuj eksport JSONL.",
+      "searchPlaceholder": "Filtruj według akcji, aktora, podsumowania…",
+      "export": "Kopiuj JSONL",
+      "exportCopied": "Eksport audytu skopiowany",
+      "exportError": "Nie udało się wyeksportować audytu",
+      "loadError": "Nie udało się wczytać audytu",
+      "total": "Zdarzenia",
+      "keepLimit": "Limit przechowywania",
+      "newest": "Najnowsze",
+      "empty": "Brak zdarzeń audytu.",
+      "setup": "Ustaw hasło",
+      "setupHint": "Chroń lokalny dziennik audytu hasłem (min. 8 znaków).",
+      "setupDone": "Hasło audytu ustawione",
+      "unlock": "Odblokuj",
+      "unlockHint": "Odblokuj dziennik audytu, aby przeglądać i eksportować.",
+      "unlocked": "Audyt odblokowany",
+      "unlockError": "Nie udało się odblokować audytu",
+      "lock": "Zablokuj",
+      "locked": "Audyt zablokowany",
+      "lockError": "Nie udało się zablokować audytu",
+      "passwordPlaceholder": "Hasło",
+      "passwordTooShort": "Hasło musi mieć co najmniej 8 znaków",
+      "saveKeep": "Zapisz retencję",
+      "keepSaved": "Retencja zaktualizowana",
+      "keepInvalid": "Podaj limit co najmniej 100",
+      "keepError": "Nie udało się zapisać retencji"
     }
   },
   "storageAccess": {
@@ -2696,6 +2742,9 @@
   "tabs": {
     "ariaLabel": "Otwórz dokumenty",
     "close": "Zamknij kartę",
+    "closeOthers": "Zamknij pozostałe",
+    "closeAll": "Zamknij wszystkie karty",
+    "closeAllShort": "Zamknij wszystkie",
     "pin": "Zakładka Przypnij",
     "unpin": "Odepnij kartę",
     "reorder": "Przeciągnij, aby zmienić kolejność",
@@ -3869,6 +3918,9 @@
       "languageLine": "Wykryty język: {{language}}",
       "languageSk": "Słowacki",
       "languageEn": "angielski",
+      "languageCs": "czeski",
+      "languageHu": "węgierski",
+      "languagePl": "polski",
       "languageUnknown": "nieznany",
       "similar": "Podobne dokumenty",
       "similarHint": "Na podstawie istniejącego indeksu semantycznego.",
@@ -4025,7 +4077,14 @@
       "contextLines": "Kontekst",
       "wordHighlight": "Podświetlenie słowa",
       "gainedTerms": "Uzyskano",
-      "lostTerms": "Utracono"
+      "lostTerms": "Utracono",
+      "copyAiSummary": "Kopiuj podsumowanie AI",
+      "copyAiSummaryError": "Nie udało się skopiować podsumowania AI",
+      "saveNamedFromAi": "Zapisz nazwaną rewizję",
+      "applyBulletNamed": "Nazwij",
+      "applyBulletInsert": "Wstaw",
+      "applyBulletInserted": "Punkt wstawiony do notatki",
+      "applyBulletInsertError": "Nie udało się wstawić do edytora"
     }
   },
   "focusMode": {
@@ -4248,7 +4307,28 @@
     "feDebugDisable": "Wyłącz logi debugowania FE",
     "feDebugOn": "Rozbudowane logi frontendu włączone",
     "feDebugOff": "Rozbudowane logi frontendu wyłączone",
-    "feDebugHint": "IPC/zapisz ślady w konsoli DevTools · lub scribeLog.setEnabled(true)"
+    "feDebugHint": "Ślady IPC/zapisu w DevTools + terminalu cargo · lub scribeLog.setEnabled(true)",
+    "terminalLogger": "Logger terminala",
+    "terminalReady": "aktywny · {{level}}",
+    "terminalOff": "nieaktywny",
+    "terminalEnv": "Zmienne env",
+    "terminalPing": "Test do terminala",
+    "terminalPinging": "Wysyłanie…",
+    "terminalPingOk": "Log wysłany do terminala",
+    "terminalPingHint": "Szukaj wiersza logging_ping w oknie tauri/cargo",
+    "terminalPingError": "Nie udało się wysłać logu do terminala",
+    "terminalUnavailable": "Most terminala jest tylko w aplikacji Tauri",
+    "logRing": "Log ring",
+    "logFile": "Plik logów",
+    "runtimeLevel": "Poziom logów",
+    "recentLogs": "Ostatnie logi",
+    "refreshLogs": "Odśwież logi",
+    "clearLogs": "Wyczyść ring",
+    "logsEmpty": "Brak linii w ring bufferze.",
+    "logsCleared": "Log ring wyczyszczony",
+    "logsClearError": "Nie udało się wyczyścić logów",
+    "levelChanged": "Poziom logów zaktualizowany",
+    "levelChangeError": "Nie udało się zmienić poziomu logów"
   },
   "toasts": {
     "reconcileSuccess": "Synchronizacja zakończona",
@@ -5415,6 +5495,7 @@
     "undo": "Cofnij pociągnięcie",
     "redo": "Ponów pociągnięcie",
     "clear": "Wyczyść podkładkę",
+    "deleteBlock": "Usuń blok tuszu",
     "export": "Eksportuj PNG",
     "exportDone": "Szkic wyeksportowany jako PNG",
     "ocr": "Rozpoznaj tekst (OCR)",

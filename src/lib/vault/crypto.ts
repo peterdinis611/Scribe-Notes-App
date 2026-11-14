@@ -13,9 +13,15 @@ export type VaultCipherPayload = {
   ct: string
 }
 
+/** Fast path — avoids `JSON.parse` of multi‑MB TipTap docs on every open/save. */
 export function isVaultCipherJson(contentJson: string): boolean {
+  const raw = contentJson.trimStart()
+  if (!raw.startsWith('{')) return false
+  // Typical shape: {"type":"scribe-vault-v1",...} — marker sits near the start.
+  const head = raw.slice(0, 96)
+  if (!head.includes(VAULT_MARKER)) return false
   try {
-    const parsed = JSON.parse(contentJson) as { type?: string }
+    const parsed = JSON.parse(raw) as { type?: string }
     return parsed?.type === VAULT_MARKER
   } catch {
     return false

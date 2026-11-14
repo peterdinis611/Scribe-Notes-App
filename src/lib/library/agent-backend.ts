@@ -29,6 +29,9 @@ function extrasToLocalFields(extras: Record<string, unknown> | undefined, local:
     outputLanguage:
       extras.outputLanguage === 'en' ||
       extras.outputLanguage === 'sk' ||
+      extras.outputLanguage === 'cs' ||
+      extras.outputLanguage === 'hu' ||
+      extras.outputLanguage === 'pl' ||
       extras.outputLanguage === 'auto'
         ? extras.outputLanguage
         : local.outputLanguage,

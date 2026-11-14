@@ -12,6 +12,7 @@ import {
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useRouterState } from '@tanstack/react-router'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { SuspenseFallback } from '@/components/ui/spinner'
 import { FolderTree } from '@/components/FolderTree'
 import SmartFoldersSection from '@/components/SmartFoldersSection'
 import { LibraryFilterBanner } from '@/components/LibraryFilterBanner'
@@ -407,7 +408,7 @@ export function Sidebar({ isCompact = false, isOpen = true, onClose }: SidebarPr
               {contentView !== 'folders' && (
                 <ScrollArea className="library-desk-alt min-h-0 flex-1">
                   <div className="pb-3">
-                    <Suspense fallback={null}>
+                    <Suspense fallback={<SuspenseFallback className="min-h-[6rem]" size="sm" />}>
                       {contentView === 'recent' && (
                         <div className="px-1 pb-3 pt-1">
                           <LibraryRecentView onNavigate={onClose} />

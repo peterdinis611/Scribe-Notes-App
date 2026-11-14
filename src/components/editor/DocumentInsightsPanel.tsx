@@ -25,21 +25,21 @@ import {
 } from 'lucide-react'
 import type { SearchHit } from '@/lib/db/api'
 import {
-  nlpAnalyzePlaintext,
-  nlpDocumentAnalysis,
-  nlpDocumentTasks,
-  nlpSimilarDocuments,
-  nlpSpellcheck,
-  nlpStatus,
-  nlpSuggestTags,
-  nlpSuggestWikiLinks,
-  nlpTemplateFillHints,
+  documentAnalysis as nlpDocumentAnalysis,
+  documentTasks as nlpDocumentTasks,
+  similarDocuments as nlpSimilarDocuments,
+  spellcheck as nlpSpellcheck,
+  status as nlpStatus,
+  suggestTags as nlpSuggestTags,
+  suggestWikiLinks as nlpSuggestWikiLinks,
+  templateFillHints as nlpTemplateFillHints,
   type DocumentTask,
   type NlpDocumentAnalysis,
   type NlpTemplateFillHints,
   type SpellcheckResult,
   type WikiLinkSuggestion,
-} from '@/lib/db/nlp-api'
+} from '@/lib/ai'
+import { nlpAnalyzePlaintext } from '@/lib/db/nlp-api'
 import { isVaultCipherJson } from '@/lib/vault/crypto'
 import { isVaultUnlocked } from '@/lib/vault/session'
 import { tiptapToPlainText } from '@/lib/export/plain-text'
@@ -664,6 +664,9 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
     }
     if (analysis.language === 'sk') return t('panels.insights.languageSk')
     if (analysis.language === 'en') return t('panels.insights.languageEn')
+    if (analysis.language === 'cs') return t('panels.insights.languageCs')
+    if (analysis.language === 'hu') return t('panels.insights.languageHu')
+    if (analysis.language === 'pl') return t('panels.insights.languagePl')
     return analysis.language
   }, [analysis?.language, t])
 

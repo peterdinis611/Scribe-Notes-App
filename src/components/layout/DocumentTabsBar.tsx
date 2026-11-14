@@ -12,11 +12,26 @@ import { useNavigate, useRouterState } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { ChevronLeft, ChevronRight, Pin, X } from 'lucide-react'
 import { peekCachedDocument } from '@/lib/cache/document-cache'
-import { prefetchDocument } from '@/lib/cache/prefetch-document'
+import {
+  cancelHoverPrefetch,
+  prefetchDocument,
+  scheduleHoverPrefetch,
+} from '@/lib/cache/prefetch-document'
 import { TAB_DND_TYPE, type TabDragItem } from '@/lib/dnd/types'
-import { closeActiveDocumentAndMaybeHome } from '@/lib/navigation'
+import {
+  closeActiveDocumentAndMaybeHome,
+  closeAllTabsAndMaybeHome,
+  closeOtherTabs,
+} from '@/lib/navigation'
 import { ROUTES } from '@/lib/routes'
 import { cn } from '@/lib/utils'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu'
 import { IconTooltip } from '@/components/ui/tooltip'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
@@ -44,10 +59,14 @@ export function DocumentTabsBar() {
 
   const onEditorRoute = pathname === '/' || pathname.startsWith('/doc/')
   const dirtySet = useMemo(() => new Set(dirtyDocumentIds), [dirtyDocumentIds])
+  const pinnedSet = useMemo(() => new Set(pinnedIds), [pinnedIds])
+  const closableCount = useMemo(
+    () => openIds.filter((id) => !pinnedSet.has(id)).length,
+    [openIds, pinnedSet],
+  )
 
   const tabs = useMemo(() => {
     const byId = new Map(documents.map((doc) => [doc.id, doc]))
-    const pinnedSet = new Set(pinnedIds)
     const mapped = openIds
       .map((id) => {
         const doc = byId.get(id)
@@ -65,7 +84,7 @@ export function DocumentTabsBar() {
       ...mapped.filter((tab) => tab.pinned),
       ...mapped.filter((tab) => !tab.pinned),
     ]
-  }, [dirtySet, documents, openIds, pinnedIds, t])
+  }, [dirtySet, documents, openIds, pinnedSet, t])
 
   const updateScrollHints = useCallback(() => {
     const el = listRef.current
@@ -151,6 +170,22 @@ export function DocumentTabsBar() {
     dispatch(closeOpenDocument(id))
   }
 
+  function closeOthers(id: string) {
+    suppressActivateUntilRef.current = performance.now() + 450
+    closeOtherTabs({ keepId: id, dispatch, navigate })
+  }
+
+  function closeAll() {
+    if (closableCount === 0) return
+    suppressActivateUntilRef.current = performance.now() + 450
+    closeAllTabsAndMaybeHome({
+      dispatch,
+      navigate,
+      pinnedDocumentIds: pinnedIds,
+      activeDocumentId: activeId,
+    })
+  }
+
   const overflow = scrollHints.left || scrollHints.right
 
   return (
@@ -187,8 +222,12 @@ export function DocumentTabsBar() {
             tab={tab}
             index={index}
             isActive={tab.id === activeId}
+            canCloseOthers={closableCount > (tab.pinned ? 0 : 1)}
+            canCloseAll={closableCount > 0}
             onActivate={activate}
             onClose={closeTab}
+            onCloseOthers={closeOthers}
+            onCloseAll={closeAll}
           />
         ))}
       </div>
@@ -204,6 +243,20 @@ export function DocumentTabsBar() {
           <ChevronRight className="h-3.5 w-3.5" />
         </button>
       ) : null}
+
+      {closableCount > 1 ? (
+        <IconTooltip label={t('tabs.closeAll')}>
+          <button
+            type="button"
+            className="document-tabs-close-all"
+            onClick={closeAll}
+            aria-label={t('tabs.closeAll')}
+          >
+            <X className="h-3.5 w-3.5" strokeWidth={2.25} />
+            <span className="document-tabs-close-all-label">{t('tabs.closeAllShort')}</span>
+          </button>
+        </IconTooltip>
+      ) : null}
     </div>
   )
 }
@@ -212,14 +265,22 @@ function DocumentTab({
   tab,
   index,
   isActive,
+  canCloseOthers,
+  canCloseAll,
   onActivate,
   onClose,
+  onCloseOthers,
+  onCloseAll,
 }: {
   tab: { id: string; title: string; pinned: boolean; dirty: boolean }
   index: number
   isActive: boolean
+  canCloseOthers: boolean
+  canCloseAll: boolean
   onActivate: (id: string) => void
   onClose: (id: string) => void
+  onCloseOthers: (id: string) => void
+  onCloseAll: () => void
 }) {
   const { t } = useTranslation()
   const dispatch = useAppDispatch()
@@ -257,68 +318,85 @@ function DocumentTab({
   }
 
   return (
-    <div
-      ref={tabRef}
-      data-tab-id={tab.id}
-      role="tab"
-      aria-selected={isActive}
-      aria-roledescription={t('tabs.reorder')}
-      title={tab.dirty ? `${tab.title} • ${t('tabs.unsaved')}` : tab.title}
-      style={{ '--tab-reveal': String(Math.min(index, 8)) } as CSSProperties}
-      className={cn(
-        'document-tab group',
-        isActive && 'is-active',
-        tab.pinned && 'is-pinned',
-        tab.dirty && 'is-dirty',
-        isDragging && 'is-dragging',
-        isOver && 'is-drop-target',
-      )}
-    >
-      <IconTooltip label={tab.pinned ? t('tabs.unpin') : t('tabs.pin')}>
-        <button
-          type="button"
-          className={cn('document-tab-pin', tab.pinned && 'is-on')}
-          onPointerDown={stopTabGesture}
-          onMouseDown={stopTabGesture}
-          onClick={(event) => {
-            stopTabGesture(event)
-            dispatch(togglePinnedDocument(tab.id))
-          }}
-          aria-label={tab.pinned ? t('tabs.unpin') : t('tabs.pin')}
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <div
+          ref={tabRef}
+          data-tab-id={tab.id}
+          role="tab"
+          aria-selected={isActive}
+          aria-roledescription={t('tabs.reorder')}
+          title={tab.dirty ? `${tab.title} • ${t('tabs.unsaved')}` : tab.title}
+          style={{ '--tab-reveal': String(Math.min(index, 8)) } as CSSProperties}
+          className={cn(
+            'document-tab group',
+            isActive && 'is-active',
+            tab.pinned && 'is-pinned',
+            tab.dirty && 'is-dirty',
+            isDragging && 'is-dragging',
+            isOver && 'is-drop-target',
+          )}
         >
-          <Pin className={cn('h-3 w-3', tab.pinned && 'fill-current')} />
-        </button>
-      </IconTooltip>
+          <IconTooltip label={tab.pinned ? t('tabs.unpin') : t('tabs.pin')}>
+            <button
+              type="button"
+              className={cn('document-tab-pin', tab.pinned && 'is-on')}
+              onPointerDown={stopTabGesture}
+              onMouseDown={stopTabGesture}
+              onClick={(event) => {
+                stopTabGesture(event)
+                dispatch(togglePinnedDocument(tab.id))
+              }}
+              aria-label={tab.pinned ? t('tabs.unpin') : t('tabs.pin')}
+            >
+              <Pin className={cn('h-3 w-3', tab.pinned && 'fill-current')} />
+            </button>
+          </IconTooltip>
 
-      <button
-        type="button"
-        className="document-tab-label"
-        onClick={() => onActivate(tab.id)}
-        onPointerEnter={() => prefetchDocument(tab.id, 'low')}
-        title={tab.title}
-      >
-        {tab.dirty ? <span className="document-tab-dirty" aria-hidden /> : null}
-        <span className="document-tab-title">{tab.title}</span>
-      </button>
-
-      {!tab.pinned ? (
-        <IconTooltip label={t('tabs.close')}>
           <button
             type="button"
-            className="document-tab-close"
-            onPointerDown={stopTabGesture}
-            onMouseDown={stopTabGesture}
-            onPointerUp={(event) => {
-              stopTabGesture(event)
-              onClose(tab.id)
-            }}
-            onClick={stopTabGesture}
-            aria-label={t('tabs.close')}
+            className="document-tab-label"
+            onClick={() => onActivate(tab.id)}
+            onPointerEnter={() => scheduleHoverPrefetch(tab.id)}
+            onPointerLeave={() => cancelHoverPrefetch(tab.id)}
+            title={tab.title}
           >
-            <X className="h-3.5 w-3.5" strokeWidth={2.25} />
+            {tab.dirty ? <span className="document-tab-dirty" aria-hidden /> : null}
+            <span className="document-tab-title">{tab.title}</span>
           </button>
-        </IconTooltip>
-      ) : null}
-    </div>
+
+          {!tab.pinned ? (
+            <IconTooltip label={t('tabs.close')}>
+              <button
+                type="button"
+                className="document-tab-close"
+                onPointerDown={stopTabGesture}
+                onMouseDown={stopTabGesture}
+                onPointerUp={(event) => {
+                  stopTabGesture(event)
+                  onClose(tab.id)
+                }}
+                onClick={stopTabGesture}
+                aria-label={t('tabs.close')}
+              >
+                <X className="h-3.5 w-3.5" strokeWidth={2.25} />
+              </button>
+            </IconTooltip>
+          ) : null}
+        </div>
+      </ContextMenuTrigger>
+      <ContextMenuContent className="min-w-[11rem]">
+        {!tab.pinned ? (
+          <ContextMenuItem onSelect={() => onClose(tab.id)}>{t('tabs.close')}</ContextMenuItem>
+        ) : null}
+        <ContextMenuItem disabled={!canCloseOthers} onSelect={() => onCloseOthers(tab.id)}>
+          {t('tabs.closeOthers')}
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem disabled={!canCloseAll} onSelect={onCloseAll}>
+          {t('tabs.closeAll')}
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   )
 }

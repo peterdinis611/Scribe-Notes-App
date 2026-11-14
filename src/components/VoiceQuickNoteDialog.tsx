@@ -5,6 +5,7 @@ import { LoaderCircle, Mic, Square } from 'lucide-react'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { openVoiceTranscriptNote } from '@/lib/capture/voice-note'
+import { speechRecognitionLang } from '@/lib/i18n/locale-tags'
 import { toast } from '@/lib/toast'
 import { useAppDispatch } from '@/store/hooks'
 
@@ -60,7 +61,7 @@ export function VoiceQuickNoteDialog({ open, onClose }: VoiceQuickNoteDialogProp
     const recognition = new Ctor()
     recognition.continuous = true
     recognition.interimResults = true
-    recognition.lang = i18n.language?.startsWith('sk') ? 'sk-SK' : 'en-US'
+    recognition.lang = speechRecognitionLang(i18n.language)
     recognition.onresult = (event) => {
       let text = ''
       for (let i = 0; i < event.results.length; i += 1) {

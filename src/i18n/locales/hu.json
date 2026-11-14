@@ -642,8 +642,8 @@
     "badge": "Mi újság a {{version}}‑ban",
     "kicker": "Kiadási megjegyzések",
     "title": "Scribe {{version}}",
-    "subtitle": "A jegyzetmotor több része Rust-ban fut — wiki linkek, feladatnapló és forrásexport — továbbra is teljesen helyi ezen a Mac-en.",
-    "editionMark": "Natív · Könyvtár",
+    "subtitle": "Offline AI you can feel — search rewrite, shared prompts, and Python/Rust parity — still fully local on this Mac.",
+    "editionMark": "Local AI · Library",
     "tagsLabel": "Témák ebben a kiadásban",
     "tags": {
       "agent": "Ügynök",
@@ -1046,6 +1046,22 @@
     "libraryPolish": {
       "title": "Könyvtár finomhangolás",
       "description": "A feladatok szűrhetők mappa szerint, és rendezhetők határidő szerint. A duplikátumok lexikális és beágyazott pontszámokat mutatnak. A piszkos fülek és a wiki/feladat számlálók segítenek tájékozódni."
+    },
+    "offlineAiFelt": {
+      "title": "Offline AI you feel",
+      "description": "Rust scribe-ai helpers power search, planning, and prompts even when the Python sidecar is off."
+    },
+    "searchRewrite": {
+      "title": "Smarter search rewrite",
+      "description": "SK/EN synonym expansion lifts Command Palette, sidebar hybrid search, and title fuzzy matching."
+    },
+    "aiSurface": {
+      "title": "One AI surface",
+      "description": "Frontend @/lib/ai, Tauri commands, and MCP share rewrite, plan_tools, and build_prompt."
+    },
+    "pythonParity": {
+      "title": "Python scribe_ai parity",
+      "description": "Sidecar mirrors Rust prompts, intent routing, citation pack, and revision AI for local agents."
     }
   },
   "wikiNav": {
@@ -2019,9 +2035,10 @@
       "rolesLiveCount": "{{count}} / {{total}} élő",
       "rolesNetworkHint": "Átadások · privát adatbázis",
       "rolePanelSpell": "Spell felhasználói felület",
-      "roleMemoryEmpty": "Még nincsenek tanítások",
+      "roleMemoryEmpty": "Még nincsenek tanítások — tanítás",
       "roleMemoryCount": "{{count}} tanítások",
       "roleMemoryHint": "A tanítások ebben az ügynök partíciójában vannak tárolva a scribe-agent.db-ben",
+      "roleMemoryTeach": "Tanítási űrlap megnyitása ehhez az ügynökhöz",
       "roleHandoffTo": "Átadások {{name}}",
       "roleHandoffHint": "Alapértelmezett partner, akit ez az ügynök értesít a jelentős futások után",
       "roleEnabledToast": "{{name}} engedélyezve",
@@ -2539,6 +2556,35 @@
       "purgeOk": "Eltávolítva a karanténból",
       "purgeAllOk": "Törölve {{count}} karantén elem(ek)",
       "purgeError": "A tisztítás sikertelen"
+    },
+    "audit": {
+      "title": "Auditnapló",
+      "description": "Böngészd a helyi audit eseményeket, statisztikákat, és másold a JSONL exportot.",
+      "searchPlaceholder": "Szűrés művelet, szereplő, összefoglaló szerint…",
+      "export": "JSONL másolása",
+      "exportCopied": "Audit export másolva",
+      "exportError": "Nem sikerült exportálni az auditot",
+      "loadError": "Nem sikerült betölteni az auditot",
+      "total": "Események",
+      "keepLimit": "Megőrzési limit",
+      "newest": "Legújabb",
+      "empty": "Még nincsenek audit események.",
+      "setup": "Jelszó beállítása",
+      "setupHint": "Védd a helyi auditnaplót jelszóval (min. 8 karakter).",
+      "setupDone": "Audit jelszó beállítva",
+      "unlock": "Feloldás",
+      "unlockHint": "Oldd fel az auditnaplót a böngészéshez és exporthoz.",
+      "unlocked": "Audit feloldva",
+      "unlockError": "Nem sikerült feloldani az auditot",
+      "lock": "Zárolás",
+      "locked": "Audit zárolva",
+      "lockError": "Nem sikerült zárolni az auditot",
+      "passwordPlaceholder": "Jelszó",
+      "passwordTooShort": "A jelszónak legalább 8 karakternek kell lennie",
+      "saveKeep": "Megőrzés mentése",
+      "keepSaved": "Megőrzés frissítve",
+      "keepInvalid": "Adj meg legalább 100-as limitet",
+      "keepError": "Nem sikerült menteni a megőrzést"
     }
   },
   "storageAccess": {
@@ -2696,6 +2742,9 @@
   "tabs": {
     "ariaLabel": "Dokumentumok megnyitása",
     "close": "Lap bezárása",
+    "closeOthers": "Többi bezárása",
+    "closeAll": "Összes lap bezárása",
+    "closeAllShort": "Mind bezár",
     "pin": "Lap rögzítése",
     "unpin": "Lap feloldása",
     "reorder": "Húzza a sorrend módosításához",
@@ -3869,6 +3918,9 @@
       "languageLine": "Észlelt nyelv: {{language}}",
       "languageSk": "Szlovák",
       "languageEn": "Angol",
+      "languageCs": "Cseh",
+      "languageHu": "Magyar",
+      "languagePl": "Lengyel",
       "languageUnknown": "ismeretlen",
       "similar": "Hasonló dokumentumok",
       "similarHint": "A meglévő szemantikus indexeden alapul.",
@@ -4025,7 +4077,14 @@
       "contextLines": "Környezet",
       "wordHighlight": "Szókiemelés",
       "gainedTerms": "Növekedett",
-      "lostTerms": "Elveszítve"
+      "lostTerms": "Elveszítve",
+      "copyAiSummary": "AI összefoglaló másolása",
+      "copyAiSummaryError": "Nem sikerült másolni az AI összefoglalót",
+      "saveNamedFromAi": "Nevesített revízió mentése",
+      "applyBulletNamed": "Elnevezés",
+      "applyBulletInsert": "Beszúrás",
+      "applyBulletInserted": "Elem beszúrva a jegyzetbe",
+      "applyBulletInsertError": "Nem sikerült beszúrni a szerkesztőbe"
     }
   },
   "focusMode": {
@@ -4248,7 +4307,28 @@
     "feDebugDisable": "FE hibakeresési naplók letiltása",
     "feDebugOn": "Részletes frontend naplók be",
     "feDebugOff": "Részletes frontend naplók ki",
-    "feDebugHint": "IPC/mentési nyomkövetés a DevTools konzolban · vagy scribeLog.setEnabled(true)"
+    "feDebugHint": "IPC/mentési nyomok a DevToolsban + cargo terminálban · vagy scribeLog.setEnabled(true)",
+    "terminalLogger": "Terminál naplózó",
+    "terminalReady": "aktív · {{level}}",
+    "terminalOff": "inaktív",
+    "terminalEnv": "Env kulcsok",
+    "terminalPing": "Teszt a terminálba",
+    "terminalPinging": "Küldés…",
+    "terminalPingOk": "Napló elküldve a terminálba",
+    "terminalPingHint": "Keress logging_ping sort a tauri/cargo ablakban",
+    "terminalPingError": "Nem sikerült naplót küldeni a terminálba",
+    "terminalUnavailable": "A terminál híd csak a Tauri alkalmazásban elérhető",
+    "logRing": "Log ring",
+    "logFile": "Naplófájl",
+    "runtimeLevel": "Naplószint",
+    "recentLogs": "Legutóbbi naplók",
+    "refreshLogs": "Naplók frissítése",
+    "clearLogs": "Ring törlése",
+    "logsEmpty": "Még nincs sor a ring bufferben.",
+    "logsCleared": "Log ring törölve",
+    "logsClearError": "Nem sikerült törölni a naplókat",
+    "levelChanged": "Naplószint frissítve",
+    "levelChangeError": "Nem sikerült megváltoztatni a naplószintet"
   },
   "toasts": {
     "reconcileSuccess": "Szinkronizálás befejezve",
@@ -5415,6 +5495,7 @@
     "undo": "Vonal visszavonása",
     "redo": "Vonal újra",
     "clear": "Pad törlése",
+    "deleteBlock": "Tintablokk törlése",
     "export": "PNG exportálás",
     "exportDone": "Vázlat PNG-ként exportálva",
     "ocr": "Szöveg felismerése (OCR)",

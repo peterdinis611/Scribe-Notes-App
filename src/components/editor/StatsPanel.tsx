@@ -4,6 +4,7 @@ import type { Editor } from '@tiptap/react'
 import { useEditorState } from '@tiptap/react'
 import { PanelRightClose, Target } from 'lucide-react'
 import { Input } from '@/components/ui/input'
+import { bcp47Tag } from '@/lib/i18n/locale-tags'
 import { useAppSelector } from '@/store/hooks'
 import { kvGet, kvRemove, kvSet } from '@/lib/storage/kv'
 import {
@@ -29,7 +30,7 @@ function readGoal(documentId: string | null): number {
 
 export function StatsPanel({ editor, onClose }: StatsPanelProps) {
   const { t, i18n } = useTranslation()
-  const numberLocale = i18n.language === 'sk' ? 'sk-SK' : 'en-US'
+  const numberLocale = bcp47Tag(i18n.language)
   const activeId = useAppSelector((state) => state.documents.activeDocumentId)
   const [goal, setGoal] = useState(() => readGoal(activeId))
 

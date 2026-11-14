@@ -3,6 +3,7 @@ import type { NodeViewProps } from '@tiptap/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
+  BrushCleaning,
   Download,
   Eraser,
   Highlighter,
@@ -54,9 +55,17 @@ function draftWidth(tool: PaintTool, brush: number): number {
   return brush
 }
 
-export function PaintBlock({ node, selected, deleteNode, updateAttributes, getPos }: NodeViewProps) {
+export function PaintBlock({
+  node,
+  selected,
+  editor,
+  deleteNode,
+  updateAttributes,
+  getPos,
+}: NodeViewProps) {
   const { t } = useTranslation()
   const activeId = useAppSelector((state) => state.documents.activeDocumentId)
+  const editable = editor.isEditable
   const width = Number(node.attrs.width) || PAINT_DEFAULT_WIDTH
   const height = Number(node.attrs.height) || PAINT_DEFAULT_HEIGHT
   const background = String(node.attrs.background || PAINT_DEFAULT_BG)
@@ -227,13 +236,29 @@ export function PaintBlock({ node, selected, deleteNode, updateAttributes, getPo
     }
   }
 
-  function handleDelete() {
+  const handleDelete = useCallback(() => {
+    if (!editable) return
     const pos = typeof getPos === 'function' ? getPos() : null
     if (typeof pos === 'number') {
-      // Prefer command so history records cleanly when available.
+      const removed = editor.chain().focus().deletePaintPad({ pos }).run()
+      if (removed) return
     }
     deleteNode()
-  }
+  }, [deleteNode, editable, editor, getPos])
+
+  useEffect(() => {
+    if (!selected || !editable) return
+    function onKey(event: KeyboardEvent) {
+      const target = event.target as HTMLElement | null
+      if (target?.closest('input, textarea')) return
+      if (event.key === 'Delete' || event.key === 'Backspace') {
+        event.preventDefault()
+        handleDelete()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [editable, handleDelete, selected])
 
   const swatches = tool === 'highlighter' ? PAINT_HIGHLIGHTER_COLORS : PAINT_INK_COLORS
 
@@ -349,12 +374,32 @@ export function PaintBlock({ node, selected, deleteNode, updateAttributes, getPo
           >
             {ocrBusy ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <ScanText className="h-3.5 w-3.5" />}
           </button>
-          <button type="button" className="paint-block__btn" disabled={strokes.length === 0} onClick={clearAll} title={t('paint.clear')}>
-            <Trash2 className="h-3.5 w-3.5" />
+          <button
+            type="button"
+            className="paint-block__btn"
+            disabled={strokes.length === 0}
+            onClick={clearAll}
+            title={t('paint.clear')}
+            aria-label={t('paint.clear')}
+          >
+            <BrushCleaning className="h-3.5 w-3.5" />
           </button>
-          <button type="button" className="paint-block__btn paint-block__btn--danger" onClick={handleDelete} title={t('common.delete')}>
-            ×
-          </button>
+          {editable ? (
+            <button
+              type="button"
+              className="paint-block__btn paint-block__btn--danger paint-block__btn--delete"
+              onClick={(event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                handleDelete()
+              }}
+              title={`${t('paint.deleteBlock')} (⌫)`}
+              aria-label={t('paint.deleteBlock')}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              <span>{t('paint.deleteBlock')}</span>
+            </button>
+          ) : null}
         </div>
       </div>
 

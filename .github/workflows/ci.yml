@@ -110,8 +110,17 @@ jobs:
       - name: Clippy scribe-ai
         run: cargo clippy -p scribe-ai --locked --all-targets -- -D warnings
 
+      - name: Clippy scribe-logging
+        run: cargo clippy -p scribe-logging --locked --all-targets -- -D warnings
+
+      - name: Clippy scribe-websockets
+        run: cargo clippy -p scribe-websockets --locked --all-targets -- -D warnings
+
       - name: Test workspace crates (exclude app)
         run: cargo test --workspace --exclude app --locked
+
+      - name: Test scribe-logging (explicit)
+        run: cargo test -p scribe-logging --locked
 
   rust:
     name: Rust (${{ matrix.os }})

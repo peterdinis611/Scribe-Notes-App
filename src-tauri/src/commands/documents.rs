@@ -3,7 +3,7 @@ use crate::db::DbState;
 use crate::storage;
 use rusqlite::{params, OptionalExtension};
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Manager, State};
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -231,18 +231,23 @@ pub fn list_trashed_documents(state: State<'_, DbState>) -> Result<Vec<DocumentS
     rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
 }
 
+/// Off the UI thread — sync IPC was queuing behind reconcile / NLP on the main thread.
 #[tauri::command]
-pub fn get_document(state: State<'_, DbState>, id: String) -> Result<Document, String> {
-    let conn = state.conn.lock().map_err(|e| e.to_string())?;
-
-    conn.query_row(
-        &format!("{DOCUMENT_SELECT} WHERE id = ?1"),
-        params![id],
-        map_document,
-    )
-    .optional()
-    .map_err(|e| e.to_string())?
-    .ok_or_else(|| format!("Document not found: {id}"))
+pub async fn get_document(app: AppHandle, id: String) -> Result<Document, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<DbState>();
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        conn.query_row(
+            &format!("{DOCUMENT_SELECT} WHERE id = ?1"),
+            params![id],
+            map_document,
+        )
+        .optional()
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("Document not found: {id}"))
+    })
+    .await
+    .map_err(|e| format!("get_document worker failed: {e}"))?
 }
 
 pub(crate) fn insert_document_record(

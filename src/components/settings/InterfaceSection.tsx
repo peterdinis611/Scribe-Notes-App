@@ -2,6 +2,13 @@ import { RotateCcw } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import {
   SettingsGroup,
@@ -213,19 +220,31 @@ export function InterfaceSection() {
             description={t('settings.interface.toastsPositionHint')}
             layout="stack"
           >
-            <select
-              className="h-8 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-background)] px-2 text-[13px]"
+            <Select
               value={toastSettings.position}
               disabled={!toastSettings.enabled}
-              onChange={(event) =>
-                dispatch(patchToastSettings({ position: event.target.value as ToastPosition }))
+              onValueChange={(value) =>
+                dispatch(patchToastSettings({ position: value as ToastPosition }))
               }
             >
-              <option value="bottom-right">{t('settings.interface.toastsPosBottomRight')}</option>
-              <option value="bottom-left">{t('settings.interface.toastsPosBottomLeft')}</option>
-              <option value="top-right">{t('settings.interface.toastsPosTopRight')}</option>
-              <option value="top-left">{t('settings.interface.toastsPosTopLeft')}</option>
-            </select>
+              <SelectTrigger size="sm" className="max-w-xs" aria-label={t('settings.interface.toastsPosition')}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="bottom-right">
+                  {t('settings.interface.toastsPosBottomRight')}
+                </SelectItem>
+                <SelectItem value="bottom-left">
+                  {t('settings.interface.toastsPosBottomLeft')}
+                </SelectItem>
+                <SelectItem value="top-right">
+                  {t('settings.interface.toastsPosTopRight')}
+                </SelectItem>
+                <SelectItem value="top-left">
+                  {t('settings.interface.toastsPosTopLeft')}
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </SettingsRow>
 
           <SettingsRow
@@ -279,20 +298,28 @@ export function InterfaceSection() {
             description={t('settings.interface.toastsStackHint')}
             layout="stack"
           >
-            <select
-              className="h-8 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-background)] px-2 text-[13px]"
+            <Select
               value={toastSettings.stackBehavior}
               disabled={!toastSettings.enabled}
-              onChange={(event) =>
-                dispatch(
-                  patchToastSettings({ stackBehavior: event.target.value as ToastStackBehavior }),
-                )
+              onValueChange={(value) =>
+                dispatch(patchToastSettings({ stackBehavior: value as ToastStackBehavior }))
               }
             >
-              <option value="drop-oldest">{t('settings.interface.toastsStackOldest')}</option>
-              <option value="drop-newest">{t('settings.interface.toastsStackNewest')}</option>
-              <option value="replace-same">{t('settings.interface.toastsStackReplace')}</option>
-            </select>
+              <SelectTrigger size="sm" className="max-w-xs" aria-label={t('settings.interface.toastsStack')}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="drop-oldest">
+                  {t('settings.interface.toastsStackOldest')}
+                </SelectItem>
+                <SelectItem value="drop-newest">
+                  {t('settings.interface.toastsStackNewest')}
+                </SelectItem>
+                <SelectItem value="replace-same">
+                  {t('settings.interface.toastsStackReplace')}
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </SettingsRow>
 
           <SettingsRow

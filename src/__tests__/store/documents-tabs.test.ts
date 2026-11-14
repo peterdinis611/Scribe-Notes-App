@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { configureStore } from '@reduxjs/toolkit'
 import documentsReducer, {
+  closeAllOpenDocuments,
   closeOpenDocument,
+  closeOtherOpenDocuments,
   reorderOpenDocuments,
   restoreLibrarySession,
   togglePinnedDocument,
@@ -49,5 +51,20 @@ describe('documentsSlice tabs', () => {
     store.dispatch(closeOpenDocument('a'))
     expect(store.getState().documents.openDocumentIds).toEqual(['a', 'b'])
     expect(store.getState().documents.pinnedDocumentIds).toEqual(['a'])
+  })
+
+  it('closes all unpinned tabs and keeps pins', () => {
+    const store = storeWithTabs(['a', 'b', 'c'], 'b')
+    store.dispatch(togglePinnedDocument('a'))
+    store.dispatch(closeAllOpenDocuments())
+    expect(store.getState().documents.openDocumentIds).toEqual(['a'])
+    expect(store.getState().documents.activeDocumentId).toBe('a')
+  })
+
+  it('closes other unpinned tabs', () => {
+    const store = storeWithTabs(['a', 'b', 'c'], 'a')
+    store.dispatch(closeOtherOpenDocuments('b'))
+    expect(store.getState().documents.openDocumentIds).toEqual(['b'])
+    expect(store.getState().documents.activeDocumentId).toBe('b')
   })
 })

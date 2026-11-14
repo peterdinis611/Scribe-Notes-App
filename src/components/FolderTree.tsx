@@ -32,7 +32,8 @@ import { useMoveDocumentToFolder } from '@/hooks/useMoveDocumentToFolder'
 import { invalidateDocumentCache, peekCachedDocument } from '@/lib/cache/document-cache'
 import { prefetchDocument } from '@/lib/cache/prefetch-document'
 import { isLibraryDocumentVisible } from '@/lib/db/library-sync'
-import { fuzzyFilter } from '@/lib/search/fuzzy'
+import { expandSearchQuery } from '@/lib/ai'
+import { fuzzyFilterNative } from '@/lib/search/fuzzy'
 import { trashDocuments, removeDocumentsFromLibraryUi, restoreTrashedDocuments } from '@/lib/trash-document'
 import {
   buildDeleteFolderConfirmMessage,
@@ -170,8 +171,10 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
 
   // Keep the search input snappy; rebuild the tree on the deferred query.
   const deferredQuery = useDeferredValue(query)
+  const [filteredDocuments, setFilteredDocuments] = useState(documents)
 
-  const filteredDocuments = useMemo(() => {
+  useEffect(() => {
+    let cancelled = false
     const scoped = documents.filter((doc) => {
       if (!isLibraryDocumentVisible(doc)) return false
       if (favoritesOnly && !doc.isFavorite) return false
@@ -192,9 +195,23 @@ export function FolderTree({ query, scrollRef, onNavigate }: FolderTreeProps) {
       return true
     })
     const q = deferredQuery.trim()
-    if (!q) return scoped
-    // Regular title/tag search via fuse.js (diacritic-aware, ranked).
-    return fuzzyFilter(scoped, q, (doc) => [doc.title, ...(doc.tags ?? [])])
+    if (!q) {
+      setFilteredDocuments(scoped)
+      return
+    }
+    void (async () => {
+      const expanded = await expandSearchQuery(q, 4)
+      const needle = expanded.rewritten || q
+      // Prefer Rust scribe-ui ranking under Tauri; fuse fallback in fuzzyFilterNative.
+      const ranked = await fuzzyFilterNative(scoped, needle, (doc) => [
+        doc.title,
+        ...(doc.tags ?? []),
+      ])
+      if (!cancelled) setFilteredDocuments(ranked)
+    })()
+    return () => {
+      cancelled = true
+    }
   }, [
     documents,
     deferredQuery,

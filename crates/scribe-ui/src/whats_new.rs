@@ -1,16 +1,16 @@
 //! Whats New edition highlights (i18n keys live in FE locales).
 
-/// Edition 5.x highlight ids — must match `whatsNew.*` keys in en/sk.json.
+/// Edition 5.4 highlight ids — must match `whatsNew.*` keys in en/sk.json.
 pub const WHATS_NEW_50_HIGHLIGHTS: &[&str] = &[
-    "nativeCore",
-    "wikiNative",
-    "taskAgenda",
-    "sourceExport",
+    "offlineAiFelt",
+    "searchRewrite",
+    "aiSurface",
+    "pythonParity",
     "stillLocal",
 ];
 
-/// Folio tag keys under `whatsNew.tags.*` for the 5.x edition.
-pub const WHATS_NEW_50_TAG_KEYS: &[&str] = &["native", "library", "editor"];
+/// Folio tag keys under `whatsNew.tags.*` for the 5.4 edition.
+pub const WHATS_NEW_50_TAG_KEYS: &[&str] = &["localAi", "library", "agent"];
 
 /// Deprecated alias — prefer [`WHATS_NEW_50_HIGHLIGHTS`].
 pub const WHATS_NEW_40_HIGHLIGHTS: &[&str] = WHATS_NEW_50_HIGHLIGHTS;
@@ -40,7 +40,7 @@ mod tests {
     #[test]
     fn has_five_highlights() {
         assert_eq!(WHATS_NEW_50_HIGHLIGHTS.len(), 5);
-        assert!(WHATS_NEW_50_HIGHLIGHTS.contains(&"nativeCore"));
-        assert_eq!(whats_new_tag_keys(), vec!["native", "library", "editor"]);
+        assert!(WHATS_NEW_50_HIGHLIGHTS.contains(&"offlineAiFelt"));
+        assert_eq!(whats_new_tag_keys(), vec!["localAi", "library", "agent"]);
     }
 }

@@ -2,7 +2,7 @@
  * Run the same checks as GitHub Actions CI (+ optional Tauri build) on this machine.
  *
  * Usage:
- *   bun run ci:local              # frontend + NLP + Rust + path-commands (CI workflow)
+ *   bun run ci:local              # frontend + NLP + Rust + path/ACL checks (CI workflow)
  *   bun run ci:local:tauri        # + tauri build for this OS (Build workflow)
  *   bun scripts/ci-local.ts --tag v5.3.0   # also assert tag ↔ package.json
  *
@@ -93,6 +93,11 @@ if (!skipPathCommands) {
     cmd: 'python3',
     args: ['scripts/check_tauri_path_commands.py'],
   })
+  run({
+    name: 'CI / Tauri command permission groups',
+    cmd: 'python3',
+    args: ['scripts/check_tauri_command_permissions.py'],
+  })
 }
 
 if (!skipNlp) {
@@ -115,6 +120,21 @@ if (!skipRust) {
     name: 'CI / Rust clippy scribe-audit',
     cmd: 'cargo',
     args: ['clippy', '-p', 'scribe-audit', '--locked', '--all-targets', '--', '-D', 'warnings'],
+  })
+  run({
+    name: 'CI / Rust clippy scribe-ai',
+    cmd: 'cargo',
+    args: ['clippy', '-p', 'scribe-ai', '--locked', '--all-targets', '--', '-D', 'warnings'],
+  })
+  run({
+    name: 'CI / Rust clippy scribe-logging',
+    cmd: 'cargo',
+    args: ['clippy', '-p', 'scribe-logging', '--locked', '--all-targets', '--', '-D', 'warnings'],
+  })
+  run({
+    name: 'CI / Rust clippy scribe-websockets',
+    cmd: 'cargo',
+    args: ['clippy', '-p', 'scribe-websockets', '--locked', '--all-targets', '--', '-D', 'warnings'],
   })
   run({
     name: 'CI / Rust libs (exclude app)',

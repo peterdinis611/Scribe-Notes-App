@@ -642,8 +642,8 @@
     "badge": "Co je nového v {{version}}",
     "kicker": "Poznámky k edici",
     "title": "Scribe {{version}}",
-    "subtitle": "Větší část jádra poznámek běží v Rustu — wiki odkazy, agenda úkolů a export zdrojů — stále zcela lokálně na tomto Macu.",
-    "editionMark": "Nativní · Knihovna",
+    "subtitle": "Offline AI you can feel — search rewrite, shared prompts, and Python/Rust parity — still fully local on this Mac.",
+    "editionMark": "Local AI · Library",
     "tagsLabel": "Motivy v tomto vydání",
     "tags": {
       "agent": "Agent",
@@ -1046,6 +1046,22 @@
     "libraryPolish": {
       "title": "Vylepšení knihovny",
       "description": "Filtr úkolů podle složky a řazení podle termínu. Duplikáty ukazují lexikální vs vložené skóre. Špinavé karty a počty wiki/úkolů vás udržují orientované."
+    },
+    "offlineAiFelt": {
+      "title": "Offline AI you feel",
+      "description": "Rust scribe-ai helpers power search, planning, and prompts even when the Python sidecar is off."
+    },
+    "searchRewrite": {
+      "title": "Smarter search rewrite",
+      "description": "SK/EN synonym expansion lifts Command Palette, sidebar hybrid search, and title fuzzy matching."
+    },
+    "aiSurface": {
+      "title": "One AI surface",
+      "description": "Frontend @/lib/ai, Tauri commands, and MCP share rewrite, plan_tools, and build_prompt."
+    },
+    "pythonParity": {
+      "title": "Python scribe_ai parity",
+      "description": "Sidecar mirrors Rust prompts, intent routing, citation pack, and revision AI for local agents."
     }
   },
   "wikiNav": {
@@ -2019,9 +2035,10 @@
       "rolesLiveCount": "{{count}} / {{total}} živě",
       "rolesNetworkHint": "Předání · soukromá DB",
       "rolePanelSpell": "Rozhraní pravopisu",
-      "roleMemoryEmpty": "Zatím žádná výuka",
+      "roleMemoryEmpty": "Zatím žádná výuka — naučit",
       "roleMemoryCount": "{{count}} výuka",
       "roleMemoryHint": "Výuka uložena v oddílu tohoto agenta v souboru scribe-agent.db",
+      "roleMemoryTeach": "Otevřít formulář výuky pro tohoto agenta",
       "roleHandoffTo": "Ruce k {{name}}",
       "roleHandoffHint": "Výchozí partner, kterého tento agent informuje po podstatných bězích",
       "roleEnabledToast": "{{name}} povoleno",
@@ -2539,6 +2556,35 @@
       "purgeOk": "Odstraněno z karantény",
       "purgeAllOk": "Vymazáno {{count}} položek karantény",
       "purgeError": "Vyčištění selhalo"
+    },
+    "audit": {
+      "title": "Auditní protokol",
+      "description": "Procházejte místní auditní události, statistiky a zkopírujte JSONL export.",
+      "searchPlaceholder": "Filtrovat podle akce, aktora, souhrnu…",
+      "export": "Kopírovat JSONL",
+      "exportCopied": "Export auditu zkopírován",
+      "exportError": "Nepodařilo se exportovat audit",
+      "loadError": "Nepodařilo se načíst audit",
+      "total": "Události",
+      "keepLimit": "Limit uchování",
+      "newest": "Nejnovější",
+      "empty": "Zatím žádné auditní události.",
+      "setup": "Nastavit heslo",
+      "setupHint": "Chraňte místní auditní protokol heslem (min. 8 znaků).",
+      "setupDone": "Heslo auditu nastaveno",
+      "unlock": "Odemknout",
+      "unlockHint": "Odemkněte auditní protokol pro prohlížení a export.",
+      "unlocked": "Audit odemčen",
+      "unlockError": "Nepodařilo se odemknout audit",
+      "lock": "Zamknout",
+      "locked": "Audit zamčen",
+      "lockError": "Nepodařilo se zamknout audit",
+      "passwordPlaceholder": "Heslo",
+      "passwordTooShort": "Heslo musí mít alespoň 8 znaků",
+      "saveKeep": "Uložit retenci",
+      "keepSaved": "Retence aktualizována",
+      "keepInvalid": "Zadejte limit alespoň 100",
+      "keepError": "Nepodařilo se uložit retenci"
     }
   },
   "storageAccess": {
@@ -2696,6 +2742,9 @@
   "tabs": {
     "ariaLabel": "Otevřít dokumenty",
     "close": "Zavřít kartu",
+    "closeOthers": "Zavřít ostatní",
+    "closeAll": "Zavřít všechny karty",
+    "closeAllShort": "Zavřít vše",
     "pin": "Připnout kartu",
     "unpin": "Odepnout kartu",
     "reorder": "Táhnout pro změnu pořadí",
@@ -3868,7 +3917,10 @@
       "keywordsDisabled": "Povolte místní AI v nastavení pro klíčová slova.",
       "languageLine": "Detekovaný jazyk: {{language}}",
       "languageSk": "slovenština",
-      "languageEn": "English",
+      "languageEn": "angličtina",
+      "languageCs": "čeština",
+      "languageHu": "maďarština",
+      "languagePl": "polština",
       "languageUnknown": "neznámý",
       "similar": "Podobné dokumenty",
       "similarHint": "Na základě vašeho existujícího sémantického indexu.",
@@ -4025,7 +4077,14 @@
       "contextLines": "Kontext",
       "wordHighlight": "Zvýraznění slova",
       "gainedTerms": "Získáno",
-      "lostTerms": "Ztraceno"
+      "lostTerms": "Ztraceno",
+      "copyAiSummary": "Kopírovat AI souhrn",
+      "copyAiSummaryError": "Nepodařilo se zkopírovat AI souhrn",
+      "saveNamedFromAi": "Uložit pojmenovanou revizi",
+      "applyBulletNamed": "Pojmenovat",
+      "applyBulletInsert": "Vložit",
+      "applyBulletInserted": "Položka vložena do poznámky",
+      "applyBulletInsertError": "Nepodařilo se vložit do editoru"
     }
   },
   "focusMode": {
@@ -4248,7 +4307,28 @@
     "feDebugDisable": "Zakázat ladicí logy FE",
     "feDebugOn": "Podrobné logy frontendu zapnuty",
     "feDebugOff": "Podrobné logy frontendu vypnuty",
-    "feDebugHint": "IPC/uložit stopy v konzoli DevTools · nebo scribeLog.setEnabled(true)"
+    "feDebugHint": "IPC/uložit stopy v DevTools + cargo terminálu · nebo scribeLog.setEnabled(true)",
+    "terminalLogger": "Terminálový logger",
+    "terminalReady": "aktivní · {{level}}",
+    "terminalOff": "neaktivní",
+    "terminalEnv": "Env proměnné",
+    "terminalPing": "Test do terminálu",
+    "terminalPinging": "Odesílám…",
+    "terminalPingOk": "Log odeslán do terminálu",
+    "terminalPingHint": "Hledej řádek logging_ping v okně tauri/cargo",
+    "terminalPingError": "Nepodařilo se odeslat log do terminálu",
+    "terminalUnavailable": "Terminálový most je jen v Tauri aplikaci",
+    "logRing": "Log ring",
+    "logFile": "Log soubor",
+    "runtimeLevel": "Úroveň logů",
+    "recentLogs": "Nedávné logy",
+    "refreshLogs": "Obnovit logy",
+    "clearLogs": "Vymazat ring",
+    "logsEmpty": "Zatím žádné logy v ring bufferu.",
+    "logsCleared": "Log ring vymazán",
+    "logsClearError": "Nepodařilo se vymazat logy",
+    "levelChanged": "Úroveň logů změněna",
+    "levelChangeError": "Nepodařilo se změnit úroveň logů"
   },
   "toasts": {
     "reconcileSuccess": "Synchronizace dokončena",
@@ -5415,6 +5495,7 @@
     "undo": "Zpět tah",
     "redo": "Znovu tah",
     "clear": "Vymazat plátno",
+    "deleteBlock": "Smazat inkoustový blok",
     "export": "Exportovat PNG",
     "exportDone": "Skica exportována jako PNG",
     "ocr": "Rozpoznat text (OCR)",

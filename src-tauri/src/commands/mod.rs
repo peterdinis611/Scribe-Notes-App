@@ -20,5 +20,7 @@ pub mod smart_folders;
 pub mod storage;
 pub mod system;
 pub mod links;
+pub mod logging;
 pub mod nlp;
 pub mod ocr;
+pub mod websockets;

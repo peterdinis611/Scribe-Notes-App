@@ -1,7 +1,14 @@
-import { PanelRightClose } from 'lucide-react'
+import { ChevronsUpDown, PanelRightClose } from 'lucide-react'
 import { lazy, Suspense, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AgentBlobatar, AGENT_BLOBATAR_NAME } from '@/components/agent/AgentBlobatar'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { SuspenseFallback } from '@/components/ui/spinner'
 import { SPELLCHECK_AGENT_BLOBATAR_NAME } from '@/lib/library/spellcheck-agent'
 import {
   enabledAgentRoles,
@@ -52,23 +59,25 @@ export function AgentWorkspaceDock() {
     return (
       <aside className="agent-workspace-dock titlebar-no-drag" aria-label={t('agent.dockAria')}>
         <header className="agent-dock-header">
-          <div className="agent-dock-identity">
-            <AgentBlobatar name={AGENT_BLOBATAR_NAME} size={36} className="agent-dock-face" />
-            <div className="agent-dock-copy">
-              <p className="agent-dock-kicker">{t('agent.brandBadge')}</p>
-              <h2 className="agent-dock-title">{t('agent.rolesNoneTitle')}</h2>
+          <div className="agent-dock-header-top">
+            <div className="agent-dock-identity">
+              <AgentBlobatar name={AGENT_BLOBATAR_NAME} size={36} className="agent-dock-face" />
+              <div className="agent-dock-copy">
+                <p className="agent-dock-kicker">{t('agent.brandBadge')}</p>
+                <h2 className="agent-dock-title">{t('agent.rolesNoneTitle')}</h2>
+              </div>
             </div>
+            <IconTooltip label={t('agent.dockClose')}>
+              <button
+                type="button"
+                className="agent-dock-close"
+                aria-label={t('agent.dockClose')}
+                onClick={() => dispatch(setAgentPanelOpen(false))}
+              >
+                <PanelRightClose className="h-4 w-4" />
+              </button>
+            </IconTooltip>
           </div>
-          <IconTooltip label={t('agent.dockClose')}>
-            <button
-              type="button"
-              className="agent-dock-close"
-              aria-label={t('agent.dockClose')}
-              onClick={() => dispatch(setAgentPanelOpen(false))}
-            >
-              <PanelRightClose className="h-4 w-4" />
-            </button>
-          </IconTooltip>
         </header>
         <p className="agent-dock-empty-roles">{t('agent.rolesNoneHint')}</p>
       </aside>
@@ -85,49 +94,67 @@ export function AgentWorkspaceDock() {
       aria-label={isSpell ? t('agent.spellAgent.dockAria') : t('agent.dockAria')}
     >
       <header className="agent-dock-header">
-        <div className="agent-dock-identity">
-          <AgentBlobatar
-            name={blobName}
-            size={36}
-            title={isSpell ? t('agent.spellAgent.faceTitle') : t(activeRole.labelKey)}
-            className="agent-dock-face"
-          />
-          <div className="agent-dock-copy">
-            <p className="agent-dock-kicker">
-              {isSpell ? t('agent.spellAgent.brandBadge') : t(activeRole.labelKey)}
-            </p>
-            <h2 className="agent-dock-title">
-              {isSpell ? t('agent.spellAgent.dockTitle') : t(activeRole.dockTitleKey)}
-            </h2>
+        <div className="agent-dock-header-top">
+          <div className="agent-dock-identity">
+            <AgentBlobatar
+              name={blobName}
+              size={36}
+              title={isSpell ? t('agent.spellAgent.faceTitle') : t(activeRole.labelKey)}
+              className="agent-dock-face"
+            />
+            <div className="agent-dock-copy">
+              <p className="agent-dock-kicker">
+                {isSpell ? t('agent.spellAgent.brandBadge') : t(activeRole.labelKey)}
+              </p>
+              <h2 className="agent-dock-title">
+                {isSpell ? t('agent.spellAgent.dockTitle') : t(activeRole.dockTitleKey)}
+              </h2>
+            </div>
           </div>
-        </div>
-        <div className="agent-dock-actions">
-          <div className="agent-persona-switch" role="group" aria-label={t('agent.personaSwitch')}>
-            {roles.map((role) => (
+          <div className="agent-dock-actions">
+            {roles.length > 1 ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="agent-persona-trigger"
+                    aria-label={t('agent.personaSwitch')}
+                  >
+                    <span className="agent-persona-trigger-label">
+                      {t(activeRole.dockLabelKey)}
+                    </span>
+                    <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 opacity-70" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="agent-persona-menu min-w-[11rem]">
+                  {roles.map((role) => (
+                    <DropdownMenuItem
+                      key={role.id}
+                      className={cn(activeRoleId === role.id && 'is-active')}
+                      onSelect={() =>
+                        dispatch(openAgentPanel({ persona: role.id as AgentRoleId }))
+                      }
+                    >
+                      {t(role.dockLabelKey)}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : null}
+            <IconTooltip label={t('agent.dockClose')}>
               <button
-                key={role.id}
                 type="button"
-                className={cn('agent-persona-tab', activeRoleId === role.id && 'is-active')}
-                aria-pressed={activeRoleId === role.id}
-                onClick={() => dispatch(openAgentPanel({ persona: role.id as AgentRoleId }))}
+                className="agent-dock-close"
+                aria-label={t('agent.dockClose')}
+                onClick={() => dispatch(setAgentPanelOpen(false))}
               >
-                {t(role.dockLabelKey)}
+                <PanelRightClose className="h-4 w-4" />
               </button>
-            ))}
+            </IconTooltip>
           </div>
-          <IconTooltip label={t('agent.dockClose')}>
-            <button
-              type="button"
-              className="agent-dock-close"
-              aria-label={t('agent.dockClose')}
-              onClick={() => dispatch(setAgentPanelOpen(false))}
-            >
-              <PanelRightClose className="h-4 w-4" />
-            </button>
-          </IconTooltip>
         </div>
       </header>
-      <Suspense fallback={null}>
+      <Suspense fallback={<SuspenseFallback className="min-h-[8rem]" />}>
         {isSpell ? (
           <SpellcheckAgentPanel onClose={() => dispatch(setAgentPanelOpen(false))} />
         ) : (

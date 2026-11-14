@@ -175,6 +175,7 @@ impl ServerHandler for ScribeMcp {
              Review pack: section_summaries / extract_decisions / extract_quotes / extract_commitments / detect_pii / rank_tasks / open_loops / reading_plan / note_pulse / tone_pack / contradiction_hints / forward_plan. \
              Retrieval helpers: passage_rerank / answer_followups (after library_answer or document_answer). \
              Planner-only: plan_agent_goal / agent_document_brief (run_agent still executes). \
+             Offline AI: rewrite_query / plan_tools / build_prompt (Rust scribe-ai; rewrite prefers Python). \
              UI catalogs: get_ui_manifest / fuzzy_rank_strings / list_theme_presets / generate_random_theme / render_ui_surface (HTML via python-ui). \
              Files sandbox AI: files_list / files_read_text / files_search / files_summarize / files_answer / files_index / files_index_status / files_similar / files_index_clear (requires Local Files API). \
              Library study: check_terminology_library / citation_pack. \

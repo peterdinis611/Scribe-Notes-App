@@ -1043,7 +1043,42 @@ Folder placement hints for a document (`id`, optional `limit`).
 
 ## `reading_stats` / `detect_language` / `rewrite_query`
 
-Document readability, language detection, and search-query expansion (Local AI).
+Document readability, language detection, and search-query expansion (Local AI preferred; Rust `scribe-ai` fallback for `rewrite_query`).
+
+| Arg (`rewrite_query`) | Type | Required | Default | Notes |
+|-----------------------|------|----------|---------|--------|
+| `query` | string | yes | — | Search / hybrid query to expand |
+| `maxExpansions` | number | no | `8` | Clamp 1–16 |
+
+---
+
+## `plan_tools`
+
+Pure Rust tool planner (`scribe-ai::plan_tools_from_question`). Maps a free-form question to allowed agent tool ids. **No Local AI / DB required.**
+
+| Arg | Type | Required | Default | Notes |
+|-----|------|----------|---------|--------|
+| `question` | string | yes | — | User goal / question |
+| `allowedTools` | string[] | yes | — | Tool ids the host permits |
+| `limit` | number | no | `4` | Clamp 1–8 |
+
+Returns `{ tools, source: "rust" }`.
+
+---
+
+## `build_prompt`
+
+Build system + user prompts via Rust `scribe-ai` (`document_chat` · `library_chat` · `agent` · `rewrite`). **No Local AI / DB required.**
+
+| Arg | Type | Required | Default | Notes |
+|-----|------|----------|---------|--------|
+| `kind` | string | yes | — | `document_chat` / `library_chat` / `agent` / `rewrite` (aliases: `document`, `library`) |
+| `questionOrText` | string | yes | — | Question or rewrite source text |
+| `passages` | any | no | — | JSON passages for chat kinds |
+| `language` | string | no | — | e.g. `sk` for Slovak system prompts |
+| `charBudget` | number | no | default budget | Passage trim budget |
+
+Returns `{ kind, system, user, source: "rust" }`.
 
 ---
 

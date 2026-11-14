@@ -14,7 +14,7 @@ import {
   Users,
   Zap,
 } from 'lucide-react'
-import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AgentBlobatar, AGENT_BLOBATAR_NAME } from '@/components/agent/AgentBlobatar'
 import { Button } from '@/components/ui/button'
@@ -228,6 +228,8 @@ export function AgentSection() {
   const [teachBusy, setTeachBusy] = useState(false)
   const [llmTeachReady, setLlmTeachReady] = useState<boolean | null>(null)
   const [toolsOpen, setToolsOpen] = useState(false)
+  const teachSectionRef = useRef<HTMLElement | null>(null)
+  const teachInputRef = useRef<HTMLTextAreaElement | null>(null)
   const [recipeLabel, setRecipeLabel] = useState('')
   const [recipeTools, setRecipeTools] = useState<AgentToolId[]>(['summarize', 'takeaways'])
   const [recipeDocPreferred, setRecipeDocPreferred] = useState(false)
@@ -247,6 +249,16 @@ export function AgentSection() {
     }
     return counts
   }, [prefs.teachings])
+
+  function openTeachForRole(roleId: AgentRoleId) {
+    setTeachTopic(roleId === 'proofreader' ? 'grammar' : 'general')
+    setTeachAgentId(roleId === 'proofreader' ? 'proofreader' : roleId)
+    const section = teachSectionRef.current
+    section?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    window.setTimeout(() => {
+      teachInputRef.current?.focus()
+    }, 280)
+  }
 
   const enabledRoleCount = useMemo(
     () => AGENT_ROLES.filter((role) => prefs.agents[role.id]?.enabled !== false).length,
@@ -464,12 +476,15 @@ export function AgentSection() {
                   </header>
                   <p className="agent-settings-role-blurb">{t(role.hintKey)}</p>
                   <footer className="agent-settings-role-meta">
-                    <span
+                    <button
+                      type="button"
                       className={cn(
                         'agent-settings-role-chip is-memory',
                         memoryCount === 0 && 'is-empty',
                       )}
-                      title={t('settings.agent.roleMemoryHint')}
+                      title={t('settings.agent.roleMemoryTeach')}
+                      disabled={!prefs.enabled}
+                      onClick={() => openTeachForRole(role.id)}
                     >
                       <Database className="h-3 w-3 shrink-0" aria-hidden="true" />
                       <span>
@@ -477,7 +492,7 @@ export function AgentSection() {
                           ? t('settings.agent.roleMemoryCount', { count: memoryCount })
                           : t('settings.agent.roleMemoryEmpty')}
                       </span>
-                    </span>
+                    </button>
                     {peer && peerLabel ? (
                       <span
                         className="agent-settings-role-chip is-handoff"
@@ -619,6 +634,9 @@ export function AgentSection() {
                     ['auto', t('settings.agent.langAuto')],
                     ['sk', 'SK'],
                     ['en', 'EN'],
+                    ['cs', 'CS'],
+                    ['hu', 'HU'],
+                    ['pl', 'PL'],
                   ] as const).map(([value, label]) => (
                     <button
                       key={value}
@@ -1106,6 +1124,7 @@ export function AgentSection() {
           </section>
 
           <section
+            ref={teachSectionRef}
             className="agent-settings-card agent-settings-card--teach"
             aria-labelledby="agent-teach-title"
           >
@@ -1196,6 +1215,7 @@ export function AgentSection() {
               }}
             >
               <textarea
+                ref={teachInputRef}
                 value={teachInput}
                 maxLength={AGENT_TEACH_DRAFT_MAX_LEN}
                 disabled={!prefs.enabled || teachBusy}

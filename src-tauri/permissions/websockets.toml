@@ -1,0 +1,59 @@
+[[permission]]
+identifier = "allow-default-websocket-settings"
+description = "Allow default_websocket_settings"
+commands.allow = ["default_websocket_settings"]
+
+[[permission]]
+identifier = "allow-normalize-websocket-channels"
+description = "Allow normalize_websocket_channels"
+commands.allow = ["normalize_websocket_channels"]
+
+[[permission]]
+identifier = "allow-normalize-websocket-settings"
+description = "Allow normalize_websocket_settings"
+commands.allow = ["normalize_websocket_settings"]
+
+[[permission]]
+identifier = "allow-websocket-channel-ids"
+description = "Allow websocket_channel_ids"
+commands.allow = ["websocket_channel_ids"]
+
+[[permission]]
+identifier = "allow-websocket-settings-from-json"
+description = "Allow websocket_settings_from_json"
+commands.allow = ["websocket_settings_from_json"]
+
+[[permission]]
+identifier = "allow-websocket-url"
+description = "Allow websocket_url"
+commands.allow = ["websocket_url"]
+
+[[permission]]
+identifier = "allow-websockets-start"
+description = "Allow websockets_start"
+commands.allow = ["websockets_start"]
+
+[[permission]]
+identifier = "allow-websockets-status"
+description = "Allow websockets_status"
+commands.allow = ["websockets_status"]
+
+[[permission]]
+identifier = "allow-websockets-stop"
+description = "Allow websockets_stop"
+commands.allow = ["websockets_stop"]
+
+[[set]]
+identifier = "group-websockets"
+description = "Command group: websockets"
+permissions = [
+  "allow-default-websocket-settings",
+  "allow-normalize-websocket-channels",
+  "allow-normalize-websocket-settings",
+  "allow-websocket-channel-ids",
+  "allow-websocket-settings-from-json",
+  "allow-websocket-url",
+  "allow-websockets-start",
+  "allow-websockets-status",
+  "allow-websockets-stop",
+]

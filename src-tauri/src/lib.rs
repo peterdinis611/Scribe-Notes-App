@@ -4,6 +4,7 @@ mod audit_db;
 mod backup;
 mod capture;
 mod db;
+mod websockets;
 mod export;
 mod images;
 mod libraries;
@@ -27,75 +28,29 @@ use tauri::menu::{MenuBuilder, MenuItemBuilder, PredefinedMenuItem, SubmenuBuild
 #[cfg(target_os = "macos")]
 use tauri::tray::TrayIconBuilder;
 
-fn rust_debug_level() -> log::LevelFilter {
-    let raw = std::env::var("SCRIBE_RUST_LOG")
-        .or_else(|_| std::env::var("RUST_LOG"))
-        .or_else(|_| std::env::var("SCRIBE_DEBUG"))
-        .unwrap_or_default()
-        .to_ascii_lowercase();
-
-    if raw.is_empty() {
-        return log::LevelFilter::Info;
-    }
-    if raw == "1" || raw == "true" || raw == "yes" || raw == "on" || raw == "debug" {
-        return log::LevelFilter::Debug;
-    }
-    if raw == "trace" {
-        return log::LevelFilter::Trace;
-    }
-    if raw == "warn" {
-        return log::LevelFilter::Warn;
-    }
-    if raw == "error" {
-        return log::LevelFilter::Error;
-    }
-    if raw.contains("trace") {
-        return log::LevelFilter::Trace;
-    }
-    if raw.contains("debug") {
-        return log::LevelFilter::Debug;
-    }
-    log::LevelFilter::Info
-}
-
-fn install_dev_logger(app: &tauri::App) -> tauri::Result<()> {
-    let level = rust_debug_level();
-    let colors = tauri_plugin_log::fern::colors::ColoredLevelConfig::default()
-        .info(tauri_plugin_log::fern::colors::Color::Green)
-        .debug(tauri_plugin_log::fern::colors::Color::Blue)
-        .trace(tauri_plugin_log::fern::colors::Color::BrightBlack);
-
-    app.handle().plugin(
-        tauri_plugin_log::Builder::default()
-            .level(level)
-            // Keep framework chatter out of the way while developing.
-            .level_for("tao", log::LevelFilter::Warn)
-            .level_for("wry", log::LevelFilter::Warn)
-            .level_for("hyper", log::LevelFilter::Warn)
-            .level_for("reqwest", log::LevelFilter::Warn)
-            .level_for("tracing", log::LevelFilter::Warn)
-            .with_colors(colors)
-            .build(),
-    )?;
-
-    let nlp_debug = std::env::var("SCRIBE_NLP_DEBUG")
-        .map(|v| {
-            let v = v.to_ascii_lowercase();
-            v == "1" || v == "true" || v == "yes" || v == "on" || v == "debug"
-        })
-        .unwrap_or(false);
-
+fn install_terminal_logger() -> Result<(), String> {
+    // Always print to the cargo / Tauri terminal via scribe-logging.
+    // (tauri-plugin-log also registers a global logger — skip it to avoid conflicts.)
+    scribe_logging::init_from_env()?;
+    let level = scribe_logging::resolve_level_from_env();
+    let nlp_debug = scribe_logging::nlp_debug_enabled();
     log::info!(
-        "Scribe Rust logger ready · level={level} · nlp_debug={nlp_debug} · set SCRIBE_RUST_LOG / SCRIBE_DEBUG"
+        target: "scribe.logging",
+        "Scribe terminal logger ready · level={level} · nlp_debug={nlp_debug} · set SCRIBE_RUST_LOG / SCRIBE_DEBUG"
     );
     if level >= log::LevelFilter::Debug {
-        log::debug!("Verbose Rust logging on — noisy crates filtered to warn");
+        log::debug!(target: "scribe.logging", "Verbose Rust logging on — quiet targets filtered to warn");
     }
     Ok(())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Install before the Tauri builder so early host logs hit the cargo terminal.
+    if let Err(error) = install_terminal_logger() {
+        eprintln!("scribe-logging: {error}");
+    }
+
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
@@ -119,10 +74,6 @@ pub fn run() {
                 app.handle().plugin(
                     tauri_plugin_global_shortcut::Builder::new().build(),
                 )?;
-            }
-
-            if cfg!(debug_assertions) {
-                install_dev_logger(app)?;
             }
 
             #[cfg(mobile)]
@@ -155,6 +106,7 @@ pub fn run() {
             app.manage(NlpSidecar::new(nlp::resolve_script_path(app.handle())));
             app.manage(scribe_core::nlp::UnlockedVaultIndex::new());
             app.manage(capture::CaptureServerState::new());
+            app.manage(websockets::WebsocketServerState::new());
             app.manage(storage_fs_api::StorageFsServerState::new());
             app.manage(ui_host::UiHostState::default());
 
@@ -390,6 +342,23 @@ pub fn run() {
             commands::ui::toast_settings_from_json,
             commands::ui::resolve_toast_duration,
             commands::ui::toast_position_class,
+            commands::websockets::default_websocket_settings,
+            commands::websockets::normalize_websocket_settings,
+            commands::websockets::websocket_settings_from_json,
+            commands::websockets::websocket_url,
+            commands::websockets::websocket_channel_ids,
+            commands::websockets::normalize_websocket_channels,
+            commands::logging::logging_status,
+            commands::logging::logging_settings,
+            commands::logging::normalize_logging_settings,
+            commands::logging::logging_settings_from_json,
+            commands::logging::logging_write,
+            commands::logging::logging_ping,
+            commands::logging::logging_recent,
+            commands::logging::logging_clear,
+            commands::logging::logging_stats,
+            commands::logging::logging_set_level,
+            commands::logging::logging_scopes,
             commands::ui::document_matches_smart_filter,
             commands::ui::filter_documents_by_smart_filter_ui,
             commands::ui::clamp_sidebar_width,
@@ -711,6 +680,9 @@ pub fn run() {
             capture::capture_status,
             capture::capture_start,
             capture::capture_stop,
+            websockets::websockets_status,
+            websockets::websockets_start,
+            websockets::websockets_stop,
             storage_fs_api::storage_fs_server_status,
             storage_fs_api::storage_fs_server_start,
             storage_fs_api::storage_fs_server_stop,

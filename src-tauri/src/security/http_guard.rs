@@ -11,6 +11,8 @@ pub const FILES_TOKEN_TTL: Duration = Duration::from_secs(30 * 60); // 30 minute
 pub const CAPTURE_TOKEN_TTL: Duration = Duration::from_secs(15 * 60); // 15 minutes
 /// Stop capture after this much idle time without a successful POST.
 pub const CAPTURE_IDLE_STOP: Duration = Duration::from_secs(15 * 60);
+/// Local WebSocket hello token lifetime.
+pub const WEBSOCKET_TOKEN_TTL: Duration = Duration::from_secs(60 * 60); // 60 minutes
 
 /// Max authenticated/unauthenticated attempts per client IP in the window.
 pub const RATE_LIMIT_MAX: u32 = 60;

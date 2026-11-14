@@ -4,7 +4,9 @@ import { ROUTES } from '@/lib/routes'
 import type { AppDispatch } from '@/store/index'
 import {
   clearDocumentNav,
+  closeAllOpenDocuments,
   closeOpenDocument,
+  closeOtherOpenDocuments,
   popDocumentNav,
   pushDocumentNav,
   setActiveDocument,
@@ -62,6 +64,44 @@ export function goToHome(args: { dispatch: AppDispatch; navigate: NavigateFn }) 
   args.dispatch(setActiveDocument(null))
   args.dispatch(clearDocumentNav())
   void args.navigate(ROUTES.home())
+}
+
+/** Close all unpinned tabs; navigate to a remaining pin or home. */
+export function closeAllTabsAndMaybeHome(args: {
+  dispatch: AppDispatch
+  navigate: NavigateFn
+  pinnedDocumentIds: string[]
+  activeDocumentId: string | null
+}) {
+  const pinned = args.pinnedDocumentIds
+  const nextId =
+    args.activeDocumentId && pinned.includes(args.activeDocumentId)
+      ? args.activeDocumentId
+      : (pinned[0] ?? null)
+  args.dispatch(closeAllOpenDocuments())
+  if (nextId) {
+    const cached = peekCachedDocument(nextId)
+    if (cached) args.dispatch(setActiveDocument(cached))
+    else prefetchDocument(nextId)
+    void args.navigate(ROUTES.document(nextId))
+    return
+  }
+  args.dispatch(setActiveDocument(null))
+  args.dispatch(clearDocumentNav())
+  void args.navigate(ROUTES.home())
+}
+
+/** Close every unpinned tab except `keepId`; stay on that document. */
+export function closeOtherTabs(args: {
+  keepId: string
+  dispatch: AppDispatch
+  navigate: NavigateFn
+}) {
+  args.dispatch(closeOtherOpenDocuments(args.keepId))
+  const cached = peekCachedDocument(args.keepId)
+  if (cached) args.dispatch(setActiveDocument(cached))
+  else prefetchDocument(args.keepId)
+  void args.navigate(ROUTES.document(args.keepId))
 }
 
 /** Follow a wiki link — records the current document on the back trail. */

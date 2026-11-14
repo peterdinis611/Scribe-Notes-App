@@ -84,7 +84,7 @@ mod tests {
             ("settings.about.fileFormat", "Format"),
             ("settings.about.export", "Export"),
             ("settings.about.privacy", "Privacy"),
-            ("common.version", "Scribe 5.3.0"),
+            ("common.version", "Scribe 5.4.0"),
             ("settings.docs.pageTitle", "Docs"),
             ("settings.docs.pageDescription", "Desc"),
             ("settings.docs.searchPlaceholder", "Search"),

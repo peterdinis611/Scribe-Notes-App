@@ -1,12 +1,12 @@
 [package]
 name = "app"
-version = "5.3.0"
+version = "5.4.0"
 description = "A Tauri App"
 authors = ["Peter Dinis"]
 license = "MIT"
 repository = ""
 edition = "2021"
-rust-version = "1.77.2"
+rust-version = "1.89.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -26,7 +26,7 @@ tauri-plugin-log = { version = "2", features = ["colored"] }
 tauri-plugin-dialog = "2"
 tauri-plugin-fs = "2"
 tauri-plugin-opener = "2"
-rusqlite = { version = "0.32", features = ["bundled"] }
+rusqlite = { version = "0.42", default-features = false, features = ["bundled", "cache"] }
 uuid = { version = "1", features = ["v4"] }
 chrono = { version = "0.4", features = ["clock"] }
 dirs = "6"
@@ -45,6 +45,8 @@ scribe-video = { path = "../crates/scribe-video" }
 scribe-sync = { path = "../crates/scribe-sync" }
 scribe-capture = { path = "../crates/scribe-capture" }
 scribe-toast = { path = "../crates/scribe-toast" }
+scribe-websockets = { path = "../crates/scribe-websockets", features = ["server"] }
+scribe-logging = { path = "../crates/scribe-logging" }
 sha2 = "0.10"
 tauri-plugin-persisted-scope = { version = "2.3.7", features = ["protocol-asset"] }
 tauri-plugin-positioner = { version = "2.4.0", features = ["tray-icon"] }

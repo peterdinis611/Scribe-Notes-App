@@ -642,8 +642,8 @@
     "badge": "What's new in {{version}}",
     "kicker": "Edition notes",
     "title": "Scribe {{version}}",
-    "subtitle": "More of the note core runs in Rust — wiki links, task agenda, and source export — still fully local on this Mac.",
-    "editionMark": "Native · Library",
+    "subtitle": "Offline AI you can feel — search rewrite, shared prompts, and Python/Rust parity — still fully local on this Mac.",
+    "editionMark": "Local AI · Library",
     "tagsLabel": "Themes in this release",
     "tags": {
       "agent": "Agent",
@@ -1046,6 +1046,22 @@
     "libraryPolish": {
       "title": "Library polish",
       "description": "Tasks filter by folder and sort by due date. Duplicates show lexical vs embed scores. Dirty tabs and wiki/task counts keep you oriented."
+    },
+    "offlineAiFelt": {
+      "title": "Offline AI you feel",
+      "description": "Rust scribe-ai helpers power search, planning, and prompts even when the Python sidecar is off."
+    },
+    "searchRewrite": {
+      "title": "Smarter search rewrite",
+      "description": "SK/EN synonym expansion lifts Command Palette, sidebar hybrid search, and title fuzzy matching."
+    },
+    "aiSurface": {
+      "title": "One AI surface",
+      "description": "Frontend @/lib/ai, Tauri commands, and MCP share rewrite, plan_tools, and build_prompt."
+    },
+    "pythonParity": {
+      "title": "Python scribe_ai parity",
+      "description": "Sidecar mirrors Rust prompts, intent routing, citation pack, and revision AI for local agents."
     }
   },
   "wikiNav": {
@@ -2019,9 +2035,10 @@
       "rolesLiveCount": "{{count}} / {{total}} live",
       "rolesNetworkHint": "Handoffs · private DB",
       "rolePanelSpell": "Spell UI",
-      "roleMemoryEmpty": "No teachings yet",
+      "roleMemoryEmpty": "No teachings yet — teach",
       "roleMemoryCount": "{{count}} teachings",
       "roleMemoryHint": "Teachings stored in this agent’s partition of scribe-agent.db",
+      "roleMemoryTeach": "Open teach form for this agent",
       "roleHandoffTo": "Hands to {{name}}",
       "roleHandoffHint": "Default peer this agent notifies after substantive runs",
       "roleEnabledToast": "{{name}} enabled",
@@ -2539,6 +2556,35 @@
       "purgeOk": "Removed from quarantine",
       "purgeAllOk": "Cleared {{count}} quarantine item(s)",
       "purgeError": "Purge failed"
+    },
+    "audit": {
+      "title": "Audit log",
+      "description": "Browse recent local audit events, stats, and copy a JSONL export.",
+      "searchPlaceholder": "Filter by action, actor, summary…",
+      "export": "Copy JSONL",
+      "exportCopied": "Audit export copied",
+      "exportError": "Could not export audit log",
+      "loadError": "Could not load audit log",
+      "total": "Events",
+      "keepLimit": "Keep limit",
+      "newest": "Newest",
+      "empty": "No audit events yet.",
+      "setup": "Set password",
+      "setupHint": "Protect the local audit log with a password (min 8 characters).",
+      "setupDone": "Audit password set",
+      "unlock": "Unlock",
+      "unlockHint": "Unlock the audit log to browse events and export.",
+      "unlocked": "Audit unlocked",
+      "unlockError": "Could not unlock audit log",
+      "lock": "Lock",
+      "locked": "Audit locked",
+      "lockError": "Could not lock audit log",
+      "passwordPlaceholder": "Password",
+      "passwordTooShort": "Password must be at least 8 characters",
+      "saveKeep": "Save retention",
+      "keepSaved": "Retention updated",
+      "keepInvalid": "Enter a keep limit of at least 100",
+      "keepError": "Could not update retention"
     }
   },
   "storageAccess": {
@@ -2696,6 +2742,9 @@
   "tabs": {
     "ariaLabel": "Open documents",
     "close": "Close tab",
+    "closeOthers": "Close others",
+    "closeAll": "Close all tabs",
+    "closeAllShort": "Close all",
     "pin": "Pin tab",
     "unpin": "Unpin tab",
     "reorder": "Drag to reorder",
@@ -3186,68 +3235,242 @@
         "hint": "Search across notes",
         "defaultGoal": "What themes show up across my notes?"
       },
-      "summary": { "label": "Summarize", "hint": "Short summary of this note" },
-      "outline": { "label": "Outline", "hint": "Structured outline" },
-      "brief": { "label": "Brief + pulse", "hint": "Document brief and note pulse" },
-      "meeting": { "label": "Meeting pack", "hint": "Notes, decisions, follow-ups" },
-      "wrap": { "label": "Meeting wrap-up", "hint": "Full meeting recipe" },
-      "plan": { "label": "Plan ahead", "hint": "Next steps from this note" },
-      "tasks": { "label": "Tasks", "hint": "Extract tasks and action items" },
-      "actions": { "label": "Action items", "hint": "Actions ranked by priority" },
-      "decisions": { "label": "Decisions", "hint": "Decision log" },
-      "loops": { "label": "Open loops", "hint": "Unresolved threads" },
-      "commitments": { "label": "Commitments", "hint": "Promises and ownership" },
-      "dates": { "label": "Deadlines", "hint": "Dates and deadlines" },
-      "spell": { "label": "Spellcheck", "hint": "Offline typo check" },
-      "grammar": { "label": "Grammar", "hint": "Grammar pass" },
-      "polish": { "label": "Polish", "hint": "Spell + grammar + tone" },
-      "rewrite": { "label": "Rewrite", "hint": "Rewrite selection or note", "defaultGoal": "Rewrite this more clearly" },
-      "tone": { "label": "Tone", "hint": "Tone and readability" },
-      "style": { "label": "Writing coach", "hint": "Style suggestions" },
-      "explain": { "label": "Explain", "hint": "Explain this note", "defaultGoal": "Explain this note" },
-      "simplify": { "label": "Simplify", "hint": "Plain-language rewrite" },
-      "takeaways": { "label": "Takeaways", "hint": "Key takeaways" },
-      "study": { "label": "Study pass", "hint": "Outline, reading plan, quiz" },
-      "deep": { "label": "Deep read", "hint": "Sections, tone, cards" },
-      "cards": { "label": "Flashcards", "hint": "Study cards from this note" },
-      "quiz": { "label": "Quiz", "hint": "Quiz from the outline" },
-      "glossary": { "label": "Glossary", "hint": "Terms and definitions" },
-      "read": { "label": "Reading plan", "hint": "How to read this note" },
-      "sections": { "label": "Section summaries", "hint": "Summarize each section" },
-      "wiki": { "label": "Wiki links", "hint": "Suggest [[links]]" },
-      "similar": { "label": "Related notes", "hint": "Find similar notes" },
-      "compare": { "label": "Compare notes", "hint": "Diff with another note" },
-      "pii": { "label": "Privacy scan", "hint": "Find PII and secrets" },
-      "title": { "label": "Suggest title", "hint": "Title ideas" },
-      "continue": { "label": "Continue writing", "hint": "Suggest a continuation" },
-      "keywords": { "label": "Keywords", "hint": "Tags and keywords" },
-      "quotes": { "label": "Quotes", "hint": "Extract quotable lines" },
-      "mentions": { "label": "Mentions", "hint": "People and mentions" },
-      "organize": { "label": "Organize", "hint": "Tags and folder hints" },
-      "cleanup": { "label": "Library cleanup", "hint": "Duplicates, titles, organize" },
-      "digest": { "label": "Daily digest", "hint": "Library brief" },
-      "report": { "label": "Weekly review", "hint": "Report + terminology + dates" },
-      "files": { "label": "Ask files/", "hint": "Query the files sandbox", "defaultGoal": "What's in my files/ sandbox?" },
-      "filesdigest": { "label": "Files digest", "hint": "Summarize the files/ sandbox" },
-      "tolibrary": { "label": "Files → library", "hint": "Ingest sandbox files into notes" },
-      "code": { "label": "Code brief", "hint": "Review code in this note" },
-      "codepass": { "label": "Code pass", "hint": "Brief + explain + outline + keywords" },
-      "codeaudit": { "label": "Code audit", "hint": "Brief + secrets scan + glossary" },
-      "canvas": { "label": "Canvas board", "hint": "Canvas → note recipe" },
-      "privacy": { "label": "Privacy pass", "hint": "PII + cleanup recipe" },
-      "handoff": { "label": "Handoff", "hint": "Pass work to another agent role" },
-      "wikihealth": { "label": "Wiki health", "hint": "Orphan / stub / hub report" },
-      "template": { "label": "Note → template", "hint": "Hints + outline + save template" },
-      "wikiclean": { "label": "Wiki cleanup", "hint": "Health + links + organize" },
-      "ingest": { "label": "Learn from files/", "hint": "Ask sandbox then import notes" },
-      "revision": { "label": "Revision AI", "hint": "Review recent changes to this note" },
+      "summary": {
+        "label": "Summarize",
+        "hint": "Short summary of this note"
+      },
+      "outline": {
+        "label": "Outline",
+        "hint": "Structured outline"
+      },
+      "brief": {
+        "label": "Brief + pulse",
+        "hint": "Document brief and note pulse"
+      },
+      "meeting": {
+        "label": "Meeting pack",
+        "hint": "Notes, decisions, follow-ups"
+      },
+      "wrap": {
+        "label": "Meeting wrap-up",
+        "hint": "Full meeting recipe"
+      },
+      "plan": {
+        "label": "Plan ahead",
+        "hint": "Next steps from this note"
+      },
+      "tasks": {
+        "label": "Tasks",
+        "hint": "Extract tasks and action items"
+      },
+      "actions": {
+        "label": "Action items",
+        "hint": "Actions ranked by priority"
+      },
+      "decisions": {
+        "label": "Decisions",
+        "hint": "Decision log"
+      },
+      "loops": {
+        "label": "Open loops",
+        "hint": "Unresolved threads"
+      },
+      "commitments": {
+        "label": "Commitments",
+        "hint": "Promises and ownership"
+      },
+      "dates": {
+        "label": "Deadlines",
+        "hint": "Dates and deadlines"
+      },
+      "spell": {
+        "label": "Spellcheck",
+        "hint": "Offline typo check"
+      },
+      "grammar": {
+        "label": "Grammar",
+        "hint": "Grammar pass"
+      },
+      "polish": {
+        "label": "Polish",
+        "hint": "Spell + grammar + tone"
+      },
+      "rewrite": {
+        "label": "Rewrite",
+        "hint": "Rewrite selection or note",
+        "defaultGoal": "Rewrite this more clearly"
+      },
+      "tone": {
+        "label": "Tone",
+        "hint": "Tone and readability"
+      },
+      "style": {
+        "label": "Writing coach",
+        "hint": "Style suggestions"
+      },
+      "explain": {
+        "label": "Explain",
+        "hint": "Explain this note",
+        "defaultGoal": "Explain this note"
+      },
+      "simplify": {
+        "label": "Simplify",
+        "hint": "Plain-language rewrite"
+      },
+      "takeaways": {
+        "label": "Takeaways",
+        "hint": "Key takeaways"
+      },
+      "study": {
+        "label": "Study pass",
+        "hint": "Outline, reading plan, quiz"
+      },
+      "deep": {
+        "label": "Deep read",
+        "hint": "Sections, tone, cards"
+      },
+      "cards": {
+        "label": "Flashcards",
+        "hint": "Study cards from this note"
+      },
+      "quiz": {
+        "label": "Quiz",
+        "hint": "Quiz from the outline"
+      },
+      "glossary": {
+        "label": "Glossary",
+        "hint": "Terms and definitions"
+      },
+      "read": {
+        "label": "Reading plan",
+        "hint": "How to read this note"
+      },
+      "sections": {
+        "label": "Section summaries",
+        "hint": "Summarize each section"
+      },
+      "wiki": {
+        "label": "Wiki links",
+        "hint": "Suggest [[links]]"
+      },
+      "similar": {
+        "label": "Related notes",
+        "hint": "Find similar notes"
+      },
+      "compare": {
+        "label": "Compare notes",
+        "hint": "Diff with another note"
+      },
+      "pii": {
+        "label": "Privacy scan",
+        "hint": "Find PII and secrets"
+      },
+      "title": {
+        "label": "Suggest title",
+        "hint": "Title ideas"
+      },
+      "continue": {
+        "label": "Continue writing",
+        "hint": "Suggest a continuation"
+      },
+      "keywords": {
+        "label": "Keywords",
+        "hint": "Tags and keywords"
+      },
+      "quotes": {
+        "label": "Quotes",
+        "hint": "Extract quotable lines"
+      },
+      "mentions": {
+        "label": "Mentions",
+        "hint": "People and mentions"
+      },
+      "organize": {
+        "label": "Organize",
+        "hint": "Tags and folder hints"
+      },
+      "cleanup": {
+        "label": "Library cleanup",
+        "hint": "Duplicates, titles, organize"
+      },
+      "digest": {
+        "label": "Daily digest",
+        "hint": "Library brief"
+      },
+      "report": {
+        "label": "Weekly review",
+        "hint": "Report + terminology + dates"
+      },
+      "files": {
+        "label": "Ask files/",
+        "hint": "Query the files sandbox",
+        "defaultGoal": "What's in my files/ sandbox?"
+      },
+      "filesdigest": {
+        "label": "Files digest",
+        "hint": "Summarize the files/ sandbox"
+      },
+      "tolibrary": {
+        "label": "Files → library",
+        "hint": "Ingest sandbox files into notes"
+      },
+      "code": {
+        "label": "Code brief",
+        "hint": "Review code in this note"
+      },
+      "codepass": {
+        "label": "Code pass",
+        "hint": "Brief + explain + outline + keywords"
+      },
+      "codeaudit": {
+        "label": "Code audit",
+        "hint": "Brief + secrets scan + glossary"
+      },
+      "canvas": {
+        "label": "Canvas board",
+        "hint": "Canvas → note recipe"
+      },
+      "privacy": {
+        "label": "Privacy pass",
+        "hint": "PII + cleanup recipe"
+      },
+      "handoff": {
+        "label": "Handoff",
+        "hint": "Pass work to another agent role"
+      },
+      "wikihealth": {
+        "label": "Wiki health",
+        "hint": "Orphan / stub / hub report"
+      },
+      "template": {
+        "label": "Note → template",
+        "hint": "Hints + outline + save template"
+      },
+      "wikiclean": {
+        "label": "Wiki cleanup",
+        "hint": "Health + links + organize"
+      },
+      "ingest": {
+        "label": "Learn from files/",
+        "hint": "Ask sandbox then import notes"
+      },
+      "revision": {
+        "label": "Revision AI",
+        "hint": "Review recent changes to this note"
+      },
       "translate": {
         "label": "Translate",
         "hint": "Translate selection or note (en/sk)",
         "defaultGoal": "Translate to English"
       },
-      "timeline": { "label": "Timeline", "hint": "Chronology of dates in this note" },
-      "research": { "label": "Research pass", "hint": "Citations + related + timeline" }
+      "timeline": {
+        "label": "Timeline",
+        "hint": "Chronology of dates in this note"
+      },
+      "research": {
+        "label": "Research pass",
+        "hint": "Citations + related + timeline"
+      }
     },
     "send": "Run",
     "thinking": "Agent is running local tools…",
@@ -3712,6 +3935,9 @@
       "languageLine": "Detected language: {{language}}",
       "languageSk": "Slovak",
       "languageEn": "English",
+      "languageCs": "Czech",
+      "languageHu": "Hungarian",
+      "languagePl": "Polish",
       "languageUnknown": "unknown",
       "similar": "Similar documents",
       "similarHint": "Based on your existing semantic index.",
@@ -3868,7 +4094,14 @@
       "contextLines": "Context",
       "wordHighlight": "Word highlight",
       "gainedTerms": "Gained",
-      "lostTerms": "Lost"
+      "lostTerms": "Lost",
+      "copyAiSummary": "Copy AI summary",
+      "copyAiSummaryError": "Could not copy AI summary",
+      "saveNamedFromAi": "Save named revision",
+      "applyBulletNamed": "Name",
+      "applyBulletInsert": "Insert",
+      "applyBulletInserted": "Bullet inserted into the note",
+      "applyBulletInsertError": "Could not insert into the editor"
     }
   },
   "focusMode": {
@@ -4091,7 +4324,28 @@
     "feDebugDisable": "Disable FE debug logs",
     "feDebugOn": "Frontend verbose logs on",
     "feDebugOff": "Frontend verbose logs off",
-    "feDebugHint": "IPC/save traces in DevTools console · or scribeLog.setEnabled(true)"
+    "feDebugHint": "IPC/save traces in DevTools + cargo terminal · or scribeLog.setEnabled(true)",
+    "terminalLogger": "Terminal logger",
+    "terminalReady": "active · {{level}}",
+    "terminalOff": "inactive",
+    "terminalEnv": "Env keys",
+    "terminalPing": "Ping terminal",
+    "terminalPinging": "Sending…",
+    "terminalPingOk": "Log sent to terminal",
+    "terminalPingHint": "Look for logging_ping in the tauri/cargo terminal window",
+    "terminalPingError": "Could not send log to terminal",
+    "terminalUnavailable": "Terminal bridge is only available in the Tauri app",
+    "logRing": "Log ring",
+    "logFile": "Log file",
+    "runtimeLevel": "Log level",
+    "recentLogs": "Recent logs",
+    "refreshLogs": "Refresh logs",
+    "clearLogs": "Clear ring",
+    "logsEmpty": "No lines in the ring buffer yet.",
+    "logsCleared": "Log ring cleared",
+    "logsClearError": "Could not clear logs",
+    "levelChanged": "Log level updated",
+    "levelChangeError": "Could not change log level"
   },
   "toasts": {
     "reconcileSuccess": "Sync completed",
@@ -5258,6 +5512,7 @@
     "undo": "Undo stroke",
     "redo": "Redo stroke",
     "clear": "Clear pad",
+    "deleteBlock": "Delete ink block",
     "export": "Export PNG",
     "exportDone": "Sketch exported as PNG",
     "ocr": "Recognize text (OCR)",

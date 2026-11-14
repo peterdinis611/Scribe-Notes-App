@@ -39,11 +39,17 @@ function numberOf(value: unknown, fallback = 0) {
   return typeof value === 'number' && Number.isFinite(value) ? value : fallback
 }
 
-function parseStats(stats: Record<string, unknown>): ParsedStats {
+function parseStats(
+  stats: Record<string, unknown>,
+  labelFor: (key: string, fallback: string) => string,
+): ParsedStats {
   const languageLabel = (code: string) => {
-    if (code === 'sk') return 'slovenčina'
-    if (code === 'en') return 'angličtina'
-    return code || 'unknown'
+    if (code === 'sk') return labelFor('panels.insights.languageSk', 'Slovak')
+    if (code === 'en') return labelFor('panels.insights.languageEn', 'English')
+    if (code === 'cs') return labelFor('panels.insights.languageCs', 'Czech')
+    if (code === 'hu') return labelFor('panels.insights.languageHu', 'Hungarian')
+    if (code === 'pl') return labelFor('panels.insights.languagePl', 'Polish')
+    return code || labelFor('panels.insights.languageUnknown', 'unknown')
   }
   const sentimentLabel = (code: string) => {
     const map: Record<string, string> = {
@@ -126,7 +132,13 @@ type LibraryReportViewProps = {
 export function LibraryReportView({ report }: LibraryReportViewProps) {
   const { t } = useTranslation()
   const [showMarkdown, setShowMarkdown] = useState(false)
-  const stats = useMemo(() => parseStats(asRecord(report.stats)), [report.stats])
+  const stats = useMemo(
+    () =>
+      parseStats(asRecord(report.stats), (key, fallback) =>
+        t(key, { defaultValue: fallback }),
+      ),
+    [report.stats, t],
+  )
   const untagged = Math.max(0, stats.documentCount - stats.taggedCount)
 
   return (

@@ -62,6 +62,7 @@ export function checkVersionSync() {
     ['crates/scribe-mcp/Cargo.toml', cargoVersion('crates/scribe-mcp/Cargo.toml')],
     ['crates/scribe-ui/Cargo.toml', cargoVersion('crates/scribe-ui/Cargo.toml')],
     ['crates/scribe-video/Cargo.toml', cargoVersion('crates/scribe-video/Cargo.toml')],
+    ['crates/scribe-websockets/Cargo.toml', cargoVersion('crates/scribe-websockets/Cargo.toml')],
     ['python-ui/pyproject.toml', pyprojectVersion('python-ui/pyproject.toml')],
     ['src/lib/app-version.ts', appTsVersion()],
     ['Cargo.lock (app)', cargoLockAppVersion()],

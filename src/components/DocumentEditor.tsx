@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next'
 import { DocumentTocRail } from '@/components/editor/DocumentTocRail'
 import { OutlineReturnButton } from '@/components/editor/OutlineReturnButton'
 import { WikiLinkHoverCard } from '@/components/editor/WikiLinkHoverCard'
+import { SuspenseFallback } from '@/components/ui/spinner'
 import {
   UnresolvedWikiLinkPopover,
   type UnresolvedWikiPopoverState,
@@ -559,8 +560,16 @@ export function DocumentEditor() {
 
   const saveStatus = useAppSelector((state) => state.documents.saveStatus)
 
-  // Clear content hashes before syncing so a later effect cannot wipe in-progress edits.
+  // Seed hashes from the document already passed as TipTap `content` so the
+  // view-sync effect does not parse + setContent a second time on open.
   useEffect(() => {
+    const doc = activeDocumentRef.current
+    if (doc && doc.id === activeId) {
+      const hash = getCachedContentHash(doc)
+      editorContentHashRef.current = hash
+      lastPersistedHashRef.current = hash
+      return
+    }
     editorContentHashRef.current = null
     lastPersistedHashRef.current = null
   }, [activeId, editorContentHashRef, lastPersistedHashRef])
@@ -910,7 +919,7 @@ export function DocumentEditor() {
         </EditorDropZone>
             </div>
 
-        <Suspense fallback={null}>
+        <Suspense fallback={<SuspenseFallback fill={false} size="sm" className="absolute inset-y-0 right-0 z-20 w-72 bg-[var(--color-background)]" />}>
           {editorReady && !readingMode && outlineOpen && (
             <DocumentOutlinePanel
               editor={editor}

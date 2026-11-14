@@ -40,6 +40,7 @@ import {
   normalizeComparePair,
 } from '@/lib/revisions/revision-compare'
 import { analyzeRevisionDiff, type RevisionAiReport } from '@/lib/ai'
+import { insertAiAnswerAsCallout } from '@/lib/editor/insert-ai-answer'
 import { toast } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
 import {
@@ -75,8 +76,65 @@ type PreviewState = {
   ai?: RevisionAiReport | null
 }
 
-function RevisionAiSummary({ report }: { report: RevisionAiReport }) {
+function RevisionAiSummary({
+  report,
+  documentId,
+  onNamedSaved,
+}: {
+  report: RevisionAiReport
+  documentId?: string | null
+  onNamedSaved?: () => void
+}) {
   const { t } = useTranslation()
+  const [savingNamed, setSavingNamed] = useState(false)
+
+  const copyReport = async () => {
+    const lines = [
+      report.headline,
+      report.summary,
+      ...(report.bullets ?? []).map((bullet) => `• ${bullet.text}`),
+    ].filter(Boolean)
+    try {
+      await navigator.clipboard.writeText(lines.join('\n'))
+      toast.success(t('panels.revisions.copyAiSummary'))
+    } catch (error) {
+      toast.error(t('panels.revisions.copyAiSummaryError'), String(error))
+    }
+  }
+
+  const saveNamedFromAi = async (defaultLabel?: string) => {
+    if (!documentId) return
+    const seed = (defaultLabel || report.headline || report.changeKind || 'AI revision').slice(0, 80)
+    const label = await promptInput({
+      title: t('panels.revisions.nameVersionTitle'),
+      placeholder: t('panels.revisions.nameVersionPlaceholder'),
+      defaultValue: seed,
+      confirmLabel: t('panels.revisions.nameVersionConfirm'),
+    })
+    if (!label?.trim()) return
+    setSavingNamed(true)
+    try {
+      await createNamedRevision(documentId, label.trim(), true)
+      toast.success(t('panels.revisions.nameVersionSuccess'))
+      onNamedSaved?.()
+    } catch (error) {
+      toast.error(t('panels.revisions.nameVersionError'), String(error))
+    } finally {
+      setSavingNamed(false)
+    }
+  }
+
+  const applyBulletToEditor = (text: string) => {
+    const ok = insertAiAnswerAsCallout(text, {
+      sourceTitle: t('panels.revisions.revisionAi'),
+    })
+    if (ok) {
+      toast.success(t('panels.revisions.applyBulletInserted'))
+    } else {
+      toast.error(t('panels.revisions.applyBulletInsertError'))
+    }
+  }
+
   return (
     <div className="mx-3 mb-2 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 text-[12px] leading-snug text-[var(--color-foreground)]">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
@@ -87,6 +145,23 @@ function RevisionAiSummary({ report }: { report: RevisionAiReport }) {
           </span>
         </span>
         <span className="inline-flex items-center gap-2">
+          <button
+            type="button"
+            className="text-[10px] font-semibold uppercase tracking-wide text-[var(--color-accent)] hover:underline"
+            onClick={() => void copyReport()}
+          >
+            {t('panels.revisions.copyAiSummary')}
+          </button>
+          {documentId ? (
+            <button
+              type="button"
+              className="text-[10px] font-semibold uppercase tracking-wide text-[var(--color-accent)] hover:underline disabled:opacity-50"
+              disabled={savingNamed}
+              onClick={() => void saveNamedFromAi()}
+            >
+              {t('panels.revisions.saveNamedFromAi')}
+            </button>
+          ) : null}
           <span
             className={cn(
               'rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
@@ -118,17 +193,41 @@ function RevisionAiSummary({ report }: { report: RevisionAiReport }) {
       {report.bullets?.length ? (
         <ul className="mb-0 space-y-1.5 text-[11px]">
           {report.bullets.map((bullet) => (
-            <li key={`${bullet.kind}-${bullet.text.slice(0, 40)}`} className="flex gap-1.5">
+            <li
+              key={`${bullet.kind}-${bullet.text.slice(0, 40)}`}
+              className="flex items-start gap-1.5"
+            >
               <span
                 className={cn(
-                  'mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full',
+                  'mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full',
                   bullet.severity === 'critical' && 'bg-[#b91c1c]',
                   bullet.severity === 'warn' && 'bg-[#b45309]',
                   bullet.severity === 'info' && 'bg-[#15803d]',
                 )}
                 aria-hidden
               />
-              <span>{bullet.text}</span>
+              <span className="min-w-0 flex-1">{bullet.text}</span>
+              <span className="inline-flex shrink-0 items-center gap-1.5">
+                {documentId ? (
+                  <button
+                    type="button"
+                    className="text-[10px] font-semibold uppercase tracking-wide text-[var(--color-accent)] hover:underline disabled:opacity-50"
+                    disabled={savingNamed}
+                    title={t('panels.revisions.applyBulletNamed')}
+                    onClick={() => void saveNamedFromAi(bullet.text)}
+                  >
+                    {t('panels.revisions.applyBulletNamed')}
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  className="text-[10px] font-semibold uppercase tracking-wide text-[var(--color-accent)] hover:underline"
+                  title={t('panels.revisions.applyBulletInsert')}
+                  onClick={() => applyBulletToEditor(bullet.text)}
+                >
+                  {t('panels.revisions.applyBulletInsert')}
+                </button>
+              </span>
             </li>
           ))}
         </ul>
@@ -706,7 +805,15 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
               {t('common.close')}
             </button>
           </div>
-          {preview.ai ? <RevisionAiSummary report={preview.ai} /> : null}
+          {preview.ai ? (
+            <RevisionAiSummary
+              report={preview.ai}
+              documentId={activeId}
+              onNamedSaved={() => {
+                if (activeId) void refreshRevisions(activeId)
+              }}
+            />
+          ) : null}
           <pre className="m-0 overflow-auto whitespace-pre-wrap break-words px-4 py-3 font-mono text-[12px] leading-relaxed text-[var(--color-foreground)]">
             {preview.plainText}
           </pre>
@@ -715,7 +822,15 @@ export function RevisionHistoryPanel({ onClose }: RevisionHistoryPanelProps) {
 
       {compareState && (
         <>
-          {compareState.ai ? <RevisionAiSummary report={compareState.ai} /> : null}
+          {compareState.ai ? (
+            <RevisionAiSummary
+              report={compareState.ai}
+              documentId={activeId}
+              onNamedSaved={() => {
+                if (activeId) void refreshRevisions(activeId)
+              }}
+            />
+          ) : null}
           <RevisionDiffView
             left={{
               label: compareState.left.label,

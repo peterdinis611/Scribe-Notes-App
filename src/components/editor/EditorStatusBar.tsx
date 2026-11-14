@@ -10,7 +10,7 @@ import {
   Rows2,
   Sparkles,
 } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
@@ -60,8 +60,14 @@ export function EditorStatusBar({
   const printColumns = useAppSelector((state) => state.settings.printLayoutColumns)
   const dispatch = useAppDispatch()
 
-  const words = document ? countWords(document.contentJson) : 0
-  const templateCoverage = templateCoachFromJson(document?.contentJson ?? null)
+  const words = useMemo(
+    () => (document ? countWords(document.contentJson) : 0),
+    [document?.id, document?.contentJson, document?.updatedAt],
+  )
+  const templateCoverage = useMemo(
+    () => templateCoachFromJson(document?.contentJson ?? null),
+    [document?.id, document?.contentJson, document?.updatedAt],
+  )
   const coachIncomplete =
     templateCoverage != null && templateCoverage.present < templateCoverage.expected
   const [nlp, setNlp] = useState<NlpStatus | null>(null)

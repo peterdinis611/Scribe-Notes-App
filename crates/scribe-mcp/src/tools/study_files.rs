@@ -121,6 +121,25 @@ pub struct RewriteQueryParams {
 
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
+pub struct PlanToolsParams {
+    pub question: String,
+    pub allowed_tools: Vec<String>,
+    pub limit: Option<i64>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct BuildPromptParams {
+    /// document_chat | library_chat | agent | rewrite
+    pub kind: String,
+    pub question_or_text: String,
+    pub passages: Option<serde_json::Value>,
+    pub language: Option<String>,
+    pub char_budget: Option<i64>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct RewriteSelectionParams {
     pub text: String,
     /// rephrase_professional | summarize_bullets | translate_sk | translate_en | custom_prompt

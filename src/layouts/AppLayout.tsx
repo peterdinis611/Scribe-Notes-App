@@ -6,6 +6,7 @@ import { listen } from '@tauri-apps/api/event'
 import { AppFileDropOverlay } from '@/components/AppFileDropOverlay'
 import { DndRoot } from '@/components/dnd/DndRoot'
 import { RouteViewTransition } from '@/components/RouteViewTransition'
+import { SuspenseFallback } from '@/components/ui/spinner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { DocumentTabsBar } from '@/components/layout/DocumentTabsBar'
@@ -276,7 +277,7 @@ export function AppLayout() {
           ref={mainRef}
           className="app-main relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
         >
-          <Suspense fallback={null}>
+          <Suspense fallback={<SuspenseFallback className="min-h-[12rem]" />}>
             <RouteViewTransition>
               <Outlet />
             </RouteViewTransition>

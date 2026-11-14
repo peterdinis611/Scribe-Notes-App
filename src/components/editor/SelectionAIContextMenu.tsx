@@ -17,12 +17,12 @@ import {
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import {
-  nlpExtractFlashcards,
-  nlpRewriteSelection,
-  nlpSuggestWikiLinks,
-  nlpWritingCoach,
+  extractFlashcards as nlpExtractFlashcards,
+  rewriteSelection as nlpRewriteSelection,
+  suggestWikiLinks as nlpSuggestWikiLinks,
+  writingCoach as nlpWritingCoach,
   type WritingCoachHint,
-} from '@/lib/db/nlp-api'
+} from '@/lib/ai'
 import { applyWikiSuggestion } from '@/lib/editor/apply-suggestions'
 import { distillTeachingWithLlm } from '@/lib/library/agent-teach'
 import { toast } from '@/lib/toast'

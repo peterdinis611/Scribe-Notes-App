@@ -1,3 +1,4 @@
+import { buildPrompt } from '@/lib/ai'
 import { nlpLlmComplete, nlpLlmStatus } from '@/lib/db/nlp-api'
 import {
   AGENT_TEACHING_MAX_LEN,
@@ -72,8 +73,20 @@ export async function distillTeachingWithLlm(
   }
 
   const topic: AgentTeachingTopic = opts?.topic === 'grammar' ? 'grammar' : 'general'
+  let system = topic === 'grammar' ? DISTILL_GRAMMAR_SYSTEM : DISTILL_SYSTEM
+  try {
+    const shared = await buildPrompt({
+      kind: 'agent',
+      questionOrText: trimmed.slice(0, AGENT_TEACH_DRAFT_MAX_LEN),
+    })
+    if (shared.system?.trim()) {
+      system = `${shared.system}\n${system}`
+    }
+  } catch {
+    /* Rust prompt builder unavailable */
+  }
   const result = await nlpLlmComplete({
-    system: topic === 'grammar' ? DISTILL_GRAMMAR_SYSTEM : DISTILL_SYSTEM,
+    system,
     prompt:
       topic === 'grammar'
         ? `User grammar preference note:\n${trimmed.slice(0, AGENT_TEACH_DRAFT_MAX_LEN)}`

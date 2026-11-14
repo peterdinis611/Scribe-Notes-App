@@ -1,5 +1,6 @@
 import i18n from '@/i18n'
 import type { PageHeaderFooter } from '@/lib/editor/page-setup'
+import { bcp47Tag } from '@/lib/i18n/locale-tags'
 
 /** Keep in sync with `crates/scribe-ui/src/page_header_footer.rs`. */
 
@@ -43,17 +44,8 @@ export function buildHeaderFooterLines(
   return { header, footer }
 }
 
-const DATE_LOCALE_TAGS: Record<string, string> = {
-  sk: 'sk-SK',
-  en: 'en-US',
-  cs: 'cs-CZ',
-  hu: 'hu-HU',
-  pl: 'pl-PL',
-}
-
 export function formatExportDate(date = new Date()): string {
-  const base = (i18n.language || 'sk').slice(0, 2).toLowerCase()
-  const locale = DATE_LOCALE_TAGS[base] ?? 'en-US'
+  const locale = bcp47Tag(i18n.language, 'sk-SK')
   return date.toLocaleDateString(locale, {
     day: 'numeric',
     month: 'long',

@@ -465,27 +465,21 @@ def _try_llm_answer(
         return None
     from .llm import try_complete_from_options
 
-    blocks: list[str] = []
-    for index, item in enumerate(passages[:6], start=1):
-        title = str(item.get("title") or "Untitled")
-        snippet = str(item.get("snippet") or "")[:500]
-        blocks.append(f"[{index}] {title}\n{snippet}")
-    context = "\n\n".join(blocks)
     scope_hint = "this open document" if scope == "document" else "the user's local notes"
     intent_hint = f" Question intent hint: {intent}." if intent else ""
-    from .scribe_ai import PromptKind, system_prompt
+    from .scribe_ai import PromptKind, system_prompt, user_prompt
 
-    # Base prompt from shared `scribe_ai` (Rust parity), plus grounded-answer extras.
+    kind = PromptKind.DOCUMENT_CHAT if scope == "document" else PromptKind.LIBRARY_CHAT
+    # Shared `scribe_ai` builders (Rust parity), plus grounded-answer extras for the host.
     system = (
-        system_prompt(PromptKind.LIBRARY_CHAT if scope != "document" else PromptKind.DOCUMENT_CHAT)
+        system_prompt(kind)
         + " If the passages are insufficient, say what is missing. "
         "Do not invent facts. Prefer concise prose with short bullets when listing items. "
         "Reply in the same language as the question."
     )
     prompt = (
         f"Answer using {scope_hint}.{intent_hint}\n\n"
-        f"Question:\n{question.strip()}\n\n"
-        f"Passages:\n{context}\n\n"
+        f"{user_prompt(kind, question, passages[:6])}\n\n"
         "Write a grounded answer. Mention source titles inline when helpful "
         "(e.g. according to \"Note title\")."
     )

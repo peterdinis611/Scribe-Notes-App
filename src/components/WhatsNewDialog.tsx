@@ -6,17 +6,17 @@ import { closeScribeUiSurface } from '@/lib/scribe-ui-host'
 import { isTauriRuntime } from '@/lib/tauri'
 import { persistWhatsNewVersion } from '@/store/persistence'
 
-/** Edition 5.3 release notes — keep in sync with `scribe_ui::WHATS_NEW_50_*`. */
+/** Edition 5.4 release notes — keep in sync with `scribe_ui::WHATS_NEW_50_*`. */
 export const WHATS_NEW_50_HIGHLIGHTS = [
-  'nativeCore',
-  'wikiNative',
-  'taskAgenda',
-  'sourceExport',
+  'offlineAiFelt',
+  'searchRewrite',
+  'aiSurface',
+  'pythonParity',
   'stillLocal',
 ] as const
 
 /** Folio tag keys under `whatsNew.tags.*` — keep in sync with `WHATS_NEW_50_TAG_KEYS`. */
-export const WHATS_NEW_50_TAG_KEYS = ['native', 'library', 'editor'] as const
+export const WHATS_NEW_50_TAG_KEYS = ['localAi', 'library', 'agent'] as const
 
 export type WhatsNew50HighlightId = (typeof WHATS_NEW_50_HIGHLIGHTS)[number]
 
