@@ -154,6 +154,7 @@ dependencies = [
  "scribe-audit",
  "scribe-capture",
  "scribe-core",
+ "scribe-logging",
  "scribe-sync",
  "scribe-toast",
  "scribe-ui",
@@ -4586,6 +4587,17 @@ dependencies = [
  "unicode-normalization",
  "uuid",
  "zip",
+]
+
+[[package]]
+name = "scribe-logging"
+version = "5.4.0"
+dependencies = [
+ "chrono",
+ "fern",
+ "log",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

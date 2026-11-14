@@ -227,18 +227,28 @@ function buildFootnotesSection(
     if (editor.isEditable && onEdit) {
       const edit = document.createElement('button')
       edit.type = 'button'
-      edit.className = 'footnotes-item-edit'
+      edit.className = 'footnotes-item-edit titlebar-no-drag'
       edit.textContent = i18n.t('footnotes.edit')
-      edit.addEventListener('mousedown', (event) => {
+      edit.setAttribute('aria-label', i18n.t('footnotes.edit'))
+      const openEdit = (event: Event) => {
         event.preventDefault()
         event.stopPropagation()
         let pos: number | null = null
         editor.state.doc.descendants((node, nodePos) => {
           if (pos != null) return false
-          if (node.type.name === 'footnote' && node.attrs.id === item.id) pos = nodePos
+          if (node.type.name === 'footnote' && node.attrs.id === item.id) {
+            pos = nodePos
+            return false
+          }
         })
         if (pos != null) onEdit(editor, pos, item.content)
+      }
+      // click is more reliable than mousedown alone inside ProseMirror widgets
+      edit.addEventListener('mousedown', (event) => {
+        event.preventDefault()
+        event.stopPropagation()
       })
+      edit.addEventListener('click', openEdit)
       li.appendChild(edit)
     }
 
@@ -259,6 +269,7 @@ export function createFootnoteEditHandler() {
         defaultValue: content,
         placeholder: i18n.t('footnotes.editPlaceholder'),
         confirmLabel: i18n.t('footnotes.editConfirm'),
+        multiline: true,
       })
       if (next === null || editor.isDestroyed) return
       const trimmed = next.trim()

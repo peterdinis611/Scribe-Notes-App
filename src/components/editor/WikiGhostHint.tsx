@@ -9,11 +9,20 @@ type WikiGhostHintProps = {
   editor: Editor | null
 }
 
+type HintState = {
+  id: string
+  title: string
+  from: number
+  to: number
+  top: number
+  left: number
+}
+
 export function WikiGhostHint({ editor }: WikiGhostHintProps) {
   const { t } = useTranslation()
   const documents = useAppSelector((state) => state.documents.documents)
   const activeId = useAppSelector((state) => state.documents.activeDocumentId)
-  const [hint, setHint] = useState<{ id: string; title: string; from: number; to: number } | null>(null)
+  const [hint, setHint] = useState<HintState | null>(null)
   const [nlpCandidates, setNlpCandidates] = useState<WikiGhostCandidate[]>([])
 
   useEffect(() => {
@@ -22,8 +31,7 @@ export function WikiGhostHint({ editor }: WikiGhostHintProps) {
       return
     }
     let cancelled = false
-    // Defer sidecar RPCs off the critical document-open path (status + wiki links
-    // share the DB mutex / NLP worker with get_document).
+    // Defer sidecar RPCs off the critical document-open path.
     const timer = window.setTimeout(() => {
       if (cancelled) return
       void nlpStatus()
@@ -58,8 +66,58 @@ export function WikiGhostHint({ editor }: WikiGhostHintProps) {
       .map((doc) => ({ id: doc.id, title: doc.title, phrase: doc.title }))
     const candidates = [...nlpCandidates, ...titles]
 
+    const shell = editor.view.dom.closest('.editor-shell') as HTMLElement | null
+
+    const placeHint = (from: number, to: number, id: string, title: string) => {
+      try {
+        const end = editor.view.coordsAtPos(to)
+        const origin = shell?.getBoundingClientRect()
+        if (!origin) {
+          setHint(null)
+          return
+        }
+        const scroller =
+          (shell?.querySelector('.editor-scroll') as HTMLElement | null) ?? shell
+        const visible = scroller?.getBoundingClientRect()
+        if (
+          visible &&
+          (end.bottom < visible.top + 4 || end.top > visible.bottom - 4)
+        ) {
+          setHint(null)
+          return
+        }
+        // Keep clear of the footnotes widget / status chrome.
+        const footnotes = editor.view.dom.querySelector('.footnotes-section')
+        if (footnotes) {
+          const fr = footnotes.getBoundingClientRect()
+          if (end.bottom >= fr.top - 12) {
+            setHint(null)
+            return
+          }
+        }
+        setHint({
+          id,
+          title,
+          from,
+          to,
+          top: end.bottom - origin.top + 6,
+          left: Math.min(Math.max(8, end.left - origin.left), Math.max(8, origin.width - 200)),
+        })
+      } catch {
+        setHint(null)
+      }
+    }
+
     const scan = () => {
+      if (!editor.isEditable || editor.isDestroyed) {
+        setHint(null)
+        return
+      }
       const { $from } = editor.state.selection
+      if ($from.parent.type.name === 'doc') {
+        setHint(null)
+        return
+      }
       const paragraph = $from.parent.textContent
       const match = findWikiGhostMatch(paragraph, candidates)
       if (!match) {
@@ -69,6 +127,12 @@ export function WikiGhostHint({ editor }: WikiGhostHintProps) {
       const parentStart = $from.start()
       const from = parentStart + match.start
       const to = parentStart + match.end
+      // Only offer when the caret is on / next to the matched phrase.
+      const caret = editor.state.selection.from
+      if (caret < from - 1 || caret > to + 1) {
+        setHint(null)
+        return
+      }
       let alreadyLinked = false
       editor.state.doc.nodesBetween(from, to, (node) => {
         if (node.type.name === 'wikiLink') alreadyLinked = true
@@ -77,12 +141,7 @@ export function WikiGhostHint({ editor }: WikiGhostHintProps) {
         setHint(null)
         return
       }
-      setHint({
-        id: match.id,
-        title: match.title,
-        from,
-        to,
-      })
+      placeHint(from, to, match.id, match.title)
     }
 
     let timer = 0
@@ -93,10 +152,12 @@ export function WikiGhostHint({ editor }: WikiGhostHintProps) {
     schedule()
     editor.on('update', schedule)
     editor.on('selectionUpdate', schedule)
+    shell?.addEventListener('scroll', schedule, true)
     return () => {
       window.clearTimeout(timer)
       editor.off('update', schedule)
       editor.off('selectionUpdate', schedule)
+      shell?.removeEventListener('scroll', schedule, true)
     }
   }, [activeId, documents, editor, nlpCandidates])
 
@@ -106,6 +167,7 @@ export function WikiGhostHint({ editor }: WikiGhostHintProps) {
     <button
       type="button"
       className="wiki-ghost-hint titlebar-no-drag"
+      style={{ top: hint.top, left: hint.left }}
       onMouseDown={(event) => event.preventDefault()}
       onClick={() => {
         editor

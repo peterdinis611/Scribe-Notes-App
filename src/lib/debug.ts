@@ -8,8 +8,11 @@
  *
  * Opt out of soft DEV logs: `localStorage.scribe-debug = '0'`.
  *
- * Console after boot: `scribeLog.info('hi')`, `scribeLog.setEnabled(true)`.
+ * In Tauri, lines are also mirrored to the cargo terminal via `scribe-logging`
+ * (`logging_write`). Console after boot: `scribeLog.info('hi')`.
  */
+
+import { mirrorLogToTerminal } from '@/lib/logging/api'
 
 export type DebugLevel = 'debug' | 'info' | 'warn' | 'error'
 
@@ -120,16 +123,33 @@ function write(
 
   if (data === undefined) {
     fn(prefix, ...styles)
-    return
-  }
-  if (data !== null && typeof data === 'object') {
+  } else if (data !== null && typeof data === 'object') {
     fn(prefix, ...styles)
     console.groupCollapsed(`  ↳ ${scope} payload`)
     console.dir(data)
     console.groupEnd()
-    return
+  } else {
+    fn(prefix, ...styles, data)
   }
-  fn(prefix, ...styles, data)
+
+  // Mirror to cargo / Tauri terminal (scribe-logging). Skip debug unless verbose.
+  const terminalPayload =
+    data === undefined
+      ? message
+      : typeof data === 'string'
+        ? `${message} ${data}`
+        : `${message} ${safeJson(data)}`
+  mirrorLogToTerminal(level, `scribe.fe.${scope}`, terminalPayload)
+}
+
+function safeJson(value: unknown): string {
+  try {
+    const raw = JSON.stringify(value)
+    if (!raw) return ''
+    return raw.length > 800 ? `${raw.slice(0, 797)}…` : raw
+  } catch {
+    return '[unserializable]'
+  }
 }
 
 export type ScopedLogger = {

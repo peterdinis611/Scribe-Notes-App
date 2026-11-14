@@ -15,6 +15,7 @@ permissions = [
   "group-import-export",
   "group-libraries",
   "group-links",
+  "group-logging",
   "group-native-pipeline",
   "group-nlp",
   "group-ocr",

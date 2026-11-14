@@ -8804,8 +8804,24 @@ body.is-block-dragging .tiptap {
   background: color-mix(in srgb, var(--color-accent) 14%, var(--color-surface));
 }
 
-.tiptap .paint-block__btn--danger:hover {
+.tiptap .paint-block__btn--danger {
+  border-color: color-mix(in srgb, #b91c1c 35%, var(--color-border));
   color: #b91c1c;
+}
+
+.tiptap .paint-block__btn--danger:hover {
+  background: color-mix(in srgb, #b91c1c 12%, var(--color-surface));
+  color: #991b1b;
+}
+
+.tiptap .paint-block__btn--delete {
+  width: auto;
+  gap: 6px;
+  padding: 0 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 
 .tiptap .paint-block__size input[type='range'] {
@@ -10312,12 +10328,18 @@ body.is-block-dragging .tiptap {
 }
 
 .tiptap .footnotes-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
   font-size: 12.5px;
   line-height: 1.5;
   color: var(--color-foreground);
 }
 
 .tiptap .footnotes-item-text {
+  flex: 1 1 auto;
+  min-width: 0;
   cursor: pointer;
 }
 
@@ -10331,14 +10353,17 @@ body.is-block-dragging .tiptap {
 }
 
 .tiptap .footnotes-item-edit {
-  margin-left: 8px;
-  padding: 0 6px;
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 2px 8px;
   border: 1px solid var(--color-border);
   border-radius: 6px;
-  background: transparent;
+  background: color-mix(in srgb, var(--color-canvas) 88%, var(--color-muted-foreground));
   font-size: 10.5px;
+  line-height: 1.4;
   color: var(--color-muted-foreground);
-  cursor: default;
+  cursor: pointer;
+  pointer-events: auto;
 }
 
 .tiptap .footnotes-item-edit:hover {
@@ -16869,20 +16894,25 @@ html:not([data-ui-skin]) .folder-tree-row--doc.is-selected {
 
 .wiki-ghost-hint {
   position: absolute;
-  right: 18px;
-  bottom: 52px;
-  z-index: 8;
-  border: none;
-  border-radius: 999px;
-  background: transparent;
-  padding: 4px 8px;
-  color: color-mix(in srgb, var(--color-foreground) 42%, var(--color-muted-foreground));
+  top: 0;
+  left: 0;
+  z-index: 12;
+  max-width: min(280px, calc(100% - 24px));
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-canvas) 92%, var(--color-accent));
+  padding: 5px 10px;
+  color: color-mix(in srgb, var(--color-foreground) 72%, var(--color-muted-foreground));
   font-family: var(--font-mono);
   font-size: 12px;
   font-style: italic;
   font-weight: 500;
   letter-spacing: 0.01em;
-  opacity: 0.78;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--color-foreground) 8%, transparent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: auto;
 }
 
 /* ── Error folio (runtime crash screen) ───────────────────────────────────── */
@@ -17670,6 +17700,24 @@ html[data-ui-skin='press'] .error-folio__title {
   color: var(--color-muted-foreground);
 }
 
+button.agent-settings-role-chip {
+  cursor: pointer;
+  appearance: none;
+  text-align: left;
+  transition: border-color 120ms ease, background 120ms ease, color 120ms ease;
+}
+
+button.agent-settings-role-chip:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--role-tone, var(--color-accent)) 40%, var(--color-border));
+  background: color-mix(in srgb, var(--role-tone, var(--color-accent)) 12%, var(--color-background));
+  color: var(--color-foreground);
+}
+
+button.agent-settings-role-chip:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .agent-settings-role-chip > span {
   min-width: 0;
   white-space: normal;
@@ -17677,7 +17725,7 @@ html[data-ui-skin='press'] .error-folio__title {
 }
 
 .agent-settings-role-chip.is-memory.is-empty {
-  opacity: 0.78;
+  opacity: 0.92;
 }
 
 .agent-settings-role-chip.is-handoff {
