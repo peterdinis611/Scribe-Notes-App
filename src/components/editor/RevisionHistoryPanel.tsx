@@ -77,6 +77,21 @@ type PreviewState = {
 
 function RevisionAiSummary({ report }: { report: RevisionAiReport }) {
   const { t } = useTranslation()
+
+  const copyReport = async () => {
+    const lines = [
+      report.headline,
+      report.summary,
+      ...(report.bullets ?? []).map((bullet) => `• ${bullet.text}`),
+    ].filter(Boolean)
+    try {
+      await navigator.clipboard.writeText(lines.join('\n'))
+      toast.success(t('panels.revisions.copyAiSummary'))
+    } catch (error) {
+      toast.error(t('panels.revisions.copyAiSummaryError'), String(error))
+    }
+  }
+
   return (
     <div className="mx-3 mb-2 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 text-[12px] leading-snug text-[var(--color-foreground)]">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
@@ -87,6 +102,13 @@ function RevisionAiSummary({ report }: { report: RevisionAiReport }) {
           </span>
         </span>
         <span className="inline-flex items-center gap-2">
+          <button
+            type="button"
+            className="text-[10px] font-semibold uppercase tracking-wide text-[var(--color-accent)] hover:underline"
+            onClick={() => void copyReport()}
+          >
+            {t('panels.revisions.copyAiSummary')}
+          </button>
           <span
             className={cn(
               'rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',

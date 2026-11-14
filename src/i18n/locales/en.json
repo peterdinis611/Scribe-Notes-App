@@ -2555,6 +2555,19 @@
       "purgeOk": "Removed from quarantine",
       "purgeAllOk": "Cleared {{count}} quarantine item(s)",
       "purgeError": "Purge failed"
+    },
+    "audit": {
+      "title": "Audit log",
+      "description": "Browse recent local audit events, stats, and copy a JSONL export.",
+      "searchPlaceholder": "Filter by action, actor, summary…",
+      "export": "Copy JSONL",
+      "exportCopied": "Audit export copied",
+      "exportError": "Could not export audit log",
+      "loadError": "Could not load audit log",
+      "total": "Events",
+      "keepLimit": "Keep limit",
+      "newest": "Newest",
+      "empty": "No audit events yet."
     }
   },
   "storageAccess": {
@@ -4058,7 +4071,9 @@
       "contextLines": "Context",
       "wordHighlight": "Word highlight",
       "gainedTerms": "Gained",
-      "lostTerms": "Lost"
+      "lostTerms": "Lost",
+      "copyAiSummary": "Copy AI summary",
+      "copyAiSummaryError": "Could not copy AI summary"
     }
   },
   "focusMode": {

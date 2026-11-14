@@ -410,14 +410,14 @@ mod tests {
         assert!(m.ui_skin_ids.contains(&"grove".to_string()));
         assert!(m.smart_filter_ids.contains(&"canvas".to_string()));
         assert!(m.library_view_ids.contains(&"wikiHealth".to_string()));
-        assert_eq!(m.whats_new_tag_keys, vec!["native", "library", "editor"]);
+        assert_eq!(m.whats_new_tag_keys, vec!["localAi", "library", "agent"]);
         assert_eq!(
             m.whats_new_highlights,
             vec![
-                "nativeCore",
-                "wikiNative",
-                "taskAgenda",
-                "sourceExport",
+                "offlineAiFelt",
+                "searchRewrite",
+                "aiSurface",
+                "pythonParity",
                 "stillLocal",
             ]
         );

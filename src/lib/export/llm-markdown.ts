@@ -1,3 +1,4 @@
+import { buildPrompt } from '@/lib/ai'
 import { nlpLlmComplete } from '@/lib/db/nlp-api'
 import { tiptapJsonToMarkdown } from '@/lib/export/markdown'
 import { tiptapToPlainText } from '@/lib/export/plain-text'
@@ -25,7 +26,7 @@ function detectSlovak(text: string): boolean {
   return /[áäčďéíĺľňóôŕšťúýžÁÄČĎÉÍĹĽŇÓÔŔŠŤÚÝŽ]/.test(text)
 }
 
-function buildPrompt(args: {
+function buildLocalMarkdownPrompt(args: {
   title: string
   seedMarkdown: string
   plainText: string
@@ -76,16 +77,28 @@ export async function generateMarkdownWithLlm(args: {
   const slovak = detectSlovak(`${args.title}\n${plainText}`)
 
   try {
+    const userPrompt = buildLocalMarkdownPrompt({
+      title: args.title,
+      seedMarkdown,
+      plainText,
+      slovak,
+    })
+    let system = slovak
+      ? 'Si editor Markdownu. Vraciaš len platný GFM Markdown. Bez preambule.'
+      : 'You are a Markdown editor. Return only valid GFM Markdown. No preamble.'
+    try {
+      const shared = await buildPrompt({
+        kind: 'rewrite',
+        questionOrText: userPrompt,
+        language: slovak ? 'sk' : 'en',
+      })
+      if (shared.system?.trim()) system = `${shared.system}\n${system}`
+    } catch {
+      /* Rust prompt builder unavailable — keep local system string. */
+    }
     const result = await nlpLlmComplete({
-      prompt: buildPrompt({
-        title: args.title,
-        seedMarkdown,
-        plainText,
-        slovak,
-      }),
-      system: slovak
-        ? 'Si editor Markdownu. Vraciaš len platný GFM Markdown. Bez preambule.'
-        : 'You are a Markdown editor. Return only valid GFM Markdown. No preamble.',
+      prompt: userPrompt,
+      system,
       temperature: 0.15,
       maxTokens: 4096,
     })

@@ -2555,6 +2555,19 @@
       "purgeOk": "Usunięto z kwarantanny",
       "purgeAllOk": "Usunięto elementy kwarantanny {{count}}",
       "purgeError": "Czyszczenie nie powiodło się"
+    },
+    "audit": {
+      "title": "Audit log",
+      "description": "Browse recent local audit events, stats, and copy a JSONL export.",
+      "searchPlaceholder": "Filter by action, actor, summary…",
+      "export": "Copy JSONL",
+      "exportCopied": "Audit export copied",
+      "exportError": "Could not export audit log",
+      "loadError": "Could not load audit log",
+      "total": "Events",
+      "keepLimit": "Keep limit",
+      "newest": "Newest",
+      "empty": "No audit events yet."
     }
   },
   "storageAccess": {
@@ -4041,7 +4054,9 @@
       "contextLines": "Kontekst",
       "wordHighlight": "Podświetlenie słowa",
       "gainedTerms": "Uzyskano",
-      "lostTerms": "Utracono"
+      "lostTerms": "Utracono",
+      "copyAiSummary": "Copy AI summary",
+      "copyAiSummaryError": "Could not copy AI summary"
     }
   },
   "focusMode": {

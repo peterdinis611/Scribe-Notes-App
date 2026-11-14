@@ -9,6 +9,7 @@ import { LocaleSelect, useCustomLocaleRefresh } from '@/components/LocaleSelect'
 import { Button } from '@/components/ui/button'
 import { IconTooltip } from '@/components/ui/tooltip'
 import { Input } from '@/components/ui/input'
+import { AuditSection } from '@/components/settings/AuditSection'
 import { DiagnosticsSection } from '@/components/settings/DiagnosticsSection'
 import { InterfaceSection } from '@/components/settings/InterfaceSection'
 import { AntivirusPanel } from '@/components/settings/AntivirusPanel'
@@ -1048,7 +1049,12 @@ export function SettingsSectionContent({ section }: { section: SettingsSectionId
     case 'shortcuts':
       return <ShortcutsSection />
     case 'diagnostics':
-      return <DiagnosticsSection />
+      return (
+        <>
+          <DiagnosticsSection />
+          <AuditSection />
+        </>
+      )
     case 'mcp':
       return <McpSection />
     case 'privacy':
