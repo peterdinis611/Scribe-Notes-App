@@ -5037,6 +5037,7 @@ html:not([data-ui-skin]) .agent-workspace-dock {
   gap: 8px;
   padding: 14px 14px 10px;
   border-bottom: 1px solid color-mix(in srgb, var(--color-border) 75%, transparent);
+  overflow: hidden;
 }
 
 .agent-dock-header-top {
@@ -5045,14 +5046,16 @@ html:not([data-ui-skin]) .agent-workspace-dock {
   justify-content: space-between;
   gap: 10px;
   min-width: 0;
+  width: 100%;
 }
 
 .agent-dock-identity {
   display: flex;
   min-width: 0;
-  flex: 1;
+  flex: 1 1 auto;
   align-items: center;
   gap: 10px;
+  overflow: hidden;
 }
 
 .agent-dock-face {
@@ -5061,6 +5064,7 @@ html:not([data-ui-skin]) .agent-workspace-dock {
 
 .agent-dock-copy {
   min-width: 0;
+  overflow: hidden;
 }
 
 .agent-dock-kicker {
@@ -5087,6 +5091,9 @@ html:not([data-ui-skin]) .agent-dock-kicker {
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--color-foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 html[data-ui-skin='page'] .agent-dock-title,
@@ -5124,45 +5131,53 @@ html:not([data-ui-skin]) .agent-persona-tab.is-active {
 
 .agent-dock-actions {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
-.agent-persona-switch {
-  display: flex;
-  flex-wrap: nowrap;
+.agent-persona-trigger {
+  display: inline-flex;
+  max-width: 8.5rem;
   align-items: center;
-  gap: 2px;
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  overflow-x: auto;
-  overflow-y: hidden;
-  overscroll-behavior-x: contain;
-  scrollbar-width: thin;
-  padding: 2px;
+  gap: 4px;
+  height: 30px;
+  padding: 0 8px 0 10px;
   border-radius: 999px;
   border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
   background: color-mix(in srgb, var(--color-surface) 88%, transparent);
-  -webkit-overflow-scrolling: touch;
+  color: var(--color-foreground);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
 }
 
-.agent-persona-switch::-webkit-scrollbar {
-  height: 3px;
+.agent-persona-trigger:hover {
+  border-color: color-mix(in srgb, var(--color-accent) 35%, var(--color-border));
+  background: color-mix(in srgb, var(--color-hover) 70%, transparent);
+}
+
+.agent-persona-trigger-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agent-persona-menu [data-slot='dropdown-menu-item'].is-active,
+.agent-persona-menu .is-active {
+  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+  font-weight: 600;
+}
+
+.agent-persona-switch {
+  display: none;
 }
 
 .agent-persona-tab {
-  border: none;
-  background: transparent;
-  color: var(--color-muted-foreground);
-  font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  padding: 4px 8px;
-  border-radius: 999px;
-  cursor: pointer;
-  white-space: nowrap;
-  flex: 0 0 auto;
+  display: none;
 }
 
 .agent-dock-empty-roles {
@@ -5777,6 +5792,11 @@ html:not([data-ui-skin]) .agent-persona-tab.is-active {
   color: color-mix(in srgb, var(--color-foreground) 78%, var(--color-muted-foreground));
   font-size: 11px;
   line-height: 1.4;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  word-break: break-word;
 }
 
 .library-chat-clear {

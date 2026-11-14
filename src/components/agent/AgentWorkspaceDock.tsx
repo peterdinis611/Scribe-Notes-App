@@ -1,7 +1,14 @@
-import { PanelRightClose } from 'lucide-react'
-import { lazy, Suspense, useEffect, useRef } from 'react'
+import { ChevronsUpDown, PanelRightClose } from 'lucide-react'
+import { lazy, Suspense, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AgentBlobatar, AGENT_BLOBATAR_NAME } from '@/components/agent/AgentBlobatar'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { SuspenseFallback } from '@/components/ui/spinner'
 import { SPELLCHECK_AGENT_BLOBATAR_NAME } from '@/lib/library/spellcheck-agent'
 import {
   enabledAgentRoles,
@@ -38,7 +45,6 @@ export function AgentWorkspaceDock() {
   const activeRole = getAgentRole(activeRoleId)
   const isSpell = activeRole.panel === 'spellcheck'
   const blobName = isSpell ? SPELLCHECK_AGENT_BLOBATAR_NAME : AGENT_BLOBATAR_NAME
-  const activeTabRef = useRef<HTMLButtonElement | null>(null)
 
   useEffect(() => {
     if (!open) return
@@ -46,11 +52,6 @@ export function AgentWorkspaceDock() {
       dispatch(setAgentPersona(activeRoleId))
     }
   }, [open, persona, activeRoleId, dispatch])
-
-  useEffect(() => {
-    if (!open) return
-    activeTabRef.current?.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' })
-  }, [open, activeRoleId])
 
   if (!open || focusMode || readingMode) return null
 
@@ -110,35 +111,50 @@ export function AgentWorkspaceDock() {
               </h2>
             </div>
           </div>
-          <IconTooltip label={t('agent.dockClose')}>
-            <button
-              type="button"
-              className="agent-dock-close"
-              aria-label={t('agent.dockClose')}
-              onClick={() => dispatch(setAgentPanelOpen(false))}
-            >
-              <PanelRightClose className="h-4 w-4" />
-            </button>
-          </IconTooltip>
-        </div>
-        {roles.length > 1 ? (
-          <div className="agent-persona-switch" role="group" aria-label={t('agent.personaSwitch')}>
-            {roles.map((role) => (
+          <div className="agent-dock-actions">
+            {roles.length > 1 ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="agent-persona-trigger"
+                    aria-label={t('agent.personaSwitch')}
+                  >
+                    <span className="agent-persona-trigger-label">
+                      {t(activeRole.dockLabelKey)}
+                    </span>
+                    <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 opacity-70" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="agent-persona-menu min-w-[11rem]">
+                  {roles.map((role) => (
+                    <DropdownMenuItem
+                      key={role.id}
+                      className={cn(activeRoleId === role.id && 'is-active')}
+                      onSelect={() =>
+                        dispatch(openAgentPanel({ persona: role.id as AgentRoleId }))
+                      }
+                    >
+                      {t(role.dockLabelKey)}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : null}
+            <IconTooltip label={t('agent.dockClose')}>
               <button
-                key={role.id}
-                ref={activeRoleId === role.id ? activeTabRef : undefined}
                 type="button"
-                className={cn('agent-persona-tab', activeRoleId === role.id && 'is-active')}
-                aria-pressed={activeRoleId === role.id}
-                onClick={() => dispatch(openAgentPanel({ persona: role.id as AgentRoleId }))}
+                className="agent-dock-close"
+                aria-label={t('agent.dockClose')}
+                onClick={() => dispatch(setAgentPanelOpen(false))}
               >
-                {t(role.dockLabelKey)}
+                <PanelRightClose className="h-4 w-4" />
               </button>
-            ))}
+            </IconTooltip>
           </div>
-        ) : null}
+        </div>
       </header>
-      <Suspense fallback={null}>
+      <Suspense fallback={<SuspenseFallback className="min-h-[8rem]" />}>
         {isSpell ? (
           <SpellcheckAgentPanel onClose={() => dispatch(setAgentPanelOpen(false))} />
         ) : (

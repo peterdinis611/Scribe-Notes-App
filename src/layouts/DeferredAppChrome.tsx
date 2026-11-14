@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react'
+import { SuspenseFallback } from '@/components/ui/spinner'
 import { scheduleIdle } from '@/lib/schedule-idle'
 import type { DocumentTemplate } from '@/lib/templates'
 import { useAppSelector } from '@/store/hooks'
@@ -143,7 +144,7 @@ export function DeferredAppChrome({
   const agentPanelOpen = useAppSelector((state) => state.documents.agentPanelOpen)
 
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<SuspenseFallback fill={false} size="sm" className="fixed bottom-3 right-3 z-40" />}>
       <IdleGate delayMs={1}>
         <OpenWhen open={commandPaletteOpen}>
           <CommandPalette />

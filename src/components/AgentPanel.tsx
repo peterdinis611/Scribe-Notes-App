@@ -1330,9 +1330,13 @@ export function AgentPanel({
     [dispatch, navigate, onNavigate],
   )
 
-  const docTitle =
+  const docTitleRaw =
     activeDocument?.title?.trim() ||
     (activeDocumentId ? t('libraryChat.untitled') : null)
+  const docTitle =
+    docTitleRaw && docTitleRaw.length > 64
+      ? `${docTitleRaw.slice(0, 61).trimEnd()}…`
+      : docTitleRaw
   const userBlobatarName = useMemo(() => {
     const name = commentAuthor.trim()
     if (name) return name
@@ -1388,7 +1392,7 @@ export function AgentPanel({
         </div>
         {scope === 'document' && docTitle ? (
           <div className="mt-1.5 flex items-start gap-2 px-0.5">
-            <p className="library-chat-scope-meta">
+            <p className="library-chat-scope-meta" title={docTitleRaw ?? undefined}>
               {t('agent.askingAbout', { title: docTitle })}
               <span>
                 {' '}

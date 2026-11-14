@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next'
 import { DocumentTocRail } from '@/components/editor/DocumentTocRail'
 import { OutlineReturnButton } from '@/components/editor/OutlineReturnButton'
 import { WikiLinkHoverCard } from '@/components/editor/WikiLinkHoverCard'
+import { SuspenseFallback } from '@/components/ui/spinner'
 import {
   UnresolvedWikiLinkPopover,
   type UnresolvedWikiPopoverState,
@@ -918,7 +919,7 @@ export function DocumentEditor() {
         </EditorDropZone>
             </div>
 
-        <Suspense fallback={null}>
+        <Suspense fallback={<SuspenseFallback fill={false} size="sm" className="absolute inset-y-0 right-0 z-20 w-72 bg-[var(--color-background)]" />}>
           {editorReady && !readingMode && outlineOpen && (
             <DocumentOutlinePanel
               editor={editor}

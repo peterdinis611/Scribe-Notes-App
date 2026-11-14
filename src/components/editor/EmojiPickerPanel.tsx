@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import type { Editor } from '@tiptap/react'
 import { useTranslation } from 'react-i18next'
+import { SuspenseFallback } from '@/components/ui/spinner'
 
 const LazyEmojiPicker = lazy(() => import('./EmojiPickerInner'))
 
@@ -16,9 +17,12 @@ export function EmojiPickerPanel({ editor, onClose }: EmojiPickerPanelProps) {
     <div className="emoji-picker-panel titlebar-no-drag">
       <Suspense
         fallback={
-          <div className="emoji-picker-panel__loading" aria-busy="true">
-            {t('common.loading')}
-          </div>
+          <SuspenseFallback
+            fill={false}
+            size="sm"
+            label={t('common.loading')}
+            className="emoji-picker-panel__loading"
+          />
         }
       >
         <LazyEmojiPicker editor={editor} onClose={onClose} />

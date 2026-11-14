@@ -22,6 +22,7 @@ import { EditorViewModeToggle } from '@/components/editor/EditorViewModeToggle'
 import { SidebarToggle } from '@/components/SidebarToggle'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { SuspenseFallback } from '@/components/ui/spinner'
 import { IconTooltip } from '@/components/ui/tooltip'
 import { exportDocument, listFolders, pickAndImportFiles, pickAndImportFolder, revealInFinder } from '@/lib/db/api'
 import { recordImportBatch } from '@/lib/import/record-import-batch'
@@ -711,7 +712,7 @@ function EditorChrome() {
       </header>
 
       {pdfPreviewPayload && (
-        <Suspense fallback={null}>
+        <Suspense fallback={<SuspenseFallback fill={false} size="sm" />}>
           <PdfPreviewDialog
             open={pdfPreviewOpen}
             onOpenChange={setPdfPreviewOpen}
