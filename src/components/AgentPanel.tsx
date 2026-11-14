@@ -51,7 +51,7 @@ import {
   loadHandoffInbox,
 } from '@/lib/library/agent-handoff'
 import {
-  nlpCalendarEvents,
+  calendarEvents as nlpCalendarEvents,
   documentAnalysis as nlpDocumentAnalysis,
   documentTasks as nlpDocumentTasks,
   spellcheck as nlpSpellcheck,

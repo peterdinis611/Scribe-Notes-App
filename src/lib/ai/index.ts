@@ -6,6 +6,7 @@
 export {
   nlpAnalyzeRevisionDiff as analyzeRevisionDiff,
   nlpBuildPrompt as buildPrompt,
+  nlpCalendarEvents as calendarEvents,
   nlpCitationPack as citationPack,
   nlpDetectPii as detectPii,
   nlpDocumentAnalysis as documentAnalysis,
