@@ -2741,6 +2741,9 @@
   "tabs": {
     "ariaLabel": "Otwórz dokumenty",
     "close": "Zamknij kartę",
+    "closeOthers": "Zamknij pozostałe",
+    "closeAll": "Zamknij wszystkie karty",
+    "closeAllShort": "Zamknij wszystkie",
     "pin": "Zakładka Przypnij",
     "unpin": "Odepnij kartę",
     "reorder": "Przeciągnij, aby zmienić kolejność",

@@ -2741,6 +2741,9 @@
   "tabs": {
     "ariaLabel": "Dokumentumok megnyitása",
     "close": "Lap bezárása",
+    "closeOthers": "Többi bezárása",
+    "closeAll": "Összes lap bezárása",
+    "closeAllShort": "Mind bezár",
     "pin": "Lap rögzítése",
     "unpin": "Lap feloldása",
     "reorder": "Húzza a sorrend módosításához",

@@ -2741,6 +2741,9 @@
   "tabs": {
     "ariaLabel": "Otevřít dokumenty",
     "close": "Zavřít kartu",
+    "closeOthers": "Zavřít ostatní",
+    "closeAll": "Zavřít všechny karty",
+    "closeAllShort": "Zavřít vše",
     "pin": "Připnout kartu",
     "unpin": "Odepnout kartu",
     "reorder": "Táhnout pro změnu pořadí",

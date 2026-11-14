@@ -1102,6 +1102,35 @@ html:not([data-ui-skin]) .toolbar-cluster {
   background: color-mix(in srgb, var(--color-hover) 88%, transparent);
 }
 
+.document-tabs-close-all {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  margin-left: 4px;
+  padding: 0 8px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+  color: var(--color-muted-foreground);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.document-tabs-close-all:hover {
+  border-color: color-mix(in srgb, var(--color-destructive, #c23b22) 35%, var(--color-border));
+  background: color-mix(in srgb, var(--color-destructive, #c23b22) 10%, var(--color-surface));
+  color: var(--color-foreground);
+}
+
+.document-tabs-close-all-label {
+  white-space: nowrap;
+}
+
 .document-tabs-scroll-btn.is-disabled,
 .document-tabs-scroll-btn:disabled {
   opacity: 0.28;

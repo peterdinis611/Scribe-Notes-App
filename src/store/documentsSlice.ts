@@ -320,6 +320,74 @@ const documentsSlice = createSlice({
         persistRecentlyClosedIds(state.recentlyClosedIds)
       }
     },
+    /** Close every unpinned tab. Keeps pinned tabs; clears active when none remain. */
+    closeAllOpenDocuments(state) {
+      const pinned = new Set(state.pinnedDocumentIds)
+      const closing = state.openDocumentIds.filter((id) => !pinned.has(id))
+      if (closing.length === 0) return
+
+      state.openDocumentIds = state.openDocumentIds.filter((id) => pinned.has(id))
+      persistOpenDocumentIds(state.openDocumentIds)
+      state.dirtyDocumentIds = state.dirtyDocumentIds.filter((id) => pinned.has(id))
+
+      for (const id of closing) {
+        state.recentlyClosedIds = pushRecentId(state.recentlyClosedIds, id)
+      }
+      persistRecentlyClosedIds(state.recentlyClosedIds)
+
+      if (state.secondaryDocumentId && closing.includes(state.secondaryDocumentId)) {
+        state.secondaryDocumentId = null
+      }
+
+      const nextId =
+        state.activeDocumentId && pinned.has(state.activeDocumentId)
+          ? state.activeDocumentId
+          : (state.openDocumentIds[0] ?? null)
+      state.activeDocumentId = nextId
+      persistActiveDocumentId(nextId)
+      if (nextId) {
+        state.recentDocumentIds = pushRecentId(state.recentDocumentIds, nextId)
+        persistRecentDocumentIds(state.recentDocumentIds)
+        state.recentlyClosedIds = state.recentlyClosedIds.filter((id) => id !== nextId)
+        persistRecentlyClosedIds(state.recentlyClosedIds)
+      }
+    },
+    /** Close every unpinned tab except `keepId` (and pins). */
+    closeOtherOpenDocuments(state, action: PayloadAction<string>) {
+      const keepId = action.payload
+      const pinned = new Set(state.pinnedDocumentIds)
+      const closing = state.openDocumentIds.filter(
+        (id) => id !== keepId && !pinned.has(id),
+      )
+      if (closing.length === 0) return
+
+      state.openDocumentIds = state.openDocumentIds.filter(
+        (id) => id === keepId || pinned.has(id),
+      )
+      if (!state.openDocumentIds.includes(keepId) && state.documents.some((doc) => doc.id === keepId)) {
+        state.openDocumentIds = [...state.openDocumentIds, keepId]
+      }
+      persistOpenDocumentIds(state.openDocumentIds)
+      state.dirtyDocumentIds = state.dirtyDocumentIds.filter(
+        (id) => id === keepId || pinned.has(id),
+      )
+
+      for (const id of closing) {
+        state.recentlyClosedIds = pushRecentId(state.recentlyClosedIds, id)
+      }
+      persistRecentlyClosedIds(state.recentlyClosedIds)
+
+      if (state.secondaryDocumentId && closing.includes(state.secondaryDocumentId)) {
+        state.secondaryDocumentId = null
+      }
+
+      state.activeDocumentId = keepId
+      persistActiveDocumentId(keepId)
+      state.recentDocumentIds = pushRecentId(state.recentDocumentIds, keepId)
+      persistRecentDocumentIds(state.recentDocumentIds)
+      state.recentlyClosedIds = state.recentlyClosedIds.filter((id) => id !== keepId)
+      persistRecentlyClosedIds(state.recentlyClosedIds)
+    },
     togglePinnedDocument(state, action: PayloadAction<string>) {
       const id = action.payload
       if (state.pinnedDocumentIds.includes(id)) {
@@ -775,6 +843,8 @@ export const {
   updateDocuments,
   setActiveDocumentId,
   closeOpenDocument,
+  closeAllOpenDocuments,
+  closeOtherOpenDocuments,
   togglePinnedDocument,
   setPinnedDocumentIds,
   reorderOpenDocuments,

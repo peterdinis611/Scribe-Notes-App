@@ -2741,6 +2741,9 @@
   "tabs": {
     "ariaLabel": "Open documents",
     "close": "Close tab",
+    "closeOthers": "Close others",
+    "closeAll": "Close all tabs",
+    "closeAllShort": "Close all",
     "pin": "Pin tab",
     "unpin": "Unpin tab",
     "reorder": "Drag to reorder",
