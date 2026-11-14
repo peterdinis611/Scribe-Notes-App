@@ -52,3 +52,45 @@ pub fn host_error(target: &str, message: &str) {
 pub fn host_debug(target: &str, message: &str) {
     log::debug!(target: target, "{message}");
 }
+
+#[cfg(test)]
+pub(crate) fn test_lock() -> std::sync::MutexGuard<'static, ()> {
+    use std::sync::Mutex;
+    static LOCK: Mutex<()> = Mutex::new(());
+    LOCK.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn host_helpers_do_not_panic_without_logger() {
+        let _guard = test_lock();
+        host_info("scribe.test", "info");
+        host_warn("scribe.test", "warn");
+        host_error("scribe.test", "error");
+        host_debug("scribe.test", "debug");
+    }
+
+    #[test]
+    fn public_api_surface_smoke() {
+        let _guard = test_lock();
+        assert!(!SCOPES.is_empty());
+        assert_eq!(DEFAULT_RING_CAPACITY, 500);
+        assert_eq!(list_scopes().len(), SCOPES.len());
+        let settings = normalize_logging_settings(LoggingSettings {
+            level: "TRACE".into(),
+            colors: true,
+            stderr: true,
+            timestamps: true,
+            quiet_targets: vec!["tao".into()],
+            ring_capacity: 100,
+            file_path: None,
+            module_levels: vec![],
+            mirror_frontend: true,
+        });
+        assert_eq!(settings.level, "trace");
+        assert_eq!(parse_level_filter("debug"), log::LevelFilter::Debug);
+    }
+}

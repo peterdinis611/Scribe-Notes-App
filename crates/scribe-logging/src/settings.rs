@@ -176,6 +176,111 @@ mod tests {
         assert_eq!(next.level, "debug");
         assert_eq!(next.ring_capacity, 32);
         assert_eq!(next.module_levels[0].target, "scribe.db");
+        assert_eq!(next.module_levels[0].level, "trace");
         assert!(!next.quiet_targets.is_empty());
+    }
+
+    #[test]
+    fn dedupes_quiet_targets_case_insensitive() {
+        let mut settings = default_logging_settings();
+        settings.quiet_targets = vec![
+            "tao".into(),
+            " TAO ".into(),
+            "wry".into(),
+            "".into(),
+            "  ".into(),
+        ];
+        let next = normalize_logging_settings(settings);
+        assert_eq!(next.quiet_targets, vec!["tao".to_string(), "wry".to_string()]);
+    }
+
+    #[test]
+    fn empty_quiet_targets_fall_back_to_defaults() {
+        let mut settings = default_logging_settings();
+        settings.quiet_targets = vec![];
+        let next = normalize_logging_settings(settings);
+        assert_eq!(next.quiet_targets.len(), DEFAULT_QUIET_TARGETS.len());
+    }
+
+    #[test]
+    fn trims_and_drops_empty_file_path() {
+        let mut settings = default_logging_settings();
+        settings.file_path = Some("  /tmp/scribe.log  ".into());
+        let next = normalize_logging_settings(settings);
+        assert_eq!(next.file_path.as_deref(), Some("/tmp/scribe.log"));
+
+        let mut blank = default_logging_settings();
+        blank.file_path = Some("   ".into());
+        assert!(normalize_logging_settings(blank).file_path.is_none());
+    }
+
+    #[test]
+    fn drops_empty_module_targets() {
+        let mut settings = default_logging_settings();
+        settings.module_levels = vec![
+            ModuleLevel {
+                target: "   ".into(),
+                level: "debug".into(),
+            },
+            ModuleLevel {
+                target: "scribe.nlp".into(),
+                level: "WARNING".into(),
+            },
+        ];
+        let next = normalize_logging_settings(settings);
+        assert_eq!(next.module_levels.len(), 1);
+        assert_eq!(next.module_levels[0].level, "warn");
+    }
+
+    #[test]
+    fn clamps_ring_capacity() {
+        let mut low = default_logging_settings();
+        low.ring_capacity = 1;
+        assert_eq!(normalize_logging_settings(low).ring_capacity, 32);
+
+        let mut high = default_logging_settings();
+        high.ring_capacity = 50_000;
+        assert_eq!(normalize_logging_settings(high).ring_capacity, 10_000);
+    }
+
+    #[test]
+    fn json_roundtrip_and_defaults() {
+        let raw = r#"{
+            "level": "trace",
+            "colors": false,
+            "stderr": false,
+            "timestamps": false,
+            "quietTargets": ["tao"],
+            "moduleLevels": [{"target": "scribe.ws", "level": "debug"}]
+        }"#;
+        let parsed = logging_settings_from_json(raw).expect("json");
+        assert_eq!(parsed.level, "trace");
+        assert!(!parsed.colors);
+        assert!(!parsed.stderr);
+        assert!(!parsed.timestamps);
+        assert_eq!(parsed.ring_capacity, DEFAULT_RING_CAPACITY);
+        assert!(parsed.mirror_frontend);
+        assert_eq!(parsed.module_levels[0].target, "scribe.ws");
+
+        let encoded = serde_json::to_string(&parsed).unwrap();
+        let again = logging_settings_from_json(&encoded).unwrap();
+        assert_eq!(again, parsed);
+    }
+
+    #[test]
+    fn json_rejects_garbage() {
+        assert!(logging_settings_from_json("{not-json").is_err());
+        assert!(logging_settings_from_json("null").is_err());
+    }
+
+    #[test]
+    fn default_includes_quiet_targets() {
+        let settings = default_logging_settings();
+        for target in DEFAULT_QUIET_TARGETS {
+            assert!(
+                settings.quiet_targets.iter().any(|t| t == target),
+                "missing {target}"
+            );
+        }
     }
 }

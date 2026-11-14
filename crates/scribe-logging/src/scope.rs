@@ -46,5 +46,40 @@ pub fn list_scopes() -> Vec<LogScopeInfo> {
 
 pub fn is_known_scope(target: &str) -> bool {
     let t = target.trim();
-    SCOPES.iter().any(|s| *s == t) || t.starts_with("scribe.")
+    SCOPES.contains(&t) || t.starts_with("scribe.")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn lists_all_builtin_scopes() {
+        let scopes = list_scopes();
+        assert_eq!(scopes.len(), SCOPES.len());
+        assert!(scopes.iter().any(|s| s.id == "scribe.logging"));
+        assert!(scopes.iter().any(|s| s.id == "scribe.fe.diagnostics"));
+        let logging = scopes.iter().find(|s| s.id == "scribe.logging").unwrap();
+        assert_eq!(logging.label, "logging");
+        let fe_ipc = scopes.iter().find(|s| s.id == "scribe.fe.ipc").unwrap();
+        assert_eq!(fe_ipc.label, "fe · ipc");
+    }
+
+    #[test]
+    fn known_scope_detection() {
+        assert!(is_known_scope("scribe.db"));
+        assert!(is_known_scope("  scribe.fe.boot  "));
+        assert!(is_known_scope("scribe.custom.plugin"));
+        assert!(!is_known_scope("tao"));
+        assert!(!is_known_scope(""));
+        assert!(!is_known_scope("hyper"));
+    }
+
+    #[test]
+    fn scopes_are_unique() {
+        let mut seen = std::collections::HashSet::new();
+        for id in SCOPES {
+            assert!(seen.insert(*id), "duplicate scope {id}");
+        }
+    }
 }

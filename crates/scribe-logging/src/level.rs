@@ -84,9 +84,52 @@ mod tests {
     fn parses_aliases() {
         assert_eq!(parse_level_filter("debug"), LevelFilter::Debug);
         assert_eq!(parse_level_filter("1"), LevelFilter::Debug);
+        assert_eq!(parse_level_filter("true"), LevelFilter::Debug);
+        assert_eq!(parse_level_filter("YES"), LevelFilter::Debug);
+        assert_eq!(parse_level_filter("on"), LevelFilter::Debug);
         assert_eq!(parse_level_filter("trace"), LevelFilter::Trace);
         assert_eq!(parse_level_filter("warn"), LevelFilter::Warn);
+        assert_eq!(parse_level_filter("warning"), LevelFilter::Warn);
+        assert_eq!(parse_level_filter("error"), LevelFilter::Error);
+        assert_eq!(parse_level_filter("info"), LevelFilter::Info);
+        assert_eq!(parse_level_filter("off"), LevelFilter::Off);
+        assert_eq!(parse_level_filter("0"), LevelFilter::Off);
+        assert_eq!(parse_level_filter("false"), LevelFilter::Off);
+        assert_eq!(parse_level_filter("no"), LevelFilter::Off);
         assert_eq!(parse_level_filter("scribe=debug,tao=warn"), LevelFilter::Debug);
+        assert_eq!(parse_level_filter("app=trace"), LevelFilter::Trace);
+        assert_eq!(parse_level_filter("  INFO  "), LevelFilter::Info);
         assert_eq!(parse_level_filter(""), LevelFilter::Info);
+        assert_eq!(parse_level_filter("something-else"), LevelFilter::Info);
+    }
+
+    #[test]
+    fn level_filter_name_roundtrips() {
+        for level in [
+            LevelFilter::Off,
+            LevelFilter::Error,
+            LevelFilter::Warn,
+            LevelFilter::Info,
+            LevelFilter::Debug,
+            LevelFilter::Trace,
+        ] {
+            assert_eq!(parse_level_filter(level_filter_name(level)), level);
+        }
+    }
+
+    #[test]
+    fn env_keys_order() {
+        assert_eq!(ENV_KEYS[0], "SCRIBE_RUST_LOG");
+        assert_eq!(ENV_KEYS[1], "RUST_LOG");
+        assert_eq!(ENV_KEYS[2], "SCRIBE_DEBUG");
+    }
+
+    #[test]
+    fn composite_prefers_most_verbose() {
+        assert_eq!(
+            parse_level_filter("error,module=warn,other=trace"),
+            LevelFilter::Trace
+        );
+        assert_eq!(parse_level_filter("error,warn"), LevelFilter::Warn);
     }
 }

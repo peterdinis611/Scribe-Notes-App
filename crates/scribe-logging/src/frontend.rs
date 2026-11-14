@@ -90,14 +90,79 @@ pub fn log_frontend_line(level: &str, target: &str, message: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::buffer::{clear_logs, configure_ring_capacity, recent_logs};
+    use crate::runtime::set_runtime_level;
+    use crate::test_lock;
 
     #[test]
     fn normalizes_targets() {
         assert_eq!(normalize_frontend_target(""), "scribe.fe");
+        assert_eq!(normalize_frontend_target("..."), "scribe.fe");
         assert_eq!(normalize_frontend_target("boot"), "scribe.fe.boot");
         assert_eq!(
             normalize_frontend_target("scribe.fe.diagnostics"),
             "scribe.fe.diagnostics"
         );
+        // Non-ascii-id chars become `_`; trailing `_` is trimmed.
+        assert_eq!(normalize_frontend_target("ipc/save !!"), "scribe.fe.ipc_save");
+        assert_eq!(normalize_frontend_target("a b"), "scribe.fe.a_b");
+        assert_eq!(
+            normalize_frontend_target("scribe.db"),
+            "scribe.db"
+        );
+    }
+
+    #[test]
+    fn log_frontend_line_writes_ring_when_logger_absent() {
+        let _guard = test_lock();
+        clear_logs();
+        configure_ring_capacity(64);
+        set_mirror_frontend(true);
+        set_runtime_level("info");
+        assert!(log_frontend_line("info", "boot", "hello from fe"));
+        let lines = recent_logs(5, None, Some("scribe.fe.boot"));
+        assert_eq!(lines.last().map(|l| l.message.as_str()), Some("hello from fe"));
+    }
+
+    #[test]
+    fn rejects_empty_off_and_disabled_mirror() {
+        let _guard = test_lock();
+        set_mirror_frontend(true);
+        set_runtime_level("info");
+        assert!(!log_frontend_line("info", "boot", "   "));
+        assert!(!log_frontend_line("off", "boot", "nope"));
+        set_mirror_frontend(false);
+        assert!(!log_frontend_line("error", "boot", "blocked"));
+        assert!(!mirror_frontend_enabled());
+        set_mirror_frontend(true);
+    }
+
+    #[test]
+    fn respects_runtime_level() {
+        let _guard = test_lock();
+        clear_logs();
+        configure_ring_capacity(64);
+        set_mirror_frontend(true);
+        let previous = crate::runtime::runtime_level_name().to_string();
+        set_runtime_level("error");
+        assert!(!log_frontend_line("info", "boot", "too quiet"));
+        assert!(log_frontend_line("error", "boot", "loud"));
+        set_runtime_level(&previous);
+    }
+
+    #[test]
+    fn truncates_frontend_payload() {
+        let _guard = test_lock();
+        clear_logs();
+        configure_ring_capacity(64);
+        set_mirror_frontend(true);
+        set_runtime_level("info");
+        let long = "y".repeat(5000);
+        assert!(log_frontend_line("warn", "diagnostics", &long));
+        let line = recent_logs(1, None, Some("scribe.fe.diagnostics"))
+            .pop()
+            .unwrap();
+        assert!(line.message.len() <= 4000);
+        assert!(line.message.ends_with('…'));
     }
 }

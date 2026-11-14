@@ -15,6 +15,7 @@
     "test:watch": "vitest",
     "test:backend": "cargo test --workspace --locked",
     "test:audit": "cargo clippy -p scribe-audit --locked --all-targets -- -D warnings && cargo test -p scribe-audit --locked",
+    "test:logging": "cargo clippy -p scribe-logging --locked --all-targets -- -D warnings && cargo test -p scribe-logging --locked && vitest run src/__tests__/lib/logging",
     "test:load": "npm run test:load:fe && npm run test:load:rust && npm run test:load:nlp",
     "test:load:fe": "vitest run src/__tests__/load",
     "test:load:fe:heavy": "SCRIBE_LOAD=1 vitest run src/__tests__/load",

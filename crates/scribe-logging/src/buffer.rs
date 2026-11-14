@@ -199,22 +199,141 @@ impl log::Log for RingLogger {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_lock;
+    use log::Log;
+
+    fn reset_ring(capacity: usize) {
+        clear_logs();
+        configure_ring_capacity(capacity);
+        clear_logs();
+    }
 
     #[test]
     fn ring_retains_and_filters() {
-        clear_logs();
-        configure_ring_capacity(64);
+        let _guard = test_lock();
+        reset_ring(64);
         push_line(Level::Info, "scribe.test", "one");
         push_line(Level::Warn, "scribe.test", "two");
         push_line(Level::Error, "other", "three");
         let all = recent_logs(10, None, None);
-        assert!(all.len() >= 3);
+        assert_eq!(all.len(), 3);
+        assert_eq!(all[0].message, "one");
+        assert_eq!(all[2].message, "three");
         let warns = recent_logs(10, Some("warn"), Some("scribe."));
-        assert!(warns.iter().all(|l| l.level == "warn" || l.level == "error"));
+        assert_eq!(warns.len(), 1);
+        assert_eq!(warns[0].level, "warn");
+        assert_eq!(warns[0].message, "two");
         assert!(warns.iter().all(|l| l.target.starts_with("scribe.")));
+        let errors = recent_logs(10, Some("error"), None);
+        assert_eq!(errors.len(), 1);
+        assert_eq!(errors[0].message, "three");
         let stats = log_stats();
-        assert!(stats.total >= 3);
+        assert_eq!(stats.retained, 3);
+        assert!(stats.info >= 1);
+        assert!(stats.warn >= 1);
+        assert!(stats.error >= 1);
+        let total_before_clear = stats.total;
         clear_logs();
         assert_eq!(log_stats().retained, 0);
+        // totals keep counting across clear
+        assert_eq!(log_stats().total, total_before_clear);
+    }
+
+    #[test]
+    fn ring_evicts_oldest_when_full() {
+        let _guard = test_lock();
+        reset_ring(32);
+        for i in 0..40 {
+            push_line(Level::Info, "scribe.evict", &format!("msg-{i}"));
+        }
+        let lines = recent_logs(100, None, None);
+        assert_eq!(lines.len(), 32);
+        assert_eq!(lines.first().unwrap().message, "msg-8");
+        assert_eq!(lines.last().unwrap().message, "msg-39");
+        assert_eq!(log_stats().retained, 32);
+        assert_eq!(log_stats().capacity, 32);
+    }
+
+    #[test]
+    fn truncates_long_messages() {
+        let _guard = test_lock();
+        reset_ring(64);
+        let long = "x".repeat(5000);
+        push_line(Level::Info, "scribe.long", &long);
+        let line = recent_logs(1, None, None).pop().unwrap();
+        assert!(line.message.len() <= 4000);
+        assert!(line.message.ends_with('…'));
+    }
+
+    #[test]
+    fn limit_zero_returns_up_to_capacity() {
+        let _guard = test_lock();
+        reset_ring(32);
+        for i in 0..10 {
+            push_line(Level::Debug, "scribe.limit", &format!("{i}"));
+        }
+        let lines = recent_logs(0, None, Some("scribe.limit"));
+        assert_eq!(lines.len(), 10);
+    }
+
+    #[test]
+    fn sequential_ids_increase() {
+        let _guard = test_lock();
+        reset_ring(64);
+        push_line(Level::Info, "scribe.seq", "a");
+        push_line(Level::Info, "scribe.seq", "b");
+        let lines = recent_logs(10, None, Some("scribe.seq"));
+        assert!(lines[1].seq > lines[0].seq);
+        assert!(lines[0].ts_ms > 0);
+    }
+
+    #[test]
+    fn shrinking_capacity_drops_oldest() {
+        let _guard = test_lock();
+        reset_ring(64);
+        for i in 0..50 {
+            push_line(Level::Info, "scribe.shrink", &format!("{i}"));
+        }
+        configure_ring_capacity(32);
+        assert_eq!(log_stats().retained, 32);
+        assert_eq!(log_stats().capacity, 32);
+        let lines = recent_logs(100, None, Some("scribe.shrink"));
+        assert_eq!(lines.first().unwrap().message, "18");
+    }
+
+    #[test]
+    fn serde_log_line_camel_case() {
+        let line = LogLine {
+            seq: 7,
+            ts_ms: 1_700_000_000_000,
+            level: "info".into(),
+            target: "scribe.test".into(),
+            message: "hi".into(),
+        };
+        let json = serde_json::to_string(&line).unwrap();
+        assert!(json.contains("\"tsMs\""));
+        assert!(json.contains("\"seq\":7"));
+        let back: LogLine = serde_json::from_str(&json).unwrap();
+        assert_eq!(back, line);
+    }
+
+    #[test]
+    fn ring_logger_respects_runtime_level() {
+        let _guard = test_lock();
+        reset_ring(64);
+        let previous = crate::runtime::runtime_level_name().to_string();
+        crate::runtime::set_runtime_level("warn");
+        let logger = RingLogger;
+        let meta_info = log::Metadata::builder()
+            .level(Level::Info)
+            .target("scribe.ring")
+            .build();
+        assert!(!logger.enabled(&meta_info));
+        let meta_warn = log::Metadata::builder()
+            .level(Level::Warn)
+            .target("scribe.ring")
+            .build();
+        assert!(logger.enabled(&meta_warn));
+        crate::runtime::set_runtime_level(&previous);
     }
 }

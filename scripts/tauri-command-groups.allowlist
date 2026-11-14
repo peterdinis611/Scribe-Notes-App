@@ -143,6 +143,17 @@ links	list_graph_hubs
 links	list_link_graph
 links	list_wiki_health
 links	resolve_wiki_link
+logging	logging_clear
+logging	logging_ping
+logging	logging_recent
+logging	logging_scopes
+logging	logging_set_level
+logging	logging_settings
+logging	logging_settings_from_json
+logging	logging_stats
+logging	logging_status
+logging	logging_write
+logging	normalize_logging_settings
 native_pipeline	add_alias_tag
 native_pipeline	agenda_bucket_for_due
 native_pipeline	compile_documents
@@ -441,3 +452,6 @@ websockets	normalize_websocket_settings
 websockets	websocket_channel_ids
 websockets	websocket_settings_from_json
 websockets	websocket_url
+websockets	websockets_start
+websockets	websockets_status
+websockets	websockets_stop

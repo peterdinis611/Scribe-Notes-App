@@ -29,14 +29,14 @@ description = "Allow websocket_url"
 commands.allow = ["websocket_url"]
 
 [[permission]]
-identifier = "allow-websockets-status"
-description = "Allow websockets_status"
-commands.allow = ["websockets_status"]
-
-[[permission]]
 identifier = "allow-websockets-start"
 description = "Allow websockets_start"
 commands.allow = ["websockets_start"]
+
+[[permission]]
+identifier = "allow-websockets-status"
+description = "Allow websockets_status"
+commands.allow = ["websockets_status"]
 
 [[permission]]
 identifier = "allow-websockets-stop"
@@ -53,7 +53,7 @@ permissions = [
   "allow-websocket-channel-ids",
   "allow-websocket-settings-from-json",
   "allow-websocket-url",
-  "allow-websockets-status",
   "allow-websockets-start",
+  "allow-websockets-status",
   "allow-websockets-stop",
 ]

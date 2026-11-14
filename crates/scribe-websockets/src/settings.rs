@@ -8,7 +8,6 @@ pub const DEFAULT_PATH: &str = "/ws";
 pub const BIND_LOOPBACK: &str = "127.0.0.1";
 
 const PORT_MIN: u16 = 1024;
-const PORT_MAX: u16 = 65_535;
 const HEARTBEAT_MIN_MS: u32 = 5_000;
 const HEARTBEAT_MAX_MS: u32 = 120_000;
 const MAX_CONNECTIONS_MIN: u32 = 1;
@@ -92,13 +91,12 @@ fn normalize_host(raw: &str) -> String {
 }
 
 pub fn normalize_websocket_settings(input: WebsocketSettings) -> WebsocketSettings {
-    let mut port = input.port;
-    if port < PORT_MIN {
-        port = DEFAULT_PORT;
-    }
-    if port > PORT_MAX {
-        port = PORT_MAX;
-    }
+    // u16 max is 65_535; only enforce privileged-port floor.
+    let port = if input.port < PORT_MIN {
+        DEFAULT_PORT
+    } else {
+        input.port
+    };
 
     let allowed_origins: Vec<String> = input
         .allowed_origins

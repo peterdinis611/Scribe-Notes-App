@@ -55,16 +55,63 @@ pub fn level_enabled(level: Level) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_lock;
+
+    fn with_level(level: &str, body: impl FnOnce()) {
+        let _guard = test_lock();
+        let previous = runtime_level_name().to_string();
+        set_runtime_level(level);
+        body();
+        set_runtime_level(&previous);
+    }
 
     #[test]
     fn roundtrip_level() {
-        set_runtime_level("debug");
-        assert_eq!(runtime_level(), LevelFilter::Debug);
-        assert!(level_enabled(Level::Info));
-        assert!(level_enabled(Level::Debug));
-        set_runtime_level("warn");
-        assert!(!level_enabled(Level::Info));
-        assert!(level_enabled(Level::Warn));
-        set_runtime_level("info");
+        with_level("debug", || {
+            assert_eq!(runtime_level(), LevelFilter::Debug);
+            assert_eq!(runtime_level_name(), "debug");
+            assert!(level_enabled(Level::Info));
+            assert!(level_enabled(Level::Debug));
+            assert!(!level_enabled(Level::Trace));
+        });
+        with_level("warn", || {
+            assert!(!level_enabled(Level::Info));
+            assert!(level_enabled(Level::Warn));
+            assert!(level_enabled(Level::Error));
+        });
+    }
+
+    #[test]
+    fn off_disables_all() {
+        with_level("off", || {
+            assert_eq!(runtime_level(), LevelFilter::Off);
+            assert!(!level_enabled(Level::Error));
+            assert!(!level_enabled(Level::Trace));
+        });
+    }
+
+    #[test]
+    fn trace_enables_all() {
+        with_level("trace", || {
+            for level in [
+                Level::Error,
+                Level::Warn,
+                Level::Info,
+                Level::Debug,
+                Level::Trace,
+            ] {
+                assert!(level_enabled(level), "{level:?}");
+            }
+        });
+    }
+
+    #[test]
+    fn init_runtime_level_direct() {
+        let _guard = test_lock();
+        let previous = runtime_level();
+        init_runtime_level(LevelFilter::Error);
+        assert_eq!(runtime_level(), LevelFilter::Error);
+        assert_eq!(runtime_level_name(), "error");
+        init_runtime_level(previous);
     }
 }

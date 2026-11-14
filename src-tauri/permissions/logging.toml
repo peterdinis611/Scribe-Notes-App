@@ -1,27 +1,7 @@
 [[permission]]
-identifier = "allow-logging-status"
-description = "Allow logging_status"
-commands.allow = ["logging_status"]
-
-[[permission]]
-identifier = "allow-logging-settings"
-description = "Allow logging_settings"
-commands.allow = ["logging_settings"]
-
-[[permission]]
-identifier = "allow-normalize-logging-settings"
-description = "Allow normalize_logging_settings"
-commands.allow = ["normalize_logging_settings"]
-
-[[permission]]
-identifier = "allow-logging-settings-from-json"
-description = "Allow logging_settings_from_json"
-commands.allow = ["logging_settings_from_json"]
-
-[[permission]]
-identifier = "allow-logging-write"
-description = "Allow logging_write"
-commands.allow = ["logging_write"]
+identifier = "allow-logging-clear"
+description = "Allow logging_clear"
+commands.allow = ["logging_clear"]
 
 [[permission]]
 identifier = "allow-logging-ping"
@@ -34,14 +14,9 @@ description = "Allow logging_recent"
 commands.allow = ["logging_recent"]
 
 [[permission]]
-identifier = "allow-logging-clear"
-description = "Allow logging_clear"
-commands.allow = ["logging_clear"]
-
-[[permission]]
-identifier = "allow-logging-stats"
-description = "Allow logging_stats"
-commands.allow = ["logging_stats"]
+identifier = "allow-logging-scopes"
+description = "Allow logging_scopes"
+commands.allow = ["logging_scopes"]
 
 [[permission]]
 identifier = "allow-logging-set-level"
@@ -49,23 +24,48 @@ description = "Allow logging_set_level"
 commands.allow = ["logging_set_level"]
 
 [[permission]]
-identifier = "allow-logging-scopes"
-description = "Allow logging_scopes"
-commands.allow = ["logging_scopes"]
+identifier = "allow-logging-settings"
+description = "Allow logging_settings"
+commands.allow = ["logging_settings"]
+
+[[permission]]
+identifier = "allow-logging-settings-from-json"
+description = "Allow logging_settings_from_json"
+commands.allow = ["logging_settings_from_json"]
+
+[[permission]]
+identifier = "allow-logging-stats"
+description = "Allow logging_stats"
+commands.allow = ["logging_stats"]
+
+[[permission]]
+identifier = "allow-logging-status"
+description = "Allow logging_status"
+commands.allow = ["logging_status"]
+
+[[permission]]
+identifier = "allow-logging-write"
+description = "Allow logging_write"
+commands.allow = ["logging_write"]
+
+[[permission]]
+identifier = "allow-normalize-logging-settings"
+description = "Allow normalize_logging_settings"
+commands.allow = ["normalize_logging_settings"]
 
 [[set]]
 identifier = "group-logging"
 description = "Command group: logging"
 permissions = [
-  "allow-logging-status",
-  "allow-logging-settings",
-  "allow-normalize-logging-settings",
-  "allow-logging-settings-from-json",
-  "allow-logging-write",
+  "allow-logging-clear",
   "allow-logging-ping",
   "allow-logging-recent",
-  "allow-logging-clear",
-  "allow-logging-stats",
-  "allow-logging-set-level",
   "allow-logging-scopes",
+  "allow-logging-set-level",
+  "allow-logging-settings",
+  "allow-logging-settings-from-json",
+  "allow-logging-stats",
+  "allow-logging-status",
+  "allow-logging-write",
+  "allow-normalize-logging-settings",
 ]
