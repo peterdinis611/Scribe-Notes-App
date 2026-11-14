@@ -29,7 +29,7 @@ tauri-plugin-opener = "2"
 rusqlite = { version = "0.42", default-features = false, features = ["bundled", "cache"] }
 uuid = { version = "1", features = ["v4"] }
 chrono = { version = "0.4", features = ["clock"] }
-dirs = "6"
+dirs = "7"
 zip = { version = "9", default-features = false, features = ["aes-crypto", "deflate", "time"] }
 regex = "1"
 keyring = "3"
