@@ -40,7 +40,7 @@ unicode-normalization = "0.1"
 sha2 = "0.10"
 pdf-extract = "0.12"
 aes-gcm = "0.10.3"
-pbkdf2 = "0.12"
+pbkdf2 = "0.13"
 rand = "0.8"
 base64 = "0.22"
 # Broad programming-language highlighting for HTML export (bat / Sublime packs).
