@@ -6,7 +6,7 @@ yanked = "warn"
 # Do not fail CI on transitive unmaintained crates (fontdb → ttf-parser, syntect → yaml-rust, etc.).
 # Still surface yanked crates and real vulnerability advisories.
 unmaintained = "none"
-# Ignore only with a tracked reason; prefer upgrades.
+# Prefer upgrades over ignores. Last cleared: rusqlite 0.42 / rmcp 3.10 (2026-11).
 ignore = []
 
 [licenses]
