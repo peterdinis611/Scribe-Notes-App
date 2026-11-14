@@ -220,6 +220,7 @@
     "storageMode": "Súbory a médiá",
     "duplicates": "Takmer rovnaké poznámky",
     "openAgent": "Otvoriť lokálneho agenta",
+    "generateRoadmap": "Vygenerovať roadmapu z poznámky",
     "openSpellcheckAgent": "Otvoriť pravopisného agenta",
     "libraryFindReplace": "Nájsť a nahradiť v knižnici",
     "toggleTheme": "Prepínať tému",
@@ -3263,6 +3264,10 @@
         "label": "Plán dopredu",
         "hint": "Ďalšie kroky z poznámky"
       },
+      "roadmap": {
+        "label": "Roadmapa",
+        "hint": "Fázy a míľniky z poznámky"
+      },
       "tasks": {
         "label": "Úlohy",
         "hint": "Úlohy a akčné body"
@@ -3519,6 +3524,8 @@
     "applyWikiDoneCount": "Použitých {{count}} wiki odkazov",
     "applyWikiFailed": "Wiki odkaz sa nepodarilo použiť — otvorte poznámku v editore",
     "applyTitleDone": "Poznámka premenovaná",
+    "applyRoadmapDone": "Roadmapa vložená do poznámky",
+    "applyRoadmapEmpty": "Nenašli sa fázy — pridaj Now/Next/Later nadpisy alebo ďalšie kroky",
     "applyGrammarDone": "Použitých {{count}} gramatických opráv",
     "applyGrammarFailed": "Gramatické opravy sa nepodarilo použiť",
     "applyGrammarNone": "Žiadne gramatické opravy",
@@ -3701,6 +3708,7 @@
       "contradictions": "Rozpory",
       "commitments": "Záväzky",
       "forward_plan": "Plán dopredu",
+      "roadmap": "Roadmapa",
       "reading_plan": "Plán čítania",
       "note_pulse": "Pulse poznámky",
       "grammar": "Gramatika",
@@ -3901,6 +3909,13 @@
       "insertAnswer": "Vložiť ako callout",
       "insertAnswerDone": "Odpoveď vložená do poznámky",
       "insertAnswerError": "Otvorte dokument v editore, aby sa dala odpoveď vložiť",
+      "roadmapTitle": "Roadmapa",
+      "roadmapHint": "Zostav fázy Now / Next / Later z poznámky a vlož ich ako nadpisy + úlohy.",
+      "roadmapRun": "Vygenerovať a vložiť roadmapu",
+      "roadmapRunning": "Staviam roadmapu…",
+      "roadmapDone": "Roadmapa vložená ({{count}} fáz · {{items}} položiek)",
+      "roadmapEmpty": "Žiadna roadmapa — pridaj nadpisy fáz alebo jazyk ďalších krokov.",
+      "roadmapError": "Roadmapu sa nepodarilo vložiť — otvor poznámku v editore",
       "wikiSuggestHint": "Navrhované wiki odkazy — prijmite a fráza sa nahradí [[názvom]].",
       "wikiAccept": "Prepojiť",
       "wikiAppliedLinked": "Prepojené „{{title}}“ v poznámke",

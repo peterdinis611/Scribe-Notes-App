@@ -23,6 +23,7 @@ export {
   nlpPlanTools as planTools,
   nlpRankTasks as rankTasks,
   nlpReadingPlan as readingPlan,
+  nlpRoadmap as roadmap,
   nlpRewriteQuery as rewriteQuery,
   nlpRewriteSelection as rewriteSelection,
   nlpSectionSummaries as sectionSummaries,

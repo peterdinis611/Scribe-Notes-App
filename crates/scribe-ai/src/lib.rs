@@ -26,6 +26,7 @@ mod prompts;
 mod query_rewrite;
 mod quotes;
 mod reading_plan;
+mod roadmap;
 mod revision_ai;
 mod section_summaries;
 mod task_rank;
@@ -75,6 +76,9 @@ pub use prompts::{system_prompt, user_prompt, PromptKind};
 pub use query_rewrite::{rewrite_query, QueryRewrite};
 pub use quotes::{extract_quotes, extract_quotes_value};
 pub use reading_plan::{reading_plan, reading_plan_value, NlpReadingPlan, NlpReadingStep};
+pub use roadmap::{
+    roadmap, roadmap_to_markdown, roadmap_value, NlpRoadmap, NlpRoadmapItem, NlpRoadmapPhase,
+};
 pub use revision_ai::{
     analyze_revision_diff, RevisionAiBullet, RevisionAiReport, RevisionAiStats, RevisionChangeKind,
     RevisionHeadingChanges,

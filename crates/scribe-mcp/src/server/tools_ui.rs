@@ -483,4 +483,21 @@ impl ScribeMcp {
             )?))
         })
     }
+
+    #[tool(
+        description = "Roadmap: Now/Next/Later (or Phase) headings + tasks from a note id or plaintext. Same as the in-app roadmap agent tool."
+    )]
+    fn roadmap(
+        &self,
+        Parameters(params): Parameters<tools::StudyLimitParams>,
+    ) -> Result<String, String> {
+        self.with_store(|store| {
+            Ok(tools::json(&store.roadmap(
+                &self.sidecar,
+                params.id.as_deref(),
+                params.text.as_deref(),
+                params.limit,
+            )?))
+        })
+    }
 }

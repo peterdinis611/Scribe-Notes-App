@@ -148,6 +148,7 @@ FEATURES = [
     "contradictionHints",
     "extractCommitments",
     "forwardPlan",
+    "roadmap",
     "readingPlan",
     "notePulse",
     "openLoops",
@@ -1192,6 +1193,12 @@ def _handle_request_inner(
             text = _validate_text(str(params.get("text") or ""))
             limit = max(1, min(int(params.get("limit") or 8), 20))
             result = reading_plan(text, limit=limit)
+        elif method == "roadmap":
+            from .roadmap import roadmap
+
+            text = _validate_text(str(params.get("text") or ""))
+            limit = max(1, min(int(params.get("limit") or 8), 16))
+            result = roadmap(text, limit=limit)
         elif method == "note_pulse":
             from .note_pulse import note_pulse
 

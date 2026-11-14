@@ -898,6 +898,33 @@ export const nlpReadingPlan = (input: {
   limit?: number
 }) => invoke<ReadingPlanResult>('nlp_reading_plan', { input })
 
+export type RoadmapItem = {
+  text: string
+  kind: string
+}
+
+export type RoadmapPhase = {
+  id: string
+  title: string
+  horizon: string
+  order: number
+  items: RoadmapItem[]
+}
+
+export type RoadmapResult = {
+  phases: RoadmapPhase[]
+  count: number
+  itemCount: number
+  source: string
+  strategy: string
+}
+
+export const nlpRoadmap = (input: {
+  documentId?: string
+  text?: string
+  limit?: number
+}) => invoke<RoadmapResult>('nlp_roadmap', { input })
+
 export type NotePulseResult = {
   score: number
   summary: string

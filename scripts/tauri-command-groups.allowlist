@@ -241,6 +241,7 @@ nlp	nlp_reading_plan
 nlp	nlp_render_ui_surface
 nlp	nlp_rewrite_query
 nlp	nlp_rewrite_selection
+nlp	nlp_roadmap
 nlp	nlp_search
 nlp	nlp_section_summaries
 nlp	nlp_semantic_search

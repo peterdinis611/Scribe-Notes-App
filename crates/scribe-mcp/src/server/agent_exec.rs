@@ -444,6 +444,12 @@ impl ScribeMcp {
                 let result = store.forward_plan(&self.sidecar, Some(id), None, Some(12))?;
                 Ok(("forward_plan".into(), Some(tools::json(&result))))
             }
+            "roadmap" => {
+                let id =
+                    document_id.ok_or_else(|| "documentId required for roadmap".to_string())?;
+                let result = store.roadmap(&self.sidecar, Some(id), None, Some(8))?;
+                Ok(("roadmap".into(), Some(tools::json(&result))))
+            }
             "compare_notes" => {
                 let id_a =
                     document_id.ok_or_else(|| "documentId required for compare_notes".to_string())?;

@@ -388,6 +388,23 @@ fn intent_rules() -> &'static [(&'static str, &'static [&'static str])] {
             ],
         ),
         (
+            "roadmap",
+            &[
+                "roadmap",
+                "road map",
+                "milestones",
+                "product roadmap",
+                "generate roadmap",
+                "mapa",
+                "cesta",
+                "roadmapa",
+                "míľniky",
+                "milniky",
+                "fázy",
+                "fazy",
+            ],
+        ),
+        (
             "forward_plan",
             &[
                 "forward plan",

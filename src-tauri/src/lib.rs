@@ -541,6 +541,7 @@ pub fn run() {
             commands::nlp::nlp_extract_commitments,
             commands::nlp::nlp_forward_plan,
             commands::nlp::nlp_reading_plan,
+            commands::nlp::nlp_roadmap,
             commands::nlp::nlp_note_pulse,
             commands::nlp::nlp_extract_mentions,
             commands::nlp::nlp_open_loops,

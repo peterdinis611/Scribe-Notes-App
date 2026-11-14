@@ -145,7 +145,7 @@ export const AGENT_RECIPES: AgentRecipe[] = [
   {
     id: 'morning_brief',
     labelKey: 'agent.recipes.morningBrief',
-    tools: ['dates', 'open_loops', 'forward_plan'],
+    tools: ['dates', 'open_loops', 'forward_plan', 'roadmap'],
     documentPreferred: true,
   },
   {

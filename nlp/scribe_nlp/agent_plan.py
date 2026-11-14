@@ -48,6 +48,7 @@ _ROLE_TOOL_BOOSTS: dict[str, tuple[str, ...]] = {
         "decisions",
         "commitments",
         "forward_plan",
+        "roadmap",
         "mentions",
     ),
     "librarian": ("wiki_health", "wiki", "organize", "similar", "duplicates", "citations"),
@@ -58,6 +59,7 @@ _ROLE_TOOL_BOOSTS: dict[str, tuple[str, ...]] = {
         "dates",
         "open_loops",
         "forward_plan",
+        "roadmap",
         "organize",
         "canvas_summarize",
         "wiki_health",
@@ -393,6 +395,23 @@ _INTENT_RULES: list[tuple[str, tuple[str, ...]]] = [
         ),
     ),
     (
+        "roadmap",
+        (
+            "roadmap",
+            "road map",
+            "milestones",
+            "product roadmap",
+            "generate roadmap",
+            "mapa",
+            "cesta",
+            "roadmapa",
+            "míľniky",
+            "milniky",
+            "fázy",
+            "fazy",
+        ),
+    ),
+    (
         "forward_plan",
         (
             "forward plan",
@@ -526,6 +545,7 @@ _DOCUMENT_TOOLS = {
     "contradictions",
     "commitments",
     "forward_plan",
+    "roadmap",
     "reading_plan",
     "note_pulse",
     "grammar",
@@ -552,6 +572,7 @@ _TOOL_PHASE_LABELS: dict[str, str] = {
     "meeting": "Meeting notes",
     "commitments": "Commitments",
     "forward_plan": "Plan ahead",
+    "roadmap": "Roadmap",
     "open_loops": "Open loops",
     "action_items": "Action items",
     "decisions": "Decisions",
@@ -1168,6 +1189,14 @@ def _run_brief_tool(tool: str, source: str, limit: int) -> dict[str, Any] | None
                 if lines:
                     chunks.append(f"**{title}**\n" + "\n".join(lines))
             return _section("forward_plan", "\n\n".join(chunks)) if chunks else None
+        if tool == "roadmap":
+            from .roadmap import roadmap, roadmap_to_markdown
+
+            result = roadmap(source, limit=limit)
+            if not (result.get("phases") or []):
+                return None
+            md = roadmap_to_markdown(result)
+            return _section("roadmap", md) if md else None
         if tool == "terminology":
             from .terminology import check_terminology
 

@@ -15,6 +15,7 @@ import {
   LayoutTemplate,
   ListTree,
   LoaderCircle,
+  Map,
   MessageCircle,
   Network,
   PanelRightClose,
@@ -216,6 +217,7 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
   const [vaultDenied, setVaultDenied] = useState(false)
   const [wikiSuggestions, setWikiSuggestions] = useState<WikiLinkSuggestion[]>([])
   const [wikiBusyId, setWikiBusyId] = useState<string | null>(null)
+  const [roadmapBusy, setRoadmapBusy] = useState(false)
 
   const askShortcutLabel = useMemo(
     () => getDisplayKeysForShortcut('askThisNote', shortcutOverrides).join(''),
@@ -580,6 +582,31 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
     else toast.error(t('panels.insights.insertAnswerError'))
   }, [activeDocument?.title, askReply, t])
 
+  const handleGenerateRoadmap = useCallback(async () => {
+    if (!activeId || roadmapBusy) return
+    setRoadmapBusy(true)
+    try {
+      const { insertDocumentRoadmap } = await import('@/lib/library/roadmap')
+      const result = await insertDocumentRoadmap(activeId)
+      if (result.ok) {
+        toast.success(
+          t('panels.insights.roadmapDone', {
+            count: result.plan.count,
+            items: result.plan.itemCount,
+          }),
+        )
+      } else if (!result.plan.phases?.length) {
+        toast.error(t('panels.insights.roadmapEmpty'))
+      } else {
+        toast.error(t('panels.insights.roadmapError'))
+      }
+    } catch {
+      toast.error(t('panels.insights.roadmapError'))
+    } finally {
+      setRoadmapBusy(false)
+    }
+  }, [activeId, roadmapBusy, t])
+
   const handleApplyWiki = useCallback(
     (suggestion: WikiLinkSuggestion) => {
       const key = `${suggestion.documentId}:${suggestion.phrase}`
@@ -853,6 +880,35 @@ export function DocumentInsightsPanel({ onClose }: DocumentInsightsPanelProps) {
               {t('panels.insights.openChat')}
             </button>
           </div>
+
+          {nlpEnabled ? (
+            <div className="insights-tool insights-rise" style={{ animationDelay: '70ms' }}>
+              <div className="insights-tool__row">
+                <div className="insights-tool__copy">
+                  <Map className="h-3.5 w-3.5 opacity-70" aria-hidden />
+                  <div>
+                    <div className="insights-tool__title">{t('panels.insights.roadmapTitle')}</div>
+                    <div className="insights-tool__hint">{t('panels.insights.roadmapHint')}</div>
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="insights-primary-btn"
+                disabled={roadmapBusy || !activeId}
+                onClick={() => void handleGenerateRoadmap()}
+              >
+                {roadmapBusy ? (
+                  <>
+                    <LoaderCircle className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                    {t('panels.insights.roadmapRunning')}
+                  </>
+                ) : (
+                  t('panels.insights.roadmapRun')
+                )}
+              </button>
+            </div>
+          ) : null}
 
           <div className="insights-snapshot insights-rise" style={{ animationDelay: '90ms' }}>
             <div className="insights-snapshot__head">

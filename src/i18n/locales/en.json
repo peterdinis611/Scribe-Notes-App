@@ -220,6 +220,7 @@
     "storageMode": "Files & media",
     "duplicates": "Near-duplicate notes",
     "openAgent": "Open Local Agent",
+    "generateRoadmap": "Generate roadmap from note",
     "openSpellcheckAgent": "Open Spellcheck Agent",
     "libraryFindReplace": "Find and replace in library",
     "toggleTheme": "Toggle theme",
@@ -3259,6 +3260,10 @@
         "label": "Plan ahead",
         "hint": "Next steps from this note"
       },
+      "roadmap": {
+        "label": "Roadmap",
+        "hint": "Phases and milestones from this note"
+      },
       "tasks": {
         "label": "Tasks",
         "hint": "Extract tasks and action items"
@@ -3515,6 +3520,8 @@
     "applyWikiDoneCount": "Applied {{count}} wiki links",
     "applyWikiFailed": "Could not apply wiki link — open the note in the editor",
     "applyTitleDone": "Renamed note",
+    "applyRoadmapDone": "Roadmap inserted into the note",
+    "applyRoadmapEmpty": "No roadmap phases found — add Now/Next/Later headings or next steps",
     "applyGrammarDone": "Applied {{count}} grammar fixes",
     "applyGrammarFailed": "Could not apply grammar fixes",
     "applyGrammarNone": "No grammar fixes to apply",
@@ -3697,6 +3704,7 @@
       "contradictions": "Contradiction hints",
       "commitments": "Commitments",
       "forward_plan": "Plan ahead",
+      "roadmap": "Roadmap",
       "reading_plan": "Reading plan",
       "note_pulse": "Note pulse",
       "grammar": "Grammar check",
@@ -3891,6 +3899,13 @@
       "insertAnswer": "Insert as callout",
       "insertAnswerDone": "Answer inserted into the note",
       "insertAnswerError": "Open a document in the editor to insert the answer",
+      "roadmapTitle": "Roadmap",
+      "roadmapHint": "Build Now / Next / Later phases from this note and insert them as headings + tasks.",
+      "roadmapRun": "Generate & insert roadmap",
+      "roadmapRunning": "Building roadmap…",
+      "roadmapDone": "Roadmap inserted ({{count}} phases · {{items}} items)",
+      "roadmapEmpty": "No roadmap detected — add phase headings or next-step language.",
+      "roadmapError": "Could not insert roadmap — open the note in the editor",
       "wikiSuggestHint": "Suggested wiki links — accept to replace the phrase with [[title]].",
       "wikiAccept": "Link",
       "wikiAppliedLinked": "Linked “{{title}}” in the note",

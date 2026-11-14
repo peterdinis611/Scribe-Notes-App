@@ -66,6 +66,7 @@ describe('agent recipes catalog', () => {
       'dates',
       'open_loops',
       'forward_plan',
+      'roadmap',
     ])
     expect(getAgentRecipe('polish_and_apply')?.tools).toEqual([
       'grammar',

@@ -22,6 +22,7 @@ import {
   Layers,
   LayoutTemplate,
   Link2,
+  Map,
   MessageSquare,
   Moon,
   Plus,
@@ -1145,6 +1146,38 @@ export function CommandPalette() {
           dispatch(openAgentPanel({ persona: 'general' }))
         },
       },
+      ...(activeDocument
+        ? [
+            {
+              type: 'action' as const,
+              id: 'generate-roadmap',
+              label: t('commandPalette.generateRoadmap'),
+              hint: activeDocument.title,
+              icon: <Map className="h-4 w-4" />,
+              run: () => {
+                void import('@/lib/library/roadmap').then(async ({ insertDocumentRoadmap }) => {
+                  try {
+                    const result = await insertDocumentRoadmap(activeDocument.id)
+                    if (result.ok) {
+                      toast.success(
+                        t('panels.insights.roadmapDone', {
+                          count: result.plan.count,
+                          items: result.plan.itemCount,
+                        }),
+                      )
+                    } else if (!result.plan.phases?.length) {
+                      toast.error(t('panels.insights.roadmapEmpty'))
+                    } else {
+                      toast.error(t('panels.insights.roadmapError'))
+                    }
+                  } catch {
+                    toast.error(t('panels.insights.roadmapError'))
+                  }
+                })
+              },
+            },
+          ]
+        : []),
       {
         type: 'action',
         id: 'open-spellcheck-agent',

@@ -204,6 +204,7 @@ const TOOL_LABEL_KEYS: Record<AgentToolId, string> = {
   contradictions: 'agent.tools.contradictions',
   commitments: 'agent.tools.commitments',
   forward_plan: 'agent.tools.forward_plan',
+  roadmap: 'agent.tools.roadmap',
   reading_plan: 'agent.tools.reading_plan',
   note_pulse: 'agent.tools.note_pulse',
   grammar: 'agent.tools.grammar',
@@ -849,6 +850,7 @@ export function AgentPanel({
       tools.includes('summarize') ||
       tools.includes('section_summaries') ||
       tools.includes('forward_plan') ||
+      tools.includes('roadmap') ||
       tools.includes('research_pack') ||
       tools.includes('timeline')
     ) {
@@ -880,6 +882,19 @@ export function AgentPanel({
       try {
         if (tools.has('save_template')) {
           handleSaveAsTemplate()
+          return
+        }
+
+        if (tools.has('roadmap')) {
+          const { insertDocumentRoadmap } = await import('@/lib/library/roadmap')
+          const result = await insertDocumentRoadmap(activeDocumentId)
+          if (result.ok) {
+            toast.success(t('agent.applyRoadmapDone'))
+          } else if (!result.plan.phases?.length) {
+            toast.error(t('agent.applyRoadmapEmpty'))
+          } else {
+            toast.error(t('agent.applyFailed'))
+          }
           return
         }
 

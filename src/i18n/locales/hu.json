@@ -220,6 +220,7 @@
     "storageMode": "Fájlok és média",
     "duplicates": "Közel azonos jegyzetek",
     "openAgent": "Helyi ügynök megnyitása",
+    "generateRoadmap": "Útiterv generálása a jegyzetből",
     "openSpellcheckAgent": "Helyesírás-ellenőrző ügynök megnyitása",
     "libraryFindReplace": "Keresés és csere a könyvtárban",
     "toggleTheme": "Téma váltása",
@@ -3259,6 +3260,10 @@
         "label": "Előre tervezés",
         "hint": "Következő lépések ebből a jegyzetből"
       },
+      "roadmap": {
+        "label": "Útiterv",
+        "hint": "Fázisok és mérföldkövek a jegyzetből"
+      },
       "tasks": {
         "label": "Feladatok",
         "hint": "Feladatok és teendők kinyerése"
@@ -3515,6 +3520,8 @@
     "applyWikiDoneCount": "Alkalmazva {{count}} wiki linkek",
     "applyWikiFailed": "Nem sikerült alkalmazni a wiki linket — nyissa meg a jegyzetet a szerkesztőben",
     "applyTitleDone": "Átnevezett jegyzet",
+    "applyRoadmapDone": "Útiterv beszúrva a jegyzetbe",
+    "applyRoadmapEmpty": "Nincs fázis — adjon Now/Next/Later címsorokat vagy következő lépéseket",
     "applyGrammarDone": "Alkalmazva {{count}} nyelvtani javítások",
     "applyGrammarFailed": "Nem sikerült alkalmazni a nyelvtani javításokat",
     "applyGrammarNone": "Nincs alkalmazandó nyelvtani javítás",
@@ -3697,6 +3704,7 @@
       "contradictions": "Ellentmondás tippek",
       "commitments": "Elkötelezettségek",
       "forward_plan": "Előre tervezés",
+      "roadmap": "Útiterv",
       "reading_plan": "Olvasási terv",
       "note_pulse": "Jegyzet pulzus",
       "grammar": "Nyelvtani ellenőrzés",
@@ -3874,6 +3882,13 @@
       "insertAnswer": "Beszúrás felhívásként",
       "insertAnswerDone": "Válasz beszúrva a jegyzetbe",
       "insertAnswerError": "Nyisson meg egy dokumentumot a szerkesztőben a válasz beszúrásához",
+      "roadmapTitle": "Útiterv",
+      "roadmapHint": "Now / Next / Later fázisok a jegyzetből — címsorok + feladatok beszúrása.",
+      "roadmapRun": "Útiterv generálása és beszúrása",
+      "roadmapRunning": "Útiterv készítése…",
+      "roadmapDone": "Útiterv beszúrva ({{count}} fázis · {{items}} tétel)",
+      "roadmapEmpty": "Nincs útiterv — adjon fáziscímsorokat vagy következő lépéseket.",
+      "roadmapError": "Az útitervet nem sikerült beszúrni — nyissa meg a jegyzetet a szerkesztőben",
       "wikiSuggestHint": "Javasolt wiki linkek – fogadja el a kifejezés [[title]]-re cseréléséhez.",
       "wikiAccept": "Link",
       "wikiAppliedLinked": "„{{title}}” összekapcsolva a jegyzetben",

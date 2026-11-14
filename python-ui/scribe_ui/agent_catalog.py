@@ -169,7 +169,7 @@ def agent_recipes() -> list[AgentRecipeDef]:
         _recipe(
             "morning_brief",
             "agent.recipes.morningBrief",
-            ["dates", "open_loops", "forward_plan"],
+            ["dates", "open_loops", "forward_plan", "roadmap"],
             True,
         ),
         _recipe(

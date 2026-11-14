@@ -189,6 +189,18 @@ fn slash_catalog() -> &'static [SlashDef] {
             default_goal_key: Some("agent.tools.forward_plan"),
         },
         SlashDef {
+            id: "roadmap",
+            name: "roadmap",
+            aliases: &["mapa", "cesta", "milestones"],
+            label_key: "agent.slash.roadmap.label",
+            hint_key: "agent.slash.roadmap.hint",
+            scopes: &[Document, Any],
+            tools: &["roadmap"],
+            recipe_id: None,
+            pass_args: false,
+            default_goal_key: Some("agent.tools.roadmap"),
+        },
+        SlashDef {
             id: "tasks",
             name: "tasks",
             aliases: &["todo", "ulohy"],

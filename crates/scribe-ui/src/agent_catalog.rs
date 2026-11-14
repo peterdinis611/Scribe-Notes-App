@@ -152,7 +152,7 @@ pub fn agent_recipes() -> Vec<AgentRecipeDef> {
         recipe(
             "morning_brief",
             "agent.recipes.morningBrief",
-            &["dates", "open_loops", "forward_plan"],
+            &["dates", "open_loops", "forward_plan", "roadmap"],
             true,
         ),
         recipe(
@@ -294,6 +294,7 @@ pub fn agent_roles() -> Vec<AgentRoleDef> {
                 "decisions",
                 "commitments",
                 "forward_plan",
+                "roadmap",
                 "quotes",
                 "mentions",
                 "takeaways",
@@ -344,6 +345,7 @@ pub fn agent_roles() -> Vec<AgentRoleDef> {
                 "template_hints",
                 "open_loops",
                 "forward_plan",
+                "roadmap",
                 "dates",
                 "canvas_summarize",
                 "canvas_to_note",

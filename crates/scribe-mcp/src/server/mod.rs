@@ -172,7 +172,7 @@ impl ServerHandler for ScribeMcp {
              create_library adds a library without switching. \
              extract_entities / extract_mentions / extract_dates / extract_outline / chunk_text accept id or text. \
              Study AI: extract_flashcards / extract_takeaways / check_terminology / writing_coach / outline_quiz / meeting_notes_pack / explain_selection / simplify / action_items / glossary / compare_notes (id or text). \
-             Review pack: section_summaries / extract_decisions / extract_quotes / extract_commitments / detect_pii / rank_tasks / open_loops / reading_plan / note_pulse / tone_pack / contradiction_hints / forward_plan. \
+             Review pack: section_summaries / extract_decisions / extract_quotes / extract_commitments / detect_pii / rank_tasks / open_loops / reading_plan / note_pulse / tone_pack / contradiction_hints / forward_plan / roadmap. \
              Retrieval helpers: passage_rerank / answer_followups (after library_answer or document_answer). \
              Planner-only: plan_agent_goal / agent_document_brief (run_agent still executes). \
              Offline AI: rewrite_query / plan_tools / build_prompt (Rust scribe-ai; rewrite prefers Python). \

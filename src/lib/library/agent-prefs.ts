@@ -55,6 +55,7 @@ export type AgentToolId =
   | 'contradictions'
   | 'commitments'
   | 'forward_plan'
+  | 'roadmap'
   | 'reading_plan'
   | 'note_pulse'
   | 'grammar'
@@ -254,6 +255,7 @@ const ALL_TOOLS: AgentToolId[] = [
   'contradictions',
   'commitments',
   'forward_plan',
+  'roadmap',
   'reading_plan',
   'note_pulse',
   'grammar',
@@ -763,6 +765,7 @@ export const AGENT_OPTIMIZABLE_TOOLS: AgentToolId[] = [
   'contradictions',
   'commitments',
   'forward_plan',
+  'roadmap',
   'reading_plan',
   'note_pulse',
   'grammar',

@@ -48,6 +48,7 @@ import {
   runAgentCitations,
   runAgentCommitments,
   runAgentForwardPlan,
+  runAgentRoadmap,
   runAgentContinuation,
   runAgentContradictions,
   runAgentDatesLibrary,
@@ -194,6 +195,7 @@ const DOCUMENT_TOOLS = new Set<AgentToolId>([
   'contradictions',
   'commitments',
   'forward_plan',
+  'roadmap',
   'reading_plan',
   'note_pulse',
   'grammar',
@@ -276,6 +278,7 @@ const INTENT_TO_TOOL: Record<string, AgentToolId> = {
   contradictions: 'contradictions',
   commitments: 'commitments',
   forward_plan: 'forward_plan',
+  roadmap: 'roadmap',
   reading_plan: 'reading_plan',
   note_pulse: 'note_pulse',
   grammar: 'grammar',
@@ -707,6 +710,10 @@ async function runTool(
   if (tool === 'forward_plan') {
     if (!ctx.documentId) throw new Error('agent.needsDocument')
     return runAgentForwardPlan(ctx.documentId)
+  }
+  if (tool === 'roadmap') {
+    if (!ctx.documentId) throw new Error('agent.needsDocument')
+    return runAgentRoadmap(ctx.documentId)
   }
   if (tool === 'reading_plan') {
     if (!ctx.documentId) throw new Error('agent.needsDocument')

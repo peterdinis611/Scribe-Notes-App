@@ -220,6 +220,7 @@
     "storageMode": "Pliki i multimedia",
     "duplicates": "Prawie zduplikowane notatki",
     "openAgent": "Otwórz lokalnego agenta",
+    "generateRoadmap": "Wygeneruj roadmapę z notatki",
     "openSpellcheckAgent": "Otwórz Agenta sprawdzania pisowni",
     "libraryFindReplace": "Znajdź i zamień w bibliotece",
     "toggleTheme": "Przełącz motyw",
@@ -3259,6 +3260,10 @@
         "label": "Planuj z wyprzedzeniem",
         "hint": "Kolejne kroki z tej notatki"
       },
+      "roadmap": {
+        "label": "Roadmapa",
+        "hint": "Fazy i kamienie milowe z notatki"
+      },
       "tasks": {
         "label": "Zadania",
         "hint": "Wyodrębnij zadania i elementy do wykonania"
@@ -3515,6 +3520,8 @@
     "applyWikiDoneCount": "Zastosowano linki wiki {{count}}",
     "applyWikiFailed": "Nie można zastosować linku wiki — otwórz notatkę w edytorze",
     "applyTitleDone": "Zmieniono nazwę notatki",
+    "applyRoadmapDone": "Roadmapa wstawiona do notatki",
+    "applyRoadmapEmpty": "Brak faz — dodaj nagłówki Now/Next/Later lub kolejne kroki",
     "applyGrammarDone": "Zastosowano poprawki gramatyczne {{count}}",
     "applyGrammarFailed": "Nie udało się zastosować poprawek gramatycznych",
     "applyGrammarNone": "Brak poprawek gramatycznych do zastosowania",
@@ -3697,6 +3704,7 @@
       "contradictions": "Wskazówki sprzeczności",
       "commitments": "Zobowiązania",
       "forward_plan": "Planuj z wyprzedzeniem",
+      "roadmap": "Roadmapa",
       "reading_plan": "Plan czytania",
       "note_pulse": "Puls notatki",
       "grammar": "Sprawdzanie gramatyki",
@@ -3874,6 +3882,13 @@
       "insertAnswer": "Wstaw jako wyróżnienie",
       "insertAnswerDone": "Odpowiedź wstawiona do notatki",
       "insertAnswerError": "Otwórz dokument w edytorze, aby wstawić odpowiedź",
+      "roadmapTitle": "Roadmapa",
+      "roadmapHint": "Zbuduj fazy Now / Next / Later z notatki i wstaw jako nagłówki + zadania.",
+      "roadmapRun": "Wygeneruj i wstaw roadmapę",
+      "roadmapRunning": "Budowanie roadmapy…",
+      "roadmapDone": "Roadmapa wstawiona ({{count}} faz · {{items}} pozycji)",
+      "roadmapEmpty": "Brak roadmapy — dodaj nagłówki faz lub język kolejnych kroków.",
+      "roadmapError": "Nie udało się wstawić roadmapy — otwórz notatkę w edytorze",
       "wikiSuggestHint": "Sugerowane linki wiki — zaakceptuj, aby zamienić frazę na [[title]].",
       "wikiAccept": "Połączyć",
       "wikiAppliedLinked": "Połączono „{{title}}” w notatce",

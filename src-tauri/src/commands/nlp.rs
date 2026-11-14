@@ -2647,6 +2647,23 @@ pub fn nlp_reading_plan(
 }
 
 #[tauri::command]
+pub fn nlp_roadmap(
+    state: State<'_, DbState>,
+    sidecar: State<'_, NlpSidecar>,
+    input: NlpDocumentTextInput,
+) -> Result<serde_json::Value, String> {
+    let text = resolve_text_offline_ok(&state, &input)?;
+    let limit = input.limit.unwrap_or(8).clamp(1, 16);
+    if nlp_is_enabled(&state) {
+        if let Ok(raw) = sidecar.roadmap(&text, limit) {
+            return Ok(raw);
+        }
+    }
+    serde_json::to_value(scribe_core::nlp::roadmap(&text, limit as usize))
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 pub fn nlp_note_pulse(
     state: State<'_, DbState>,
     sidecar: State<'_, NlpSidecar>,

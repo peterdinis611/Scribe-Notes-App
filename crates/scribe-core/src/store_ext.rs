@@ -2148,6 +2148,25 @@ impl ScribeStore {
             .map_err(|e| e.to_string())
     }
 
+    pub fn roadmap(
+        &self,
+        sidecar: &NlpSidecar,
+        document_id: Option<&str>,
+        text: Option<&str>,
+        limit: Option<i64>,
+    ) -> Result<Value, String> {
+        let source = self.nlp_source_text(document_id, text)?;
+        let limit = limit.unwrap_or(8).clamp(1, 16);
+        if is_nlp_enabled(&self.db).unwrap_or(false) {
+            let _ = sync_sidecar_backend(sidecar, &self.db);
+            if let Ok(raw) = sidecar.roadmap(&source, limit) {
+                return Ok(raw);
+            }
+        }
+        serde_json::to_value(crate::nlp::roadmap(&source, limit as usize))
+            .map_err(|e| e.to_string())
+    }
+
     pub fn contradiction_hints(
         &self,
         sidecar: &NlpSidecar,

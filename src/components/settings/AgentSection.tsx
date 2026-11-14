@@ -94,6 +94,7 @@ const TOOL_LABEL_KEYS: Record<AgentToolId, string> = {
   contradictions: 'agent.tools.contradictions',
   commitments: 'agent.tools.commitments',
   forward_plan: 'agent.tools.forward_plan',
+  roadmap: 'agent.tools.roadmap',
   reading_plan: 'agent.tools.reading_plan',
   note_pulse: 'agent.tools.note_pulse',
   grammar: 'agent.tools.grammar',

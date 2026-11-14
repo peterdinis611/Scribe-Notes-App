@@ -29,6 +29,7 @@ import {
   nlpOutlineQuiz,
   nlpRankTasks,
   nlpReadingPlan,
+  nlpRoadmap,
   nlpRewriteSelection,
   nlpSectionSummaries,
   nlpSuggestContinuation,
@@ -255,6 +256,33 @@ export async function runAgentReadingPlan(documentId: string): Promise<LibraryCh
         documentId,
         title: 'Reading plan',
         snippet: `${result.count} steps · ${result.source}`,
+      },
+    ],
+  }
+}
+
+export async function runAgentRoadmap(documentId: string): Promise<LibraryChatResult> {
+  const result = await nlpRoadmap({ documentId, limit: 8 })
+  if (!result.phases?.length) {
+    return {
+      answer:
+        'No roadmap detected — add Now/Next/Later (or Phase) headings with bullets, or next-step language.',
+      citations: [],
+    }
+  }
+  const sections = result.phases.map((phase) => {
+    const items = phase.items?.length
+      ? bullets(phase.items.map((item) => item.text))
+      : `_(${phase.horizon})_`
+    return `**${phase.title}**\n\n${items}`
+  })
+  return {
+    answer: `**Roadmap** (${result.count} phases · ${result.itemCount} items)\n\n${sections.join('\n\n')}`,
+    citations: [
+      {
+        documentId,
+        title: 'Roadmap',
+        snippet: `${result.count} phases · ${result.strategy} · ${result.source}`,
       },
     ],
   }
