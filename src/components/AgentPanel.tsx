@@ -52,16 +52,16 @@ import {
 } from '@/lib/library/agent-handoff'
 import {
   nlpCalendarEvents,
-  nlpDocumentAnalysis,
-  nlpDocumentTasks,
-  nlpSpellcheck,
-  nlpStatus,
-  nlpSuggestTags,
-  nlpSuggestWikiLinks,
+  documentAnalysis as nlpDocumentAnalysis,
+  documentTasks as nlpDocumentTasks,
+  spellcheck as nlpSpellcheck,
+  status as nlpStatus,
+  suggestTags as nlpSuggestTags,
+  suggestWikiLinks as nlpSuggestWikiLinks,
   type DocumentTask,
   type NlpDocumentAnalysis,
   type WikiLinkSuggestion,
-} from '@/lib/db/nlp-api'
+} from '@/lib/ai'
 import {
   calendarEventsToIcs,
   exportIcsFile,

@@ -22,3 +22,4 @@ pub mod system;
 pub mod links;
 pub mod nlp;
 pub mod ocr;
+pub mod websockets;

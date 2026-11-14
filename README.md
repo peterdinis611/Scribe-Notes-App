@@ -354,6 +354,7 @@ scribe/
 │
 ├── crates/
 │   ├── scribe-core/              # Shared Rust library (DB, wiki, NLP types, placeholder text)
+│   ├── scribe-websockets/        # Local WS protocol + settings (FE: src/lib/websockets/)
 │   └── scribe-mcp/               # Optional MCP server binary
 │
 ├── nlp/                          # Optional Local AI (Python 3.10+)

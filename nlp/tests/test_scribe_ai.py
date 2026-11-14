@@ -51,9 +51,41 @@ class ScribeAiParityTests(unittest.TestCase):
         system = system_prompt(PromptKind.AGENT, "sk")
         self.assertIn("Scribe", system)
 
+    def test_prompts_built_in_locales(self) -> None:
+        sk = system_prompt(PromptKind.AGENT, "sk")
+        cs = system_prompt(PromptKind.AGENT, "cs-CZ")
+        hu = system_prompt(PromptKind.AGENT, "hu")
+        pl = system_prompt(PromptKind.AGENT, "pl")
+        en = system_prompt(PromptKind.AGENT, "de")
+        self.assertNotEqual(sk, cs)
+        self.assertNotEqual(cs, hu)
+        self.assertNotEqual(hu, pl)
+        self.assertIn("local agent", en.lower())
+
     def test_fold_and_document_intent(self) -> None:
         self.assertEqual(fold_text("Úloha"), "uloha")
         self.assertEqual(match_document_chat_intent("Summarize this note"), "summarize")
+
+    def test_reexport_sweep(self) -> None:
+        from scribe_nlp.scribe_ai import (
+            detect_pii,
+            extract_decisions,
+            extract_quotes,
+            note_pulse,
+            open_loops,
+            rank_tasks,
+            section_summaries,
+            suggest_title,
+        )
+
+        self.assertTrue(suggest_title("Ship the release notes tomorrow.")["title"])
+        self.assertIn("count", detect_pii("email me at a@b.com", limit=5))
+        self.assertIn("decisions", extract_decisions("Decision: ship Friday.", limit=4))
+        self.assertIn("quotes", extract_quotes('"Ship it." — Lead', limit=4))
+        self.assertIn("tasks", rank_tasks("- [ ] Review PR", limit=4))
+        self.assertIn("loops", open_loops("TODO: finish docs", limit=4))
+        self.assertIn("score", note_pulse("# Note\n\nSome text here."))
+        self.assertIn("sections", section_summaries("# A\nHello.\n\n# B\nWorld.", limit=4))
 
 
 if __name__ == "__main__":

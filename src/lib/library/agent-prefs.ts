@@ -1,3 +1,4 @@
+import { agentAnswerLanguageHint, asBuiltInLang } from '@/lib/i18n/locale-tags'
 import {
   AGENT_ROLE_IDS,
   DEFAULT_AGENT_ROLES,
@@ -84,7 +85,7 @@ export type AgentMaxSteps = 1 | 2 | 3 | 4 | 5 | 6
 
 export const AGENT_MAX_STEPS_HARD = 6 as const
 
-export type AgentOutputLanguage = 'auto' | 'en' | 'sk'
+export type AgentOutputLanguage = 'auto' | 'en' | 'sk' | 'cs' | 'hu' | 'pl'
 
 export type AgentTeachingScope = 'global' | 'document'
 
@@ -484,7 +485,12 @@ export function normalizeAgentPrefs(raw: unknown): AgentPrefs {
     : []
 
   const outputLanguage: AgentOutputLanguage =
-    input.outputLanguage === 'en' || input.outputLanguage === 'sk' || input.outputLanguage === 'auto'
+    input.outputLanguage === 'en' ||
+    input.outputLanguage === 'sk' ||
+    input.outputLanguage === 'cs' ||
+    input.outputLanguage === 'hu' ||
+    input.outputLanguage === 'pl' ||
+    input.outputLanguage === 'auto'
       ? input.outputLanguage
       : 'auto'
 
@@ -633,10 +639,9 @@ export function teachingsToMemoryContext(
         .join('\n')}`,
     )
   }
-  if (extras?.outputLanguage === 'sk') {
-    blocks.push('Always answer in Slovak.')
-  } else if (extras?.outputLanguage === 'en') {
-    blocks.push('Always answer in English.')
+  if (extras?.outputLanguage && extras.outputLanguage !== 'auto') {
+    const lang = asBuiltInLang(extras.outputLanguage)
+    if (lang) blocks.push(agentAnswerLanguageHint(lang))
   }
   if (!blocks.length) return []
   return [{ role: 'user', text: blocks.join('\n\n') }]

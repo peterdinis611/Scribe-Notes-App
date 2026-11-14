@@ -51,19 +51,32 @@ export function SidebarSearchResults({ query, onNavigate }: SidebarSearchResults
     }
   }, [trimmed])
 
-  const titleHits = useMemo((): TitleHit[] => {
-    if (trimmed.length < 2) return []
+  const [titleHits, setTitleHits] = useState<TitleHit[]>([])
+
+  useEffect(() => {
+    let cancelled = false
+    if (trimmed.length < 2) {
+      setTitleHits([])
+      return
+    }
     const needle = titleNeedle.trim() || trimmed
     const visible = documents.filter(isLibraryDocumentVisible)
-    return fuzzyFilter(visible, needle, (doc) => [doc.title, ...(doc.tags ?? [])], {
+    void fuzzyFilterNative(visible, needle, (doc) => [doc.title, ...(doc.tags ?? [])], {
       limit: 12,
-      // Stricter than command-palette fuzzy — “regular” title search.
       threshold: 0.28,
-    }).map((doc) => ({
-      documentId: doc.id,
-      title: doc.title,
-      tags: doc.tags ?? [],
-    }))
+    }).then((ranked) => {
+      if (cancelled) return
+      setTitleHits(
+        ranked.map((doc) => ({
+          documentId: doc.id,
+          title: doc.title,
+          tags: doc.tags ?? [],
+        })),
+      )
+    })
+    return () => {
+      cancelled = true
+    }
   }, [documents, trimmed, titleNeedle])
 
   useEffect(() => {

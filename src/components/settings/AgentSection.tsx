@@ -619,6 +619,9 @@ export function AgentSection() {
                     ['auto', t('settings.agent.langAuto')],
                     ['sk', 'SK'],
                     ['en', 'EN'],
+                    ['cs', 'CS'],
+                    ['hu', 'HU'],
+                    ['pl', 'PL'],
                   ] as const).map(([value, label]) => (
                     <button
                       key={value}

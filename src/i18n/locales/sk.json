@@ -2567,7 +2567,23 @@
       "total": "Udalosti",
       "keepLimit": "Limit uchovania",
       "newest": "Najnovšie",
-      "empty": "Zatiaľ žiadne audit udalosti."
+      "empty": "Zatiaľ žiadne audit udalosti.",
+      "setup": "Nastaviť heslo",
+      "setupHint": "Chráň lokálny audit log heslom (min. 8 znakov).",
+      "setupDone": "Heslo auditu nastavené",
+      "unlock": "Odomknúť",
+      "unlockHint": "Odomkni audit log na prehliadanie a export.",
+      "unlocked": "Audit odomknutý",
+      "unlockError": "Nepodarilo sa odomknúť audit",
+      "lock": "Zamknúť",
+      "locked": "Audit zamknutý",
+      "lockError": "Nepodarilo sa zamknúť audit",
+      "passwordPlaceholder": "Heslo",
+      "passwordTooShort": "Heslo musí mať aspoň 8 znakov",
+      "saveKeep": "Uložiť retenciu",
+      "keepSaved": "Retencia aktualizovaná",
+      "keepInvalid": "Zadaj limit aspoň 100",
+      "keepError": "Nepodarilo sa uložiť retenciu"
     }
   },
   "storageAccess": {
@@ -3925,6 +3941,9 @@
       "languageLine": "Detegovaný jazyk: {{language}}",
       "languageSk": "slovenčina",
       "languageEn": "angličtina",
+      "languageCs": "čeština",
+      "languageHu": "maďarčina",
+      "languagePl": "poľština",
       "languageUnknown": "neznámy",
       "similar": "Podobné dokumenty",
       "similarHint": "Na základe existujúceho sémantického indexu.",
@@ -4083,7 +4102,12 @@
       "gainedTerms": "Pribudlo",
       "lostTerms": "Ubylo",
       "copyAiSummary": "Kopírovať AI súhrn",
-      "copyAiSummaryError": "Nepodarilo sa skopírovať AI súhrn"
+      "copyAiSummaryError": "Nepodarilo sa skopírovať AI súhrn",
+      "saveNamedFromAi": "Uložiť pomenovanú revíziu",
+      "applyBulletNamed": "Pomenovať",
+      "applyBulletInsert": "Vložiť",
+      "applyBulletInserted": "Položka vložená do poznámky",
+      "applyBulletInsertError": "Nepodarilo sa vložiť do editora"
     }
   },
   "focusMode": {

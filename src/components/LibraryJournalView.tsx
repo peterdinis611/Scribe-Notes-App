@@ -10,6 +10,7 @@ import {
   type CalendarEvent,
   type DocumentTask,
 } from '@/lib/db/nlp-api'
+import { bcp47Tag } from '@/lib/i18n/locale-tags'
 import { JOURNAL_NLP_TIMEOUT_MS, JOURNAL_TASKS_TIMEOUT_MS, withNlpTimeout } from '@/lib/nlp/timeout'
 import {
   computeJournalStreak,
@@ -181,7 +182,7 @@ export function LibraryJournalView({ onNavigate }: LibraryJournalViewProps) {
   }
 
   const todayKey = formatDateKey(new Date())
-  const monthLabel = cursor.toLocaleDateString(i18n.language === 'sk' ? 'sk-SK' : 'en-US', {
+  const monthLabel = cursor.toLocaleDateString(bcp47Tag(i18n.language), {
     month: 'long',
     year: 'numeric',
   })

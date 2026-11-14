@@ -4,10 +4,21 @@ import threading
 from functools import lru_cache
 
 from .extras import has_lingua
-from .stopwords import STOP_WORDS_EN, STOP_WORDS_SK
+from .stopwords import (
+    STOP_WORDS_CS,
+    STOP_WORDS_EN,
+    STOP_WORDS_HU,
+    STOP_WORDS_PL,
+    STOP_WORDS_SK,
+)
 from .text_utils import tokenize
 
 SK_CHARS = set("áäčďéíĺľňóôŕšťúýžÁÄČĎÉÍĹĽŇÓÔŔŠŤÚÝŽ")
+CS_CHARS = set("áčďéěíňóřšťúůýžÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ")
+HU_CHARS = set("áéíóöőúüűÁÉÍÓÖŐÚÜŰ")
+PL_CHARS = set("ąćęłńóśźżĄĆĘŁŃÓŚŹŻ")
+
+_SUPPORTED = ("sk", "en", "cs", "hu", "pl")
 
 _lingua_lock = threading.Lock()
 
@@ -19,11 +30,14 @@ def _lingua_detector():
     return LanguageDetectorBuilder.from_languages(
         Language.SLOVAK,
         Language.ENGLISH,
+        Language.CZECH,
+        Language.HUNGARIAN,
+        Language.POLISH,
     ).build()
 
 
 def detect_language(text: str) -> dict[str, object]:
-    """SK / EN detector — Lingua when installed, else stopword heuristics."""
+    """SK / EN / CS / HU / PL detector — Lingua when installed, else stopword heuristics."""
     lingua_hit = _detect_lingua(text)
     if lingua_hit is not None:
         return lingua_hit
@@ -39,65 +53,83 @@ def _detect_lingua(text: str) -> dict[str, object] | None:
         detector = _lingua_detector()
         with _lingua_lock:
             confidence_values = detector.compute_language_confidence_values(text or "")
-        scores = {"sk": 0.0, "en": 0.0}
+        mapping = {
+            Language.SLOVAK: "sk",
+            Language.ENGLISH: "en",
+            Language.CZECH: "cs",
+            Language.HUNGARIAN: "hu",
+            Language.POLISH: "pl",
+        }
+        scores = {code: 0.0 for code in _SUPPORTED}
         for item in confidence_values:
-            if item.language == Language.SLOVAK:
-                scores["sk"] = float(item.value)
-            elif item.language == Language.ENGLISH:
-                scores["en"] = float(item.value)
-        sk_score = scores["sk"]
-        en_score = scores["en"]
-        if sk_score <= 0.15 and en_score <= 0.15:
+            code = mapping.get(item.language)
+            if code:
+                scores[code] = float(item.value)
+
+        ranked = sorted(scores.items(), key=lambda item: item[1], reverse=True)
+        top_lang, top_score = ranked[0]
+        second_score = ranked[1][1] if len(ranked) > 1 else 0.0
+        if top_score <= 0.15:
             language = "unknown"
             confidence = 0.0
-        elif sk_score >= en_score * 1.05:
-            language = "sk"
-            confidence = sk_score
-        elif en_score > sk_score * 1.05:
-            language = "en"
-            confidence = en_score
+        elif top_score >= second_score * 1.05:
+            language = top_lang
+            confidence = top_score
         else:
             language = "unknown"
-            confidence = max(sk_score, en_score) * 0.5
+            confidence = max(top_score, second_score) * 0.5
         return {
             "language": language,
             "confidence": round(float(confidence), 3),
-            "scores": {
-                "sk": round(sk_score, 3),
-                "en": round(en_score, 3),
-            },
+            "scores": {code: round(scores[code], 3) for code in _SUPPORTED},
         }
     except Exception:
         return None
 
 
+def _diacritic_boost(text: str, chars: set[str], weight: float = 8.0) -> float:
+    hits = sum(1 for char in (text or "") if char in chars)
+    return min(0.35, hits / max(len(text or ""), 1) * weight)
+
+
 def _detect_heuristic(text: str) -> dict[str, object]:
     tokens = tokenize(text)
+    empty_scores = {code: 0.0 for code in _SUPPORTED}
     if len(tokens) < 4:
         return {
             "language": "unknown",
             "confidence": 0.0,
-            "scores": {"sk": 0.0, "en": 0.0},
+            "scores": empty_scores,
         }
 
     unique = set(tokens)
-    sk_hits = len(unique & STOP_WORDS_SK)
-    en_hits = len(unique & STOP_WORDS_EN)
-    diacritic_chars = sum(1 for char in (text or "") if char in SK_CHARS)
-    diacritic_boost = min(0.35, diacritic_chars / max(len(text or ""), 1) * 8)
+    denom = max(len(unique), 1)
+    scores = {
+        "sk": len(unique & STOP_WORDS_SK) / denom + _diacritic_boost(text, SK_CHARS),
+        "en": len(unique & STOP_WORDS_EN) / denom,
+        "cs": len(unique & STOP_WORDS_CS) / denom + _diacritic_boost(text, CS_CHARS),
+        "hu": len(unique & STOP_WORDS_HU) / denom + _diacritic_boost(text, HU_CHARS),
+        "pl": len(unique & STOP_WORDS_PL) / denom + _diacritic_boost(text, PL_CHARS),
+    }
 
-    sk_score = sk_hits / max(len(unique), 1) + diacritic_boost
-    en_score = en_hits / max(len(unique), 1)
+    # Slovak vs Czech share many tokens — prefer distinctive diacritics when close.
+    if abs(scores["sk"] - scores["cs"]) < 0.04:
+        sk_only = sum(1 for char in (text or "") if char in "äĺľŕô")
+        cs_only = sum(1 for char in (text or "") if char in "ěřů")
+        if sk_only > cs_only:
+            scores["sk"] += 0.05
+        elif cs_only > sk_only:
+            scores["cs"] += 0.05
 
-    if sk_score <= 0.02 and en_score <= 0.02:
+    ranked = sorted(scores.items(), key=lambda item: item[1], reverse=True)
+    top_lang, top_score = ranked[0]
+    second_score = ranked[1][1]
+    if top_score <= 0.02:
         language = "unknown"
         confidence = 0.0
-    elif sk_score >= en_score * 1.05:
-        language = "sk"
-        confidence = min(1.0, sk_score / max(sk_score + en_score, 1e-6))
-    elif en_score > sk_score * 1.05:
-        language = "en"
-        confidence = min(1.0, en_score / max(en_score + sk_score, 1e-6))
+    elif top_score >= second_score * 1.05:
+        language = top_lang
+        confidence = min(1.0, top_score / max(top_score + second_score, 1e-6))
     else:
         language = "unknown"
         confidence = 0.35
@@ -105,8 +137,5 @@ def _detect_heuristic(text: str) -> dict[str, object]:
     return {
         "language": language,
         "confidence": round(confidence, 3),
-        "scores": {
-            "sk": round(sk_score, 3),
-            "en": round(en_score, 3),
-        },
+        "scores": {code: round(scores[code], 3) for code in _SUPPORTED},
     }

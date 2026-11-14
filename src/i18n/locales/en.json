@@ -2567,7 +2567,23 @@
       "total": "Events",
       "keepLimit": "Keep limit",
       "newest": "Newest",
-      "empty": "No audit events yet."
+      "empty": "No audit events yet.",
+      "setup": "Set password",
+      "setupHint": "Protect the local audit log with a password (min 8 characters).",
+      "setupDone": "Audit password set",
+      "unlock": "Unlock",
+      "unlockHint": "Unlock the audit log to browse events and export.",
+      "unlocked": "Audit unlocked",
+      "unlockError": "Could not unlock audit log",
+      "lock": "Lock",
+      "locked": "Audit locked",
+      "lockError": "Could not lock audit log",
+      "passwordPlaceholder": "Password",
+      "passwordTooShort": "Password must be at least 8 characters",
+      "saveKeep": "Save retention",
+      "keepSaved": "Retention updated",
+      "keepInvalid": "Enter a keep limit of at least 100",
+      "keepError": "Could not update retention"
     }
   },
   "storageAccess": {
@@ -3915,6 +3931,9 @@
       "languageLine": "Detected language: {{language}}",
       "languageSk": "Slovak",
       "languageEn": "English",
+      "languageCs": "Czech",
+      "languageHu": "Hungarian",
+      "languagePl": "Polish",
       "languageUnknown": "unknown",
       "similar": "Similar documents",
       "similarHint": "Based on your existing semantic index.",
@@ -4073,7 +4092,12 @@
       "gainedTerms": "Gained",
       "lostTerms": "Lost",
       "copyAiSummary": "Copy AI summary",
-      "copyAiSummaryError": "Could not copy AI summary"
+      "copyAiSummaryError": "Could not copy AI summary",
+      "saveNamedFromAi": "Save named revision",
+      "applyBulletNamed": "Name",
+      "applyBulletInsert": "Insert",
+      "applyBulletInserted": "Bullet inserted into the note",
+      "applyBulletInsertError": "Could not insert into the editor"
     }
   },
   "focusMode": {

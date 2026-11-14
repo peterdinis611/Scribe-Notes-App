@@ -236,7 +236,7 @@ def parse_date_flexible(text: str, *, languages: list[str] | None = None) -> Any
 
         parsed = dateparser.parse(
             text,
-            languages=languages or ["sk", "en"],
+            languages=languages or ["sk", "en", "cs", "hu", "pl"],
             settings={
                 "PREFER_DATES_FROM": "future",
                 "RETURN_AS_TIMEZONE_AWARE": False,

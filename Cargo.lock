@@ -158,6 +158,7 @@ dependencies = [
  "scribe-toast",
  "scribe-ui",
  "scribe-video",
+ "scribe-websockets",
  "serde",
  "serde_json",
  "sha2",
@@ -4597,6 +4598,7 @@ dependencies = [
  "scribe-sync",
  "scribe-toast",
  "scribe-ui",
+ "scribe-websockets",
  "serde",
  "serde_json",
  "tokio",
@@ -4645,6 +4647,14 @@ dependencies = [
 
 [[package]]
 name = "scribe-video"
+version = "5.4.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "scribe-websockets"
 version = "5.4.0"
 dependencies = [
  "serde",

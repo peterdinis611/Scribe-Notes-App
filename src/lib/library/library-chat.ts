@@ -1,21 +1,23 @@
 import { invoke } from '@/lib/tauri'
+import {
+  documentAnalysis as nlpDocumentAnalysis,
+  documentTasks as nlpDocumentTasks,
+  extractFlashcards as nlpExtractFlashcards,
+  extractTakeaways as nlpExtractTakeaways,
+  similarDocuments as nlpSimilarDocuments,
+  spellcheck as nlpSpellcheck,
+  status as nlpStatus,
+  suggestWikiLinks as nlpSuggestWikiLinks,
+  writingCoach as nlpWritingCoach,
+} from '@/lib/ai'
 import { invokeMatchDocumentChatIntent } from '@/lib/db/api'
 import {
   nlpActionItems,
   nlpCheckTerminology,
-  nlpDocumentAnalysis,
-  nlpDocumentTasks,
   nlpExplainSelection,
-  nlpExtractFlashcards,
-  nlpExtractTakeaways,
   nlpGlossary,
-  nlpSimilarDocuments,
   nlpSimplify,
-  nlpSpellcheck,
-  nlpStatus,
-  nlpSuggestWikiLinks,
   nlpSummarize,
-  nlpWritingCoach,
 } from '@/lib/db/nlp-api'
 
 export type LibraryChatCitation = {
@@ -112,6 +114,7 @@ export async function askLibrary(
     throw new Error('libraryChat.emptyQuestion')
   }
   await assertNlpReady()
+  // LLM system/user strings live in sidecar `scribe_ai.prompts` (Rust scribe-ai parity).
 
   const context = opts?.context?.length ? opts.context : null
 
@@ -165,6 +168,7 @@ export async function askDocument(
     throw new Error('libraryChat.noActiveDocument')
   }
   await assertNlpReady()
+  // LLM prompts: sidecar `scribe_ai.prompts` (same builders as `@/lib/ai` prepareChatPrompt).
   return invoke<LibraryChatResult>('nlp_document_answer', {
     documentId,
     question: trimmed,

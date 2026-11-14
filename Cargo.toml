@@ -11,6 +11,7 @@ members = [
   "crates/scribe-sync",
   "crates/scribe-capture",
   "crates/scribe-toast",
+  "crates/scribe-websockets",
 ]
 resolver = "2"
 

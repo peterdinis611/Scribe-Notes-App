@@ -1,0 +1,12 @@
+[package]
+name = "scribe-websockets"
+version = "5.4.0"
+edition = "2021"
+rust-version = "1.77.2"
+license = "MIT"
+authors = ["Peter Dinis"]
+description = "Local WebSocket protocol, channels, and settings for Scribe realtime events (no I/O)"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"

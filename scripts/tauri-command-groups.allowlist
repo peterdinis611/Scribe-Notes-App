@@ -435,3 +435,9 @@ video_library	list_library_videos_cmd
 video_library	pick_local_video
 video_library	probe_library_video
 video_library	transcribe_library_video
+websockets	default_websocket_settings
+websockets	normalize_websocket_channels
+websockets	normalize_websocket_settings
+websockets	websocket_channel_ids
+websockets	websocket_settings_from_json
+websockets	websocket_url

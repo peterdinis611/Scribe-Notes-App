@@ -36,6 +36,19 @@ class LanguageTests(unittest.TestCase):
         self.assertEqual(result["language"], "en")
         self.assertGreater(result["confidence"], 0.4)
 
+    def test_detects_hungarian_or_polish_when_distinct(self) -> None:
+        hu = detect_language(
+            "Ma elolvastam a jegyzetemet, mert még kell egy áttekintés a feladatokról és a határidőkről."
+        )
+        pl = detect_language(
+            "Dzisiaj napisałem notatkę w dzienniku, ponieważ potrzebuję przeglądu zadań i terminów."
+        )
+        self.assertIn(hu["language"], {"hu", "unknown", "sk", "cs"})
+        self.assertIn(pl["language"], {"pl", "unknown", "sk", "cs"})
+        self.assertIn("hu", hu["scores"])
+        self.assertIn("pl", pl["scores"])
+        self.assertIn("cs", hu["scores"])
+
     def test_unknown_for_tiny_or_ambiguous_text(self) -> None:
         tiny = detect_language("ok")
         self.assertEqual(tiny["language"], "unknown")

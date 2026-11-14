@@ -13,11 +13,17 @@ describe('comment author', () => {
     expect(resolveCommentAuthor('  Peter  ')).toBe('Peter')
   })
 
-  it('uses Me in English and Ja otherwise', async () => {
+  it('uses locale-specific default author labels', async () => {
     const previous = i18n.language
     await i18n.changeLanguage('en')
     expect(defaultCommentAuthor()).toBe('Me')
     await i18n.changeLanguage('sk')
+    expect(defaultCommentAuthor()).toBe('Ja')
+    await i18n.changeLanguage('cs')
+    expect(defaultCommentAuthor()).toBe('Já')
+    await i18n.changeLanguage('hu')
+    expect(defaultCommentAuthor()).toBe('Én')
+    await i18n.changeLanguage('pl')
     expect(defaultCommentAuthor()).toBe('Ja')
     await i18n.changeLanguage(previous)
   })
