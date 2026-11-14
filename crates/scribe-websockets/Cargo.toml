@@ -5,8 +5,14 @@ edition = "2021"
 rust-version = "1.77.2"
 license = "MIT"
 authors = ["Peter Dinis"]
-description = "Local WebSocket protocol, channels, and settings for Scribe realtime events (no I/O)"
+description = "Local WebSocket protocol, channels, settings, and optional sync server for Scribe"
+
+[features]
+default = []
+server = ["dep:tungstenite", "dep:http"]
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+http = { version = "1", optional = true }
+tungstenite = { version = "0.24", optional = true, default-features = false, features = ["handshake"] }

@@ -44,8 +44,26 @@ describe('websockets settings', () => {
     })
     expect(next.bindHost).toBe('127.0.0.1')
     expect(next.path).toBe('/events')
-    expect(next.port).toBe(8787)
+    expect(next.port).toBe(8789)
     expect(next.heartbeatIntervalMs).toBeGreaterThanOrEqual(5_000)
-    expect(websocketUrl(next)).toBe('ws://127.0.0.1:8787/events')
+    expect(websocketUrl(next)).toBe('ws://127.0.0.1:8789/events')
+  })
+})
+
+describe('websockets client helper', () => {
+  it('encodes hello with protocol version', async () => {
+    const { WEBSOCKET_PROTOCOL_VERSION, encodeClientMessage } = await import('@/lib/websockets')
+    const raw = encodeClientMessage({
+      type: 'hello',
+      protocol: WEBSOCKET_PROTOCOL_VERSION,
+      token: 'tok',
+      client: 'test',
+    })
+    expect(JSON.parse(raw)).toMatchObject({
+      type: 'hello',
+      protocol: 1,
+      token: 'tok',
+      client: 'test',
+    })
   })
 })

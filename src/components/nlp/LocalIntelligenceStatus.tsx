@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
+import { toast } from '@/lib/toast'
 import { nlpLlmStatus, nlpStatus, type NlpLlmStatus, type NlpStatus } from '@/lib/db/nlp-api'
 import { ROUTES } from '@/lib/routes'
 import {
@@ -81,9 +82,15 @@ export function LocalIntelligenceStatus({
   async function handleStartFiles() {
     setStartingFiles(true)
     try {
-      setFiles(await storageFsServerStart())
-    } catch {
-      /* panel callers surface toasts if needed */
+      const next = await storageFsServerStart()
+      setFiles(next)
+      if (next.running) {
+        toast.success(t('localIntelligence.filesOn'))
+      } else {
+        toast.error(t('localIntelligence.filesOff'))
+      }
+    } catch (error) {
+      toast.error(t('localIntelligence.filesOff'), String(error))
     } finally {
       setStartingFiles(false)
     }
@@ -132,7 +139,12 @@ export function LocalIntelligenceStatus({
                     : 'localIntelligence.llmOff',
               )}
         </span>
-        <span className="inline-flex items-center gap-1.5 text-[var(--color-foreground)]">
+        <span
+          className={cn(
+            'inline-flex items-center gap-1.5',
+            filesOn ? 'text-[var(--color-foreground)]' : 'text-[var(--color-danger,#dc2626)]',
+          )}
+        >
           <HardDrive className="h-3 w-3 opacity-70" />
           {t(filesOn ? 'localIntelligence.filesOn' : 'localIntelligence.filesOff')}
         </span>
@@ -147,7 +159,7 @@ export function LocalIntelligenceStatus({
             disabled={startingFiles}
             onClick={() => void handleStartFiles()}
           >
-            {t('localIntelligence.startFilesApi')}
+            {startingFiles ? '…' : t('localIntelligence.startFilesApi')}
           </Button>
           <Button
             type="button"

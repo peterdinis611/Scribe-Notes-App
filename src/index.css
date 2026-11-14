@@ -5033,16 +5033,24 @@ html:not([data-ui-skin]) .agent-workspace-dock {
 
 .agent-dock-header {
   display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 75%, transparent);
+}
+
+.agent-dock-header-top {
+  display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
-  padding: 14px 14px 10px;
-  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 75%, transparent);
+  min-width: 0;
 }
 
 .agent-dock-identity {
   display: flex;
   min-width: 0;
+  flex: 1;
   align-items: center;
   gap: 10px;
 }
@@ -5121,16 +5129,26 @@ html:not([data-ui-skin]) .agent-persona-tab.is-active {
 }
 
 .agent-persona-switch {
-  display: inline-flex;
-  flex-wrap: wrap;
+  display: flex;
+  flex-wrap: nowrap;
   align-items: center;
-  justify-content: flex-end;
   gap: 2px;
-  max-width: min(100%, 22rem);
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
   padding: 2px;
   border-radius: 999px;
   border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
   background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+  -webkit-overflow-scrolling: touch;
+}
+
+.agent-persona-switch::-webkit-scrollbar {
+  height: 3px;
 }
 
 .agent-persona-tab {
@@ -5144,6 +5162,7 @@ html:not([data-ui-skin]) .agent-persona-tab.is-active {
   border-radius: 999px;
   cursor: pointer;
   white-space: nowrap;
+  flex: 0 0 auto;
 }
 
 .agent-dock-empty-roles {

@@ -29,10 +29,19 @@ export {
 } from '@/lib/websockets/protocol'
 
 export {
+  ScribeWebsocketClient,
+  type ScribeWebsocketClientOptions,
+} from '@/lib/websockets/client'
+
+export {
   defaultWebsocketSettings,
   normalizeWebsocketChannelsNative,
   normalizeWebsocketSettingsNative,
   websocketChannelIds,
   websocketSettingsFromJson,
   websocketUrlNative,
+  websocketsStart,
+  websocketsStatus,
+  websocketsStop,
+  type WebsocketServerStatus,
 } from '@/lib/db/websockets-api'

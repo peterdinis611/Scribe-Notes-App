@@ -4,6 +4,7 @@ mod audit_db;
 mod backup;
 mod capture;
 mod db;
+mod websockets;
 mod export;
 mod images;
 mod libraries;
@@ -155,6 +156,7 @@ pub fn run() {
             app.manage(NlpSidecar::new(nlp::resolve_script_path(app.handle())));
             app.manage(scribe_core::nlp::UnlockedVaultIndex::new());
             app.manage(capture::CaptureServerState::new());
+            app.manage(websockets::WebsocketServerState::new());
             app.manage(storage_fs_api::StorageFsServerState::new());
             app.manage(ui_host::UiHostState::default());
 
@@ -717,6 +719,9 @@ pub fn run() {
             capture::capture_status,
             capture::capture_start,
             capture::capture_stop,
+            websockets::websockets_status,
+            websockets::websockets_start,
+            websockets::websockets_stop,
             storage_fs_api::storage_fs_server_status,
             storage_fs_api::storage_fs_server_start,
             storage_fs_api::storage_fs_server_stop,

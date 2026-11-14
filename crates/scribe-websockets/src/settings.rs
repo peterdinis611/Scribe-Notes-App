@@ -2,7 +2,8 @@
 
 use serde::{Deserialize, Serialize};
 
-pub const DEFAULT_PORT: u16 = 8787;
+/// Default bind port — distinct from Storage FS API (8787) and MCP HTTP (8788).
+pub const DEFAULT_PORT: u16 = 8789;
 pub const DEFAULT_PATH: &str = "/ws";
 pub const BIND_LOOPBACK: &str = "127.0.0.1";
 

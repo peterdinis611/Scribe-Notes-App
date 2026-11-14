@@ -2,7 +2,7 @@
  * WebSocket server preferences — keep in sync with `crates/scribe-websockets`.
  */
 
-export const DEFAULT_WEBSOCKET_PORT = 8787
+export const DEFAULT_WEBSOCKET_PORT = 8789
 export const DEFAULT_WEBSOCKET_PATH = '/ws'
 export const WEBSOCKET_BIND_LOOPBACK = '127.0.0.1'
 
