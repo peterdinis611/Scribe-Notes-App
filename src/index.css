@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/* PulsoIcon (via lucide-react shim): align with text/buttons like Lucide. */
+.pulsoicon {
+  vertical-align: -0.125em;
+  flex-shrink: 0;
+}
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {

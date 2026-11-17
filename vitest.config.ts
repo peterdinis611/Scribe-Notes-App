@@ -10,6 +10,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(rootDir, './src'),
+      'lucide-react': path.resolve(rootDir, './src/shims/lucide-react.ts'),
     },
   },
   test: {

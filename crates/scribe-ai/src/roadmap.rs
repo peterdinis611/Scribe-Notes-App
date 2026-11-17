@@ -141,8 +141,7 @@ fn phases_from_headings(text: &str, limit: usize) -> Vec<NlpRoadmapPhase> {
     let flush = |phases: &mut Vec<NlpRoadmapPhase>,
                  title: &str,
                  body_lines: &mut Vec<&str>,
-                 order: &mut i64,
-                 limit: usize| {
+                 order: &mut i64| {
         if title.is_empty() {
             body_lines.clear();
             return;
@@ -167,9 +166,6 @@ fn phases_from_headings(text: &str, limit: usize) -> Vec<NlpRoadmapPhase> {
             items,
         });
         body_lines.clear();
-        if phases.len() >= limit {
-            return;
-        }
     };
 
     for line in text.lines() {
@@ -177,7 +173,7 @@ fn phases_from_headings(text: &str, limit: usize) -> Vec<NlpRoadmapPhase> {
             break;
         }
         if let Some(caps) = heading_re().captures(line) {
-            flush(&mut phases, &title, &mut body_lines, &mut order, limit);
+            flush(&mut phases, &title, &mut body_lines, &mut order);
             title = caps
                 .get(2)
                 .map(|m| m.as_str().trim().to_string())
@@ -186,7 +182,7 @@ fn phases_from_headings(text: &str, limit: usize) -> Vec<NlpRoadmapPhase> {
         }
         body_lines.push(line);
     }
-    flush(&mut phases, &title, &mut body_lines, &mut order, limit);
+    flush(&mut phases, &title, &mut body_lines, &mut order);
     phases
 }
 

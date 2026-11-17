@@ -9,8 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import type { AgentApplyMode } from '@/lib/editor/insert-ai-answer'
-import { stripAnswerMarkdown } from '@/lib/editor/insert-ai-answer'
+import { stripAnswerMarkdown, type AgentApplyMode } from '@/lib/editor/insert-ai-answer'
 import { cn } from '@/lib/utils'
 
 export type AgentApplyPreviewKind =

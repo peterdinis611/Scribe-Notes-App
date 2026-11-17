@@ -23,7 +23,8 @@
     "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "lucide-react": ["./src/shims/lucide-react.ts"]
     }
   },
   "include": ["src"],

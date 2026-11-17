@@ -22,7 +22,7 @@ import {
   Layers,
   LayoutTemplate,
   Link2,
-  Map,
+  Map as MapIcon,
   MessageSquare,
   Moon,
   Plus,
@@ -1153,7 +1153,7 @@ export function CommandPalette() {
               id: 'generate-roadmap',
               label: t('commandPalette.generateRoadmap'),
               hint: activeDocument.title,
-              icon: <Map className="h-4 w-4" />,
+              icon: <MapIcon className="h-4 w-4" />,
               run: () => {
                 void import('@/lib/library/roadmap').then(async ({ insertDocumentRoadmap }) => {
                   try {

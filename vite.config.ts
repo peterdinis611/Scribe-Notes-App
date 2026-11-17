@@ -25,6 +25,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(rootDir, './src'),
+      // Animated Lucide-compatible icons (pulsoicon-react).
+      'lucide-react': path.resolve(rootDir, './src/shims/lucide-react.ts'),
     },
   },
   clearScreen: false,
@@ -51,6 +53,8 @@ export default defineConfig({
       'effect/Fiber',
       'effect/Data',
       'effect/Function',
+      'pulsoicon-react',
+      'motion',
     ],
     exclude: ['takumi-pdf'],
   },
@@ -75,6 +79,7 @@ export default defineConfig({
             { name: 'react-dnd', test: /\/node_modules\/(react-dnd|react-dnd-html5-backend|dnd-core)\// },
             { name: 'react-image-crop', test: /\/node_modules\/react-image-crop\// },
             { name: 'emoji-picker', test: /\/node_modules\/emoji-picker-react\// },
+            { name: 'pulsoicon', test: /\/node_modules\/(pulsoicon-react|pulsoicon-core|motion)\// },
           ],
         },
       },
