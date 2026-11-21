@@ -155,6 +155,8 @@ export function MapBlock({ node, updateAttributes, selected, editor, deleteNode 
     Array<{ displayName: string; lat: number; lng: number }>
   >([])
   const [poiBusy, setPoiBusy] = useState(false)
+  const [etaBusy, setEtaBusy] = useState(false)
+  const [etaHint, setEtaHint] = useState<string | null>(null)
   const [form, setForm] = useState<MapSpec>(() => {
     const parsed = parseMapSpec(currentSource)
     return parsed.ok
@@ -249,6 +251,44 @@ export function MapBlock({ node, updateAttributes, selected, editor, deleteNode 
       toast.error(t('map.poiError'))
     } finally {
       setPoiBusy(false)
+    }
+  }
+
+  async function runOsrmEta() {
+    if (etaBusy) return
+    const points =
+      form.markers.length >= 2
+        ? form.markers
+        : [
+            { lat: form.lat, lng: form.lng, label: '' },
+            ...(form.markers[0] ? [form.markers[0]] : []),
+          ]
+    if (points.length < 2) {
+      toast.error(t('map.etaNeedMarkers'))
+      return
+    }
+    setEtaBusy(true)
+    try {
+      const { apisOsrmRoute } = await import('@/lib/apis')
+      const a = points[0]
+      const b = points[1]
+      const route = await apisOsrmRoute({
+        profile: 'driving',
+        fromLat: a.lat,
+        fromLng: a.lng,
+        toLat: b.lat,
+        toLng: b.lng,
+      })
+      const km = (route.distanceM / 1000).toFixed(1)
+      const mins = Math.max(1, Math.round(route.durationSec / 60))
+      const hint = t('map.etaResult', { km, mins, profile: route.profile })
+      setEtaHint(hint)
+      toast.success(hint)
+    } catch {
+      setEtaHint(null)
+      toast.error(t('map.etaError'))
+    } finally {
+      setEtaBusy(false)
     }
   }
 
@@ -355,7 +395,16 @@ export function MapBlock({ node, updateAttributes, selected, editor, deleteNode 
               >
                 {poiBusy ? t('map.poiRunning') : t('map.poiSearch')}
               </button>
+              <button
+                type="button"
+                className="map-block__btn"
+                disabled={etaBusy}
+                onClick={() => void runOsrmEta()}
+              >
+                {etaBusy ? t('map.etaRunning') : t('map.etaSearch')}
+              </button>
             </div>
+            {etaHint ? <p className="map-block__click-hint">{etaHint}</p> : null}
             {geocodeHits.length > 0 ? (
               <ul className="map-block__geocode-hits">
                 {geocodeHits.map((hit) => (

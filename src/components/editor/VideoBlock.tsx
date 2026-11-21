@@ -86,7 +86,26 @@ export function VideoBlock({ node, updateAttributes, selected, editor, deleteNod
       updateAttributes({ src: null, libraryVideoId: null })
       return
     }
-    updateAttributes({ src: normalizeVideoSrc(trimmed), libraryVideoId: null })
+    const normalized = normalizeVideoSrc(trimmed)
+    updateAttributes({ src: normalized, libraryVideoId: null })
+    if (/^https?:\/\//i.test(normalized)) {
+      void enrichFromOembed(normalized)
+    }
+  }
+
+  async function enrichFromOembed(url: string) {
+    try {
+      const { apisOembed } = await import('@/lib/apis')
+      const info = await apisOembed(url)
+      const caption = String(node.attrs.caption ?? '').trim()
+      if (!caption && info.title) {
+        const by = info.authorName ? ` — ${info.authorName}` : ''
+        updateAttributes({ caption: `${info.title}${by}`.slice(0, 200) })
+        setCaptionDraft(`${info.title}${by}`.slice(0, 200))
+      }
+    } catch {
+      // optional metadata
+    }
   }
 
   function onSubmitUrl(event: FormEvent) {

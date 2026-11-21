@@ -685,8 +685,32 @@ export async function runAgentRewrite(
       ? 'formal'
       : 'clarity'
   const result = await nlpRewriteSelection(source, mode, goal.slice(0, 200))
+  const seedWord = source
+    .split(/\s+/)
+    .map((w) => w.replace(/[^\p{L}\p{N}-]/gu, ''))
+    .filter((w) => w.length >= 4)
+    .slice(0, 3)
+  const synonymBlocks: string[] = []
+  try {
+    const { apisDatamuseSynonyms, apisDatamuseMeansLike } = await import('@/lib/apis')
+    for (const word of seedWord) {
+      const [syn, means] = await Promise.all([
+        apisDatamuseSynonyms(word, 6).catch(() => []),
+        apisDatamuseMeansLike(word, 4).catch(() => []),
+      ])
+      const synWords = syn.map((s) => s.word).filter(Boolean)
+      const meanWords = means.map((s) => s.word).filter(Boolean)
+      if (synWords.length) synonymBlocks.push(`**${word}** synonyms: ${synWords.join(', ')}`)
+      if (meanWords.length) synonymBlocks.push(`**${word}** means-like: ${meanWords.join(', ')}`)
+    }
+  } catch {
+    // optional enrichment
+  }
+  const synonymSection = synonymBlocks.length
+    ? `\n\n**Datamuse**\n\n${synonymBlocks.join('\n')}`
+    : ''
   return {
-    answer: `**Rewrite** (_${result.mode}_)\n\n${result.output}`,
+    answer: `**Rewrite** (_${result.mode}_)\n\n${result.output}${synonymSection}`,
     citations: [{ documentId, title: 'Rewrite', snippet: result.original.slice(0, 120) }],
     rewriteSource: result.original || source,
   }
@@ -874,20 +898,37 @@ export async function runAgentResearchPack(
   goal: string,
 ): Promise<LibraryChatResult> {
   const claim = goal.trim() || 'key claims in this note'
-  const [citations, similar, takeaways, web, papers, pubmed] = await Promise.all([
-    runAgentCitations(claim),
-    nlpSimilarDocuments(documentId, 6).catch(() => []),
-    nlpExtractTakeaways({ documentId, limit: 8 }).catch(() => null),
-    import('@/lib/apis')
-      .then(({ apisWebInstant }) => apisWebInstant(claim))
-      .catch(() => null),
-    import('@/lib/apis')
-      .then(({ apisSemanticScholar }) => apisSemanticScholar(claim, 4))
-      .catch(() => []),
-    import('@/lib/apis')
-      .then(({ apisPubmed }) => apisPubmed(claim, 4))
-      .catch(() => []),
-  ])
+  const [citations, similar, takeaways, web, papers, pubmed, openalex, arxiv, meals, met] =
+    await Promise.all([
+      runAgentCitations(claim),
+      nlpSimilarDocuments(documentId, 6).catch(() => []),
+      nlpExtractTakeaways({ documentId, limit: 8 }).catch(() => null),
+      import('@/lib/apis')
+        .then(({ apisWebInstant }) => apisWebInstant(claim))
+        .catch(() => null),
+      import('@/lib/apis')
+        .then(({ apisSemanticScholar }) => apisSemanticScholar(claim, 4))
+        .catch(() => []),
+      import('@/lib/apis')
+        .then(({ apisPubmed }) => apisPubmed(claim, 4))
+        .catch(() => []),
+      import('@/lib/apis')
+        .then(({ apisOpenAlex }) => apisOpenAlex(claim, 4))
+        .catch(() => []),
+      import('@/lib/apis')
+        .then(({ apisArxiv }) => apisArxiv(claim, 3))
+        .catch(() => []),
+      /meal|recipe|cook|jedlo|recept/i.test(claim)
+        ? import('@/lib/apis')
+            .then(({ apisMealdbSearch }) => apisMealdbSearch(claim, 3))
+            .catch(() => [])
+        : Promise.resolve([]),
+      /art|museum|paint|kultúr|creative/i.test(claim)
+        ? import('@/lib/apis')
+            .then(({ apisMetSearch }) => apisMetSearch(claim, 3, true))
+            .catch(() => [])
+        : Promise.resolve([]),
+    ])
   const similarLines = (similar ?? []).slice(0, 6).map((item) => {
     const title = item.title || 'Related'
     const snip = item.snippet ? `: ${item.snippet}` : ''
@@ -941,6 +982,49 @@ export async function runAgentResearchPack(
     const head = authors ? `${authors} — ` : ''
     return `- ${head}[${p.title}](${p.url})`
   })
+  const openalexLines: string[] = []
+  const dois: string[] = []
+  for (const p of openalex ?? []) {
+    const year = p.year != null ? ` (${p.year})` : ''
+    const authors = p.authors.slice(0, 3).join(', ')
+    const head = authors ? `${authors} — ` : ''
+    const link = p.oaUrl || p.url
+    openalexLines.push(link ? `- ${head}[${p.title}](${link})${year}` : `- ${head}${p.title}${year}`)
+    if (p.doi) dois.push(p.doi)
+  }
+  const arxivLines = (arxiv ?? []).slice(0, 3).map((p) => {
+    const authors = p.authors.slice(0, 3).join(', ')
+    const head = authors ? `${authors} — ` : ''
+    const href = p.pdfUrl || p.absUrl
+    return `- ${head}[${p.title}](${href})`
+  })
+  const oaLines: string[] = []
+  if (dois.length) {
+    const { apisUnpaywall } = await import('@/lib/apis')
+    for (const doi of dois.slice(0, 3)) {
+      try {
+        const oa = await apisUnpaywall(doi)
+        if (oa.isOa && (oa.pdfUrl || oa.landingPageUrl)) {
+          oaLines.push(
+            `- [${oa.title || doi}](${oa.pdfUrl || oa.landingPageUrl}) (${oa.oaStatus || 'OA'})`,
+          )
+        }
+      } catch {
+        // skip
+      }
+    }
+  }
+  const mealLines = (meals ?? []).slice(0, 3).map((m) => {
+    const area = m.area ? ` · ${m.area}` : ''
+    const ings = m.ingredients.slice(0, 6).join(', ')
+    return `- **${m.name}**${area}${ings ? `\n  Ingredients: ${ings}` : ''}`
+  })
+  const metLines = (met ?? []).slice(0, 3).map((o) => {
+    const artist = o.artist ? ` — ${o.artist}` : ''
+    return o.objectUrl
+      ? `- [${o.title}](${o.objectUrl})${artist}`
+      : `- ${o.title}${artist}`
+  })
   const parts = [
     citations.answer,
     similarLines.length ? `**Related notes**\n\n${bullets(similarLines)}` : '',
@@ -949,6 +1033,11 @@ export async function runAgentResearchPack(
     waybackLines.length ? `**Wayback snapshots**\n\n${waybackLines.join('\n')}` : '',
     paperLines.length ? `**Semantic Scholar**\n\n${paperLines.join('\n')}` : '',
     pubmedLines.length ? `**PubMed**\n\n${pubmedLines.join('\n')}` : '',
+    openalexLines.length ? `**OpenAlex**\n\n${openalexLines.join('\n')}` : '',
+    arxivLines.length ? `**arXiv**\n\n${arxivLines.join('\n')}` : '',
+    oaLines.length ? `**Unpaywall (OA PDF)**\n\n${oaLines.join('\n')}` : '',
+    mealLines.length ? `**TheMealDB**\n\n${mealLines.join('\n')}` : '',
+    metLines.length ? `**MET Museum**\n\n${metLines.join('\n')}` : '',
   ].filter(Boolean)
   return {
     answer: `**Research pack**\n\n${parts.join('\n\n')}`,

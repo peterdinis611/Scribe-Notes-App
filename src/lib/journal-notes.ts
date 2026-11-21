@@ -403,14 +403,19 @@ export async function createDailyBriefingDocument(args: OpenJournalArgs) {
 
   let weatherLines: string[] = []
   let sunLines: string[] = []
+  let holidayLines: string[] = []
+  let quoteLines: string[] = []
   try {
-    const { apisWeather, apisSunTimes } = await import('@/lib/apis')
+    const { apisWeather, apisSunTimes, apisNagerHolidays, apisQuotable } = await import('@/lib/apis')
     // Default map centre (Bratislava) — local-first brief, opt-in network via Rust.
     const lat = 48.1486
     const lng = 17.1077
-    const [weather, sun] = await Promise.all([
+    const year = Number(dateKey.slice(0, 4)) || new Date().getFullYear()
+    const [weather, sun, holidays, quote] = await Promise.all([
       apisWeather(lat, lng, 3),
       apisSunTimes(lat, lng).catch(() => null),
+      apisNagerHolidays(year, 'SK').catch(() => []),
+      apisQuotable().catch(() => null),
     ])
     const nowLine =
       weather.temperatureC != null
@@ -435,6 +440,22 @@ export async function createDailyBriefingDocument(args: OpenJournalArgs) {
       }
       sunLines.push(`${t('journal.dailyBriefingSunrise')}: ${fmt(sun.sunrise)}`)
       sunLines.push(`${t('journal.dailyBriefingSunset')}: ${fmt(sun.sunset)}`)
+    }
+    const todayHoliday = (holidays ?? []).find((h) => h.date === dateKey)
+    if (todayHoliday) {
+      holidayLines.push(
+        `${todayHoliday.localName || todayHoliday.name} (${todayHoliday.countryCode})`,
+      )
+    } else {
+      const upcoming = (holidays ?? [])
+        .filter((h) => h.date > dateKey)
+        .slice(0, 3)
+        .map((h) => `${h.date}: ${h.localName || h.name}`)
+      holidayLines.push(...upcoming)
+    }
+    if (quote?.content) {
+      const by = quote.author ? ` — ${quote.author}` : ''
+      quoteLines.push(`“${quote.content}”${by}`)
     }
   } catch {
     weatherLines = []
@@ -469,6 +490,24 @@ export async function createDailyBriefingDocument(args: OpenJournalArgs) {
         })),
       })
     }
+  }
+  if (holidayLines.length) {
+    blocks.push(
+      headingNode(2, t('journal.dailyBriefingHolidaysTitle')),
+      {
+        type: 'bulletList',
+        content: holidayLines.map((line) => ({
+          type: 'listItem',
+          content: [textParagraph(line)],
+        })),
+      },
+    )
+  }
+  if (quoteLines.length) {
+    blocks.push(
+      headingNode(2, t('journal.dailyBriefingQuoteTitle')),
+      ...quoteLines.map((line) => textParagraph(line)),
+    )
   }
   blocks.push(headingNode(2, t('journal.dailyBriefingDueTitle')))
 

@@ -12,10 +12,12 @@ export type InvoiceDialogDraft = {
   companyName: string
   companyEmail: string
   companyAddress: string
+  companyVat: string
   billToName: string
   billToEmail: string
   billToAddress: string
   billToPhone: string
+  billToVat: string
   items: ScribeInvoiceItem[]
   taxPercent: number
   paymentMethod: string
@@ -28,10 +30,12 @@ const DEFAULT_DRAFT: InvoiceDialogDraft = {
   companyName: 'Scribe',
   companyEmail: '',
   companyAddress: '',
+  companyVat: '',
   billToName: '',
   billToEmail: '',
   billToAddress: '',
   billToPhone: '',
+  billToVat: '',
   items: [{ description: 'Professional services', quantity: 1, unitPrice: 0 }],
   taxPercent: 20,
   paymentMethod: 'Bank transfer',
@@ -53,10 +57,12 @@ export function normalizeInvoiceDraft(partial: Partial<InvoiceDialogDraft>): Inv
     companyName: String(partial.companyName ?? DEFAULT_DRAFT.companyName).slice(0, 120),
     companyEmail: String(partial.companyEmail ?? DEFAULT_DRAFT.companyEmail).slice(0, 120),
     companyAddress: String(partial.companyAddress ?? DEFAULT_DRAFT.companyAddress).slice(0, 240),
+    companyVat: String(partial.companyVat ?? DEFAULT_DRAFT.companyVat).slice(0, 32),
     billToName: String(partial.billToName ?? DEFAULT_DRAFT.billToName).slice(0, 120),
     billToEmail: String(partial.billToEmail ?? DEFAULT_DRAFT.billToEmail).slice(0, 120),
     billToAddress: String(partial.billToAddress ?? DEFAULT_DRAFT.billToAddress).slice(0, 240),
     billToPhone: String(partial.billToPhone ?? DEFAULT_DRAFT.billToPhone).slice(0, 40),
+    billToVat: String(partial.billToVat ?? DEFAULT_DRAFT.billToVat).slice(0, 32),
     items: items && items.length > 0 ? items.slice(0, 20) : [...DEFAULT_DRAFT.items],
     taxPercent: Math.min(100, Math.max(0, Number(partial.taxPercent) || 0)),
     paymentMethod: String(partial.paymentMethod ?? DEFAULT_DRAFT.paymentMethod).slice(0, 80),
@@ -92,6 +98,13 @@ export function draftToInvoiceInput(
       'Professional services',
   }))
 
+  const vatBits = [
+    normalized.companyVat.trim() ? `VAT (from): ${normalized.companyVat.trim()}` : '',
+    normalized.billToVat.trim() ? `VAT (bill to): ${normalized.billToVat.trim()}` : '',
+  ].filter(Boolean)
+  const notesBase = normalized.notes.trim() || fallbacks?.notes || ''
+  const notes = [...(notesBase ? [notesBase] : []), ...vatBits].join('\n') || undefined
+
   return {
     invoiceNumber: normalized.invoiceNumber.trim() || undefined,
     companyName: normalized.companyName,
@@ -104,7 +117,7 @@ export function draftToInvoiceInput(
     items,
     taxRate: normalized.taxPercent / 100,
     paymentMethod: normalized.paymentMethod,
-    notes: normalized.notes.trim() || fallbacks?.notes,
+    notes,
     dueDate: due.toLocaleDateString(undefined, {
       year: 'numeric',
       month: 'long',

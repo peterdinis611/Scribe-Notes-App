@@ -982,10 +982,29 @@ async function runTool(
     if (!result.entries?.length) {
       return { answer: 'No glossary terms extracted.', citations: [] }
     }
+    const lines = result.entries.map(
+      (entry) => `- **${entry.term}** — ${entry.definition}`,
+    )
+    try {
+      const { apisDictionary } = await import('@/lib/apis')
+      const extras: string[] = []
+      for (const entry of result.entries.slice(0, 4)) {
+        try {
+          const dict = await apisDictionary(entry.term)
+          const def = dict.senses[0]?.definition
+          if (def) extras.push(`- **${dict.word}** (dict) — ${def}`)
+        } catch {
+          // skip
+        }
+      }
+      if (extras.length) {
+        lines.push('', '**Dictionary**', ...extras)
+      }
+    } catch {
+      // optional
+    }
     return {
-      answer: `**Glossary**\n\n${result.entries
-        .map((entry) => `- **${entry.term}** — ${entry.definition}`)
-        .join('\n')}`,
+      answer: `**Glossary**\n\n${lines.join('\n')}`,
       citations: [],
     }
   }

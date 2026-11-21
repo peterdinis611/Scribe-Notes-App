@@ -363,3 +363,166 @@ pub fn apis_tide_predictions(input: TideInput) -> Result<serde_json::Value, Stri
         scribe_apis::tide_predictions(&input.station_id, input.date.as_deref()).map_err(map_err)?;
     serde_json::to_value(forecast).map_err(|e| e.to_string())
 }
+
+#[tauri::command]
+pub fn apis_nager_holidays(input: NagerInput) -> Result<serde_json::Value, String> {
+    let hits = scribe_apis::nager_holidays(input.year, &input.country).map_err(map_err)?;
+    serde_json::to_value(hits).map_err(|e| e.to_string())
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NagerInput {
+    pub year: i32,
+    pub country: String,
+}
+
+#[tauri::command]
+pub fn apis_mealdb_search(input: QueryLimitInput) -> Result<serde_json::Value, String> {
+    let hits =
+        scribe_apis::mealdb_search(&input.query, input.limit.unwrap_or(8) as usize).map_err(map_err)?;
+    serde_json::to_value(hits).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn apis_mealdb_random() -> Result<serde_json::Value, String> {
+    let meal = scribe_apis::mealdb_random().map_err(map_err)?;
+    serde_json::to_value(meal).map_err(|e| e.to_string())
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DictionaryInput {
+    pub word: String,
+    pub lang: Option<String>,
+}
+
+#[tauri::command]
+pub fn apis_dictionary(input: DictionaryInput) -> Result<serde_json::Value, String> {
+    let entry =
+        scribe_apis::dictionary_lookup(&input.word, input.lang.as_deref()).map_err(map_err)?;
+    serde_json::to_value(entry).map_err(|e| e.to_string())
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WordLimitInput {
+    pub word: String,
+    pub limit: Option<u32>,
+}
+
+#[tauri::command]
+pub fn apis_datamuse_synonyms(input: WordLimitInput) -> Result<serde_json::Value, String> {
+    let hits = scribe_apis::datamuse_synonyms(&input.word, input.limit.unwrap_or(12) as usize)
+        .map_err(map_err)?;
+    serde_json::to_value(hits).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn apis_datamuse_means_like(input: WordLimitInput) -> Result<serde_json::Value, String> {
+    let hits = scribe_apis::datamuse_means_like(&input.word, input.limit.unwrap_or(12) as usize)
+        .map_err(map_err)?;
+    serde_json::to_value(hits).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn apis_openalex(input: QueryLimitInput) -> Result<serde_json::Value, String> {
+    let hits =
+        scribe_apis::openalex_search(&input.query, input.limit.unwrap_or(8) as usize).map_err(map_err)?;
+    serde_json::to_value(hits).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn apis_arxiv(input: QueryLimitInput) -> Result<serde_json::Value, String> {
+    let hits =
+        scribe_apis::arxiv_search(&input.query, input.limit.unwrap_or(6) as usize).map_err(map_err)?;
+    serde_json::to_value(hits).map_err(|e| e.to_string())
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DoiInput {
+    pub doi: String,
+    pub email: Option<String>,
+}
+
+#[tauri::command]
+pub fn apis_unpaywall(input: DoiInput) -> Result<serde_json::Value, String> {
+    let hit = scribe_apis::unpaywall_doi(&input.doi, input.email.as_deref()).map_err(map_err)?;
+    serde_json::to_value(hit).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn apis_oembed(input: UrlInput) -> Result<serde_json::Value, String> {
+    let info = scribe_apis::oembed_resolve(&input.url).map_err(map_err)?;
+    serde_json::to_value(info).map_err(|e| e.to_string())
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MetSearchInput {
+    pub query: String,
+    pub limit: Option<u32>,
+    pub public_domain_only: Option<bool>,
+}
+
+#[tauri::command]
+pub fn apis_met_search(input: MetSearchInput) -> Result<serde_json::Value, String> {
+    let hits = scribe_apis::met_search(
+        &input.query,
+        input.limit.unwrap_or(6) as usize,
+        input.public_domain_only.unwrap_or(true),
+    )
+    .map_err(map_err)?;
+    serde_json::to_value(hits).map_err(|e| e.to_string())
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OsrmInput {
+    pub profile: Option<String>,
+    pub from_lat: f64,
+    pub from_lng: f64,
+    pub to_lat: f64,
+    pub to_lng: f64,
+}
+
+#[tauri::command]
+pub fn apis_osrm_route(input: OsrmInput) -> Result<serde_json::Value, String> {
+    let route = scribe_apis::osrm_route(
+        input.profile.as_deref().unwrap_or("driving"),
+        input.from_lat,
+        input.from_lng,
+        input.to_lat,
+        input.to_lng,
+    )
+    .map_err(map_err)?;
+    serde_json::to_value(route).map_err(|e| e.to_string())
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ViesInput {
+    pub country: Option<String>,
+    pub vat_number: String,
+}
+
+#[tauri::command]
+pub fn apis_vies_check(input: ViesInput) -> Result<serde_json::Value, String> {
+    let check =
+        scribe_apis::vies_check(input.country.as_deref().unwrap_or(""), &input.vat_number)
+            .map_err(map_err)?;
+    serde_json::to_value(check).map_err(|e| e.to_string())
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct QuoteInput {
+    pub tags: Option<String>,
+}
+
+#[tauri::command]
+pub fn apis_quotable(input: QuoteInput) -> Result<serde_json::Value, String> {
+    let quote = scribe_apis::quotable_random(input.tags.as_deref()).map_err(map_err)?;
+    serde_json::to_value(quote).map_err(|e| e.to_string())
+}

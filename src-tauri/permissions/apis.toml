@@ -1,4 +1,9 @@
 [[permission]]
+identifier = "allow-apis-arxiv"
+description = "Allow apis_arxiv"
+commands.allow = ["apis_arxiv"]
+
+[[permission]]
 identifier = "allow-apis-country"
 description = "Allow apis_country"
 commands.allow = ["apis_country"]
@@ -7,6 +12,21 @@ commands.allow = ["apis_country"]
 identifier = "allow-apis-crossref"
 description = "Allow apis_crossref"
 commands.allow = ["apis_crossref"]
+
+[[permission]]
+identifier = "allow-apis-datamuse-means-like"
+description = "Allow apis_datamuse_means_like"
+commands.allow = ["apis_datamuse_means_like"]
+
+[[permission]]
+identifier = "allow-apis-datamuse-synonyms"
+description = "Allow apis_datamuse_synonyms"
+commands.allow = ["apis_datamuse_synonyms"]
+
+[[permission]]
+identifier = "allow-apis-dictionary"
+description = "Allow apis_dictionary"
+commands.allow = ["apis_dictionary"]
 
 [[permission]]
 identifier = "allow-apis-food-product"
@@ -44,6 +64,21 @@ description = "Allow apis_inaturalist_taxa"
 commands.allow = ["apis_inaturalist_taxa"]
 
 [[permission]]
+identifier = "allow-apis-mealdb-random"
+description = "Allow apis_mealdb_random"
+commands.allow = ["apis_mealdb_random"]
+
+[[permission]]
+identifier = "allow-apis-mealdb-search"
+description = "Allow apis_mealdb_search"
+commands.allow = ["apis_mealdb_search"]
+
+[[permission]]
+identifier = "allow-apis-met-search"
+description = "Allow apis_met_search"
+commands.allow = ["apis_met_search"]
+
+[[permission]]
 identifier = "allow-apis-musicbrainz"
 description = "Allow apis_musicbrainz"
 commands.allow = ["apis_musicbrainz"]
@@ -54,14 +89,34 @@ description = "Allow apis_musicbrainz_cover"
 commands.allow = ["apis_musicbrainz_cover"]
 
 [[permission]]
+identifier = "allow-apis-nager-holidays"
+description = "Allow apis_nager_holidays"
+commands.allow = ["apis_nager_holidays"]
+
+[[permission]]
+identifier = "allow-apis-oembed"
+description = "Allow apis_oembed"
+commands.allow = ["apis_oembed"]
+
+[[permission]]
 identifier = "allow-apis-open-library"
 description = "Allow apis_open_library"
 commands.allow = ["apis_open_library"]
 
 [[permission]]
+identifier = "allow-apis-openalex"
+description = "Allow apis_openalex"
+commands.allow = ["apis_openalex"]
+
+[[permission]]
 identifier = "allow-apis-openverse"
 description = "Allow apis_openverse"
 commands.allow = ["apis_openverse"]
+
+[[permission]]
+identifier = "allow-apis-osrm-route"
+description = "Allow apis_osrm_route"
+commands.allow = ["apis_osrm_route"]
 
 [[permission]]
 identifier = "allow-apis-overpass-pois"
@@ -72,6 +127,11 @@ commands.allow = ["apis_overpass_pois"]
 identifier = "allow-apis-pubmed"
 description = "Allow apis_pubmed"
 commands.allow = ["apis_pubmed"]
+
+[[permission]]
+identifier = "allow-apis-quotable"
+description = "Allow apis_quotable"
+commands.allow = ["apis_quotable"]
 
 [[permission]]
 identifier = "allow-apis-semantic-scholar"
@@ -102,6 +162,16 @@ commands.allow = ["apis_timezone"]
 identifier = "allow-apis-transit-plan"
 description = "Allow apis_transit_plan"
 commands.allow = ["apis_transit_plan"]
+
+[[permission]]
+identifier = "allow-apis-unpaywall"
+description = "Allow apis_unpaywall"
+commands.allow = ["apis_unpaywall"]
+
+[[permission]]
+identifier = "allow-apis-vies-check"
+description = "Allow apis_vies_check"
+commands.allow = ["apis_vies_check"]
 
 [[permission]]
 identifier = "allow-apis-wayback"
@@ -137,8 +207,12 @@ commands.allow = ["apis_wikipedia_summary"]
 identifier = "group-apis"
 description = "Command group: apis"
 permissions = [
+  "allow-apis-arxiv",
   "allow-apis-country",
   "allow-apis-crossref",
+  "allow-apis-datamuse-means-like",
+  "allow-apis-datamuse-synonyms",
+  "allow-apis-dictionary",
   "allow-apis-food-product",
   "allow-apis-food-search",
   "allow-apis-fx-convert",
@@ -146,18 +220,28 @@ permissions = [
   "allow-apis-geocode",
   "allow-apis-inaturalist-nearby",
   "allow-apis-inaturalist-taxa",
+  "allow-apis-mealdb-random",
+  "allow-apis-mealdb-search",
+  "allow-apis-met-search",
   "allow-apis-musicbrainz",
   "allow-apis-musicbrainz-cover",
+  "allow-apis-nager-holidays",
+  "allow-apis-oembed",
   "allow-apis-open-library",
+  "allow-apis-openalex",
   "allow-apis-openverse",
+  "allow-apis-osrm-route",
   "allow-apis-overpass-pois",
   "allow-apis-pubmed",
+  "allow-apis-quotable",
   "allow-apis-semantic-scholar",
   "allow-apis-sun-times",
   "allow-apis-tide-predictions",
   "allow-apis-tide-stations",
   "allow-apis-timezone",
   "allow-apis-transit-plan",
+  "allow-apis-unpaywall",
+  "allow-apis-vies-check",
   "allow-apis-wayback",
   "allow-apis-weather",
   "allow-apis-web-instant",

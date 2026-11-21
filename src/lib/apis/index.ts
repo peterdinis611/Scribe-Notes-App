@@ -462,3 +462,218 @@ export async function apisTidePredictions(
     input: { stationId, date: date ?? null },
   })
 }
+
+export type PublicHoliday = {
+  date: string
+  localName: string
+  name: string
+  countryCode: string
+  fixed: boolean
+  global: boolean
+  types: string[]
+}
+
+export type MealRecipe = {
+  id: string
+  name: string
+  category?: string | null
+  area?: string | null
+  instructions?: string | null
+  thumbnail?: string | null
+  youtube?: string | null
+  source?: string | null
+  ingredients: string[]
+  tags: string[]
+}
+
+export type DictionarySense = {
+  partOfSpeech?: string | null
+  definition: string
+  example?: string | null
+  synonyms: string[]
+}
+
+export type DictionaryEntry = {
+  word: string
+  phonetic?: string | null
+  sourceUrls: string[]
+  senses: DictionarySense[]
+  provider: string
+}
+
+export type WordSuggestion = {
+  word: string
+  score?: number | null
+  tags: string[]
+}
+
+export type OpenAlexWork = {
+  id: string
+  title: string
+  year?: number | null
+  doi?: string | null
+  authors: string[]
+  citedByCount?: number | null
+  oaUrl?: string | null
+  abstractText?: string | null
+  url?: string | null
+}
+
+export type ArxivPaper = {
+  id: string
+  title: string
+  summary?: string | null
+  authors: string[]
+  published?: string | null
+  pdfUrl?: string | null
+  absUrl: string
+  categories: string[]
+}
+
+export type UnpaywallResult = {
+  doi: string
+  title?: string | null
+  isOa: boolean
+  oaStatus?: string | null
+  pdfUrl?: string | null
+  landingPageUrl?: string | null
+  hostType?: string | null
+}
+
+export type OEmbedInfo = {
+  url: string
+  title?: string | null
+  authorName?: string | null
+  providerName?: string | null
+  thumbnailUrl?: string | null
+  html?: string | null
+  typ?: string | null
+}
+
+export type MetObject = {
+  objectId: number
+  title: string
+  artist?: string | null
+  date?: string | null
+  medium?: string | null
+  department?: string | null
+  culture?: string | null
+  primaryImageSmall?: string | null
+  primaryImage?: string | null
+  objectUrl?: string | null
+  isPublicDomain: boolean
+}
+
+export type RouteEta = {
+  profile: string
+  distanceM: number
+  durationSec: number
+  geometryPolyline?: string | null
+}
+
+export type VatCheck = {
+  countryCode: string
+  vatNumber: string
+  valid: boolean
+  name?: string | null
+  address?: string | null
+}
+
+export type Quote = {
+  content: string
+  author?: string | null
+  tags: string[]
+  url?: string | null
+}
+
+export async function apisNagerHolidays(year: number, country: string): Promise<PublicHoliday[]> {
+  requireTauri()
+  return invoke<PublicHoliday[]>('apis_nager_holidays', { input: { year, country } })
+}
+
+export async function apisMealdbSearch(query: string, limit = 8): Promise<MealRecipe[]> {
+  requireTauri()
+  return invoke<MealRecipe[]>('apis_mealdb_search', { input: { query, limit } })
+}
+
+export async function apisMealdbRandom(): Promise<MealRecipe> {
+  requireTauri()
+  return invoke<MealRecipe>('apis_mealdb_random')
+}
+
+export async function apisDictionary(word: string, lang?: string): Promise<DictionaryEntry> {
+  requireTauri()
+  return invoke<DictionaryEntry>('apis_dictionary', { input: { word, lang: lang ?? null } })
+}
+
+export async function apisDatamuseSynonyms(word: string, limit = 12): Promise<WordSuggestion[]> {
+  requireTauri()
+  return invoke<WordSuggestion[]>('apis_datamuse_synonyms', { input: { word, limit } })
+}
+
+export async function apisDatamuseMeansLike(word: string, limit = 12): Promise<WordSuggestion[]> {
+  requireTauri()
+  return invoke<WordSuggestion[]>('apis_datamuse_means_like', { input: { word, limit } })
+}
+
+export async function apisOpenAlex(query: string, limit = 8): Promise<OpenAlexWork[]> {
+  requireTauri()
+  return invoke<OpenAlexWork[]>('apis_openalex', { input: { query, limit } })
+}
+
+export async function apisArxiv(query: string, limit = 6): Promise<ArxivPaper[]> {
+  requireTauri()
+  return invoke<ArxivPaper[]>('apis_arxiv', { input: { query, limit } })
+}
+
+export async function apisUnpaywall(doi: string, email?: string): Promise<UnpaywallResult> {
+  requireTauri()
+  return invoke<UnpaywallResult>('apis_unpaywall', { input: { doi, email: email ?? null } })
+}
+
+export async function apisOembed(url: string): Promise<OEmbedInfo> {
+  requireTauri()
+  return invoke<OEmbedInfo>('apis_oembed', { input: { url } })
+}
+
+export async function apisMetSearch(
+  query: string,
+  limit = 6,
+  publicDomainOnly = true,
+): Promise<MetObject[]> {
+  requireTauri()
+  return invoke<MetObject[]>('apis_met_search', {
+    input: { query, limit, publicDomainOnly },
+  })
+}
+
+export async function apisOsrmRoute(opts: {
+  profile?: string
+  fromLat: number
+  fromLng: number
+  toLat: number
+  toLng: number
+}): Promise<RouteEta> {
+  requireTauri()
+  return invoke<RouteEta>('apis_osrm_route', {
+    input: {
+      profile: opts.profile ?? 'driving',
+      fromLat: opts.fromLat,
+      fromLng: opts.fromLng,
+      toLat: opts.toLat,
+      toLng: opts.toLng,
+    },
+  })
+}
+
+export async function apisViesCheck(vatNumber: string, country?: string): Promise<VatCheck> {
+  requireTauri()
+  return invoke<VatCheck>('apis_vies_check', {
+    input: { vatNumber, country: country ?? null },
+  })
+}
+
+export async function apisQuotable(tags?: string): Promise<Quote> {
+  requireTauri()
+  return invoke<Quote>('apis_quotable', { input: { tags: tags ?? null } })
+}

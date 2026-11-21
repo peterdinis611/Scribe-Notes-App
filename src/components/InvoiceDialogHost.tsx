@@ -38,11 +38,14 @@ export function InvoiceDialogHost() {
   const [fxTo, setFxTo] = useState('USD')
   const [fxBusy, setFxBusy] = useState(false)
   const [fxHint, setFxHint] = useState<string | null>(null)
+  const [vatBusy, setVatBusy] = useState(false)
+  const [vatHint, setVatHint] = useState<string | null>(null)
 
   useEffect(() => {
     if (!open) return
     setDraft(normalizeInvoiceDraft({ ...loadInvoiceDraft(), ...(seed ?? {}) } as Partial<InvoiceDialogDraft>))
     setFxHint(null)
+    setVatHint(null)
   }, [open, seed])
 
   async function convertPricesWithFx() {
@@ -69,6 +72,51 @@ export function InvoiceDialogHost() {
       setFxHint(t('invoiceDialog.fxError'))
     } finally {
       setFxBusy(false)
+    }
+  }
+
+  async function checkVat(which: 'company' | 'billTo') {
+    if (vatBusy) return
+    const raw = which === 'company' ? draft.companyVat : draft.billToVat
+    if (raw.trim().length < 6) return
+    setVatBusy(true)
+    try {
+      const { apisViesCheck } = await import('@/lib/apis')
+      const result = await apisViesCheck(raw.trim())
+      if (result.valid) {
+        setVatHint(
+          t('invoiceDialog.vatValid', {
+            vat: `${result.countryCode}${result.vatNumber}`,
+            name: result.name || '—',
+          }),
+        )
+        if (which === 'company' && result.name) {
+          setDraft((prev) => ({
+            ...prev,
+            companyName: prev.companyName.trim() ? prev.companyName : result.name || prev.companyName,
+            companyAddress: prev.companyAddress.trim()
+              ? prev.companyAddress
+              : result.address || prev.companyAddress,
+            companyVat: `${result.countryCode}${result.vatNumber}`,
+          }))
+        }
+        if (which === 'billTo' && result.name) {
+          setDraft((prev) => ({
+            ...prev,
+            billToName: prev.billToName.trim() ? prev.billToName : result.name || prev.billToName,
+            billToAddress: prev.billToAddress.trim()
+              ? prev.billToAddress
+              : result.address || prev.billToAddress,
+            billToVat: `${result.countryCode}${result.vatNumber}`,
+          }))
+        }
+      } else {
+        setVatHint(t('invoiceDialog.vatInvalid'))
+      }
+    } catch {
+      setVatHint(t('invoiceDialog.vatError'))
+    } finally {
+      setVatBusy(false)
     }
   }
 
@@ -148,6 +196,22 @@ export function InvoiceDialogHost() {
                   placeholder={t('invoiceDialog.address')}
                   onChange={(e) => setDraft((prev) => ({ ...prev, companyAddress: e.target.value }))}
                 />
+                <div className="flex flex-wrap items-center gap-2">
+                  <Input
+                    value={draft.companyVat}
+                    placeholder={t('invoiceDialog.vatPlaceholder')}
+                    onChange={(e) => setDraft((prev) => ({ ...prev, companyVat: e.target.value }))}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={vatBusy || draft.companyVat.trim().length < 6}
+                    onClick={() => void checkVat('company')}
+                  >
+                    {vatBusy ? t('invoiceDialog.vatRunning') : t('invoiceDialog.vatCheck')}
+                  </Button>
+                </div>
               </fieldset>
 
               <fieldset className="grid gap-2 rounded-[var(--radius-md)] border border-[var(--color-border)] p-3 sm:col-span-2">
@@ -174,6 +238,25 @@ export function InvoiceDialogHost() {
                   placeholder={t('invoiceDialog.phone')}
                   onChange={(e) => setDraft((prev) => ({ ...prev, billToPhone: e.target.value }))}
                 />
+                <div className="flex flex-wrap items-center gap-2">
+                  <Input
+                    value={draft.billToVat}
+                    placeholder={t('invoiceDialog.vatPlaceholder')}
+                    onChange={(e) => setDraft((prev) => ({ ...prev, billToVat: e.target.value }))}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={vatBusy || draft.billToVat.trim().length < 6}
+                    onClick={() => void checkVat('billTo')}
+                  >
+                    {vatBusy ? t('invoiceDialog.vatRunning') : t('invoiceDialog.vatCheck')}
+                  </Button>
+                </div>
+                {vatHint ? (
+                  <p className="text-[11px] text-[var(--color-muted-foreground)]">{vatHint}</p>
+                ) : null}
               </fieldset>
 
               <fieldset className="grid gap-2 sm:col-span-2">

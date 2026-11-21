@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import {
+  BookOpen,
   Bot,
   Check,
   GraduationCap,
@@ -239,6 +240,34 @@ export function SelectionAIContextMenu({
     }
   }
 
+  async function handleDictionary() {
+    const text = selectedText.trim()
+    const word = text.split(/\s+/)[0]?.replace(/[^\p{L}\p{N}-]/gu, '') ?? ''
+    if (!word || loading) return
+    setLoading(true)
+    setCoachHints(null)
+    setCoachScore(null)
+    try {
+      const { apisDictionary, apisDatamuseSynonyms } = await import('@/lib/apis')
+      const [entry, syns] = await Promise.all([
+        apisDictionary(word),
+        apisDatamuseSynonyms(word, 8).catch(() => []),
+      ])
+      const senseLines = entry.senses.slice(0, 5).map((s, i) => {
+        const pos = s.partOfSpeech ? `_${s.partOfSpeech}_ · ` : ''
+        const ex = s.example ? `\n   e.g. ${s.example}` : ''
+        return `${i + 1}. ${pos}${s.definition}${ex}`
+      })
+      const synLine = syns.length ? `\n\n**Synonyms:** ${syns.map((s) => s.word).join(', ')}` : ''
+      setResult(`**${entry.word}** (${entry.provider})${entry.phonetic ? ` · ${entry.phonetic}` : ''}\n\n${senseLines.join('\n')}${synLine}`)
+      setCustomOpen(false)
+    } catch (error) {
+      toast.error(t('aiRewrite.dictionaryError'), String(error))
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="selection-ai">
       <p className="selection-ai__kicker">
@@ -400,6 +429,14 @@ export function SelectionAIContextMenu({
           >
             <Layers className="h-3.5 w-3.5" aria-hidden />
             {t('aiRewrite.flashcards')}
+          </button>
+          <button
+            type="button"
+            className="selection-ai__mode"
+            onClick={() => void handleDictionary()}
+          >
+            <BookOpen className="h-3.5 w-3.5" aria-hidden />
+            {t('aiRewrite.dictionary')}
           </button>
           <button
             type="button"
