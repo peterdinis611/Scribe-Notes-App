@@ -34,11 +34,43 @@ export function InvoiceDialogHost() {
   const open = useAppSelector((state) => state.ui.invoiceDialog.open)
   const seed = useAppSelector((state) => state.ui.invoiceDialog.seed)
   const [draft, setDraft] = useState<InvoiceDialogDraft>(() => loadInvoiceDraft())
+  const [fxFrom, setFxFrom] = useState('EUR')
+  const [fxTo, setFxTo] = useState('USD')
+  const [fxBusy, setFxBusy] = useState(false)
+  const [fxHint, setFxHint] = useState<string | null>(null)
 
   useEffect(() => {
     if (!open) return
     setDraft(normalizeInvoiceDraft({ ...loadInvoiceDraft(), ...(seed ?? {}) } as Partial<InvoiceDialogDraft>))
+    setFxHint(null)
   }, [open, seed])
+
+  async function convertPricesWithFx() {
+    if (fxBusy) return
+    setFxBusy(true)
+    try {
+      const { apisFxConvert } = await import('@/lib/apis')
+      const sample = await apisFxConvert(1, fxFrom, fxTo)
+      setDraft((prev) => ({
+        ...prev,
+        items: prev.items.map((item) => ({
+          ...item,
+          unitPrice: Math.round(item.unitPrice * sample.result * 100) / 100,
+        })),
+      }))
+      setFxHint(
+        t('invoiceDialog.fxApplied', {
+          from: fxFrom.toUpperCase(),
+          to: fxTo.toUpperCase(),
+          rate: sample.result.toFixed(4),
+        }),
+      )
+    } catch {
+      setFxHint(t('invoiceDialog.fxError'))
+    } finally {
+      setFxBusy(false)
+    }
+  }
 
   const totals = useMemo(() => {
     const subtotal = draft.items.reduce(
@@ -224,6 +256,40 @@ export function InvoiceDialogHost() {
                   }
                 />
               </label>
+              <div className="grid gap-1.5 text-[12px] sm:col-span-2">
+                <span className="font-medium">{t('invoiceDialog.fxTitle')}</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Input
+                    className="w-20"
+                    value={fxFrom}
+                    aria-label={t('invoiceDialog.fxFrom')}
+                    onChange={(e) => setFxFrom(e.target.value.toUpperCase())}
+                  />
+                  <span className="text-[var(--color-muted-foreground)]">→</span>
+                  <Input
+                    className="w-20"
+                    value={fxTo}
+                    aria-label={t('invoiceDialog.fxTo')}
+                    onChange={(e) => setFxTo(e.target.value.toUpperCase())}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={fxBusy || fxFrom.trim().length !== 3 || fxTo.trim().length !== 3}
+                    onClick={() => void convertPricesWithFx()}
+                  >
+                    {fxBusy ? t('invoiceDialog.fxRunning') : t('invoiceDialog.fxConvert')}
+                  </Button>
+                </div>
+                {fxHint ? (
+                  <p className="text-[11px] text-[var(--color-muted-foreground)]">{fxHint}</p>
+                ) : (
+                  <p className="text-[11px] text-[var(--color-muted-foreground)]">
+                    {t('invoiceDialog.fxHint')}
+                  </p>
+                )}
+              </div>
               <label className="grid gap-1.5 text-[12px]">
                 <span className="font-medium">{t('invoiceDialog.dueInDays')}</span>
                 <Input

@@ -9062,6 +9062,40 @@ body.is-block-dragging .tiptap {
   gap: 8px;
 }
 
+.tiptap .map-block__geocode {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.tiptap .map-block__geocode-hits {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 160px;
+  overflow: auto;
+}
+
+.tiptap .map-block__geocode-hit {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-background);
+  color: var(--color-foreground);
+  padding: 6px 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.tiptap .map-block__geocode-hit:hover {
+  background: var(--color-hover);
+}
+
 .tiptap .map-block__click-hint {
   margin: 0;
   font-size: 11px;

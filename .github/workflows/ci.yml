@@ -116,6 +116,9 @@ jobs:
       - name: Clippy scribe-websockets
         run: cargo clippy -p scribe-websockets --locked --all-targets -- -D warnings
 
+      - name: Clippy scribe-apis
+        run: cargo clippy -p scribe-apis --locked --all-targets -- -D warnings
+
       - name: Test workspace crates (exclude app)
         run: cargo test --workspace --exclude app --locked
 

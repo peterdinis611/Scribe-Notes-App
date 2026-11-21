@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import type { Editor } from '@tiptap/react'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
+
 import { ArrowUpRight } from 'lucide-react'
 import { useEditorViewEffect } from '@/lib/editor/view-ready'
 import { getDocument } from '@/lib/db/api'
@@ -13,6 +14,8 @@ type HoverState = {
   targetId: string
   title: string
   snippet: string
+  wikiExtract?: string | null
+  wikiUrl?: string | null
   updatedAt: number | null
   x: number
   y: number
@@ -46,7 +49,7 @@ function snippetFromContent(contentJson: string): string {
 }
 
 export function WikiLinkHoverCard({ editor }: { editor: Editor | null }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const activeId = useAppSelector((state) => state.documents.activeDocumentId)
@@ -89,28 +92,50 @@ export function WikiLinkHoverCard({ editor }: { editor: Editor | null }) {
         const summary = documents.find((doc) => doc.id === targetId)
 
         timerRef.current = window.setTimeout(() => {
+          const enrichWiki = async (title: string, base: HoverState) => {
+            try {
+              const { apisWikipediaSummary } = await import('@/lib/apis')
+              const lang = (i18n.language || 'en').slice(0, 2)
+              const wiki = await apisWikipediaSummary(title, lang)
+              if (tokenRef.current !== token) return
+              setHover({
+                ...base,
+                wikiExtract: wiki.extract?.slice(0, MAX_SNIPPET) || null,
+                wikiUrl: wiki.url || null,
+              })
+            } catch {
+              /* optional enrichment */
+            }
+          }
+
           getDocument(targetId)
             .then((doc) => {
               if (tokenRef.current !== token) return
-              setHover({
+              const title = doc.title || summary?.title || t('common.untitled')
+              const next: HoverState = {
                 targetId,
-                title: doc.title || summary?.title || t('common.untitled'),
+                title,
                 snippet: snippetFromContent(doc.contentJson),
                 updatedAt: doc.updatedAt ?? summary?.updatedAt ?? null,
                 x: rect.left,
                 y: rect.bottom + 6,
-              })
+              }
+              setHover(next)
+              void enrichWiki(title, next)
             })
             .catch(() => {
               if (tokenRef.current !== token) return
-              setHover({
+              const title = summary?.title ?? t('editorActions.documentNotFound')
+              const next: HoverState = {
                 targetId,
-                title: summary?.title ?? t('editorActions.documentNotFound'),
+                title,
                 snippet: '',
                 updatedAt: summary?.updatedAt ?? null,
                 x: rect.left,
                 y: rect.bottom + 6,
-              })
+              }
+              setHover(next)
+              if (summary?.title) void enrichWiki(summary.title, next)
             })
         }, SHOW_DELAY)
       }
@@ -130,7 +155,7 @@ export function WikiLinkHoverCard({ editor }: { editor: Editor | null }) {
         if (timerRef.current) window.clearTimeout(timerRef.current)
       }
     },
-    [documents, t],
+    [documents, i18n.language, t],
   )
 
   if (!hover) return null
@@ -154,6 +179,20 @@ export function WikiLinkHoverCard({ editor }: { editor: Editor | null }) {
       ) : (
         <p className="wiki-link-hover-snippet wiki-link-hover-snippet--empty">{t('wikiLink.emptyDocument')}</p>
       )}
+      {hover.wikiExtract ? (
+        <p className="wiki-link-hover-snippet wiki-link-hover-snippet--wiki">
+          <span className="wiki-link-hover-wiki-label">{t('wikiLink.wikipedia')}</span>
+          {hover.wikiExtract}
+          {hover.wikiUrl ? (
+            <>
+              {' '}
+              <a href={hover.wikiUrl} target="_blank" rel="noreferrer">
+                {t('wikiLink.wikipediaOpen')}
+              </a>
+            </>
+          ) : null}
+        </p>
+      ) : null}
       <p className="wiki-link-hover-hint">{t('wikiLink.previewHint')}</p>
       <button
         type="button"

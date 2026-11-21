@@ -874,10 +874,13 @@ export async function runAgentResearchPack(
   goal: string,
 ): Promise<LibraryChatResult> {
   const claim = goal.trim() || 'key claims in this note'
-  const [citations, similar, takeaways] = await Promise.all([
+  const [citations, similar, takeaways, web] = await Promise.all([
     runAgentCitations(claim),
     nlpSimilarDocuments(documentId, 6).catch(() => []),
     nlpExtractTakeaways({ documentId, limit: 8 }).catch(() => null),
+    import('@/lib/apis')
+      .then(({ apisWebInstant }) => apisWebInstant(claim))
+      .catch(() => null),
   ])
   const similarLines = (similar ?? []).slice(0, 6).map((item) => {
     const title = item.title || 'Related'
@@ -888,10 +891,23 @@ export async function runAgentResearchPack(
     .slice(0, 8)
     .map((item) => item.text)
     .filter(Boolean)
+  const webLines: string[] = []
+  if (web) {
+    if (web.heading) webLines.push(`**${web.heading}**`)
+    if (web.abstractText) webLines.push(web.abstractText)
+    else if (web.answer) webLines.push(web.answer)
+    for (const related of web.related.slice(0, 4)) {
+      webLines.push(
+        related.url ? `- [${related.text}](${related.url})` : `- ${related.text}`,
+      )
+    }
+    if (web.abstractUrl) webLines.push(`[Source](${web.abstractUrl})`)
+  }
   const parts = [
     citations.answer,
     similarLines.length ? `**Related notes**\n\n${bullets(similarLines)}` : '',
     takeawayLines.length ? `**Takeaways**\n\n${bullets(takeawayLines)}` : '',
+    webLines.length ? `**Web (DuckDuckGo Instant Answer)**\n\n${webLines.join('\n')}` : '',
   ].filter(Boolean)
   return {
     answer: `**Research pack**\n\n${parts.join('\n\n')}`,

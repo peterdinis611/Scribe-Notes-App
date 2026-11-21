@@ -401,13 +401,45 @@ export async function createDailyBriefingDocument(args: OpenJournalArgs) {
   const dueToday = openTasks.filter((task) => task.dueHint === dateKey)
   const otherOpen = openTasks.filter((task) => task.dueHint !== dateKey).slice(0, 20)
 
+  let weatherLines: string[] = []
+  try {
+    const { apisWeather } = await import('@/lib/apis')
+    // Default map centre (Bratislava) — local-first brief, opt-in network via Rust.
+    const weather = await apisWeather(48.1486, 17.1077, 3)
+    const nowLine =
+      weather.temperatureC != null
+        ? `${weather.weatherLabel}, ${weather.temperatureC.toFixed(0)}°C`
+        : weather.weatherLabel
+    weatherLines.push(nowLine)
+    for (const day of weather.daily.slice(0, 3)) {
+      const hi = day.tempMaxC != null ? `${day.tempMaxC.toFixed(0)}°` : '—'
+      const lo = day.tempMinC != null ? `${day.tempMinC.toFixed(0)}°` : '—'
+      weatherLines.push(`${day.date}: ${day.weatherLabel} (${lo}–${hi})`)
+    }
+  } catch {
+    weatherLines = []
+  }
+
   const title = t('journal.dailyBriefingTitle', { date: dateKey })
   const blocks: TipTapNode[] = [
     headingNode(1, title),
     headingNode(2, t('journal.dailyBriefingSummaryTitle')),
     textParagraph(t('journal.dailyBriefingSummaryPlaceholder')),
-    headingNode(2, t('journal.dailyBriefingDueTitle')),
   ]
+  if (weatherLines.length) {
+    blocks.push(
+      headingNode(2, t('journal.dailyBriefingWeatherTitle')),
+      textParagraph(t('journal.dailyBriefingWeatherHint')),
+      {
+        type: 'bulletList',
+        content: weatherLines.map((line) => ({
+          type: 'listItem',
+          content: [textParagraph(line)],
+        })),
+      },
+    )
+  }
+  blocks.push(headingNode(2, t('journal.dailyBriefingDueTitle')))
 
   if (dueToday.length > 0) {
     blocks.push({
