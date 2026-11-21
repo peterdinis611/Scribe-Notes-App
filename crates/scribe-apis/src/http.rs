@@ -2,7 +2,7 @@ use crate::error::{ApiError, ApiResult};
 use serde::de::DeserializeOwned;
 
 pub const USER_AGENT: &str =
-    "ScribeNotes/5.4.0 (desktop; local-first; https://github.com/peterdinis611/Scribe-Notes-App)";
+    "ScribeNotes/5.5.0 (desktop; local-first; https://github.com/peterdinis611/Scribe-Notes-App)";
 
 const DEFAULT_TIMEOUT_SECS: u64 = 12;
 
