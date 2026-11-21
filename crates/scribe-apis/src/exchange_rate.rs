@@ -1,13 +1,13 @@
-//! FX backups: ExchangeRate.host (open.er-api.com compatible) + ECB SDMX JSON.
+//! FX backups: open.er-api.com + ECB SDMX JSON (Frankfurter primary).
 
 use crate::error::{ApiError, ApiResult};
 use crate::frankfurter::{latest_rates as frankfurter_latest, FxRates};
 use crate::http::get_json;
 use serde_json::Value;
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 
 fn normalize_currency(code: &str) -> ApiResult<String> {
-    let c = code.trim().to_uppercase();
+    let c = code.trim().to_ascii_uppercase();
     if c.len() != 3 || !c.chars().all(|ch| ch.is_ascii_alphabetic()) {
         return Err(ApiError::invalid("currency must be ISO 4217 (3 letters)"));
     }
@@ -19,23 +19,18 @@ pub fn open_er_api_latest(base: &str) -> ApiResult<FxRates> {
     let base = normalize_currency(base)?;
     let url = format!("https://open.er-api.com/v6/latest/{base}");
     let raw: Value = get_json(&url)?;
-    let result = raw
-        .get("result")
-        .and_then(|v| v.as_str())
-        .unwrap_or("");
+    let result = raw.get("result").and_then(|v| v.as_str()).unwrap_or("");
     if result != "success" {
-        return Err(ApiError::network(format!(
-            "open.er-api result: {result}"
-        )));
+        return Err(ApiError::network(format!("open.er-api result: {result}")));
     }
     let rates_obj = raw
         .get("rates")
         .and_then(|v| v.as_object())
         .ok_or_else(|| ApiError::parse("missing rates"))?;
-    let mut rates = BTreeMap::new();
+    let mut rates = HashMap::new();
     for (k, v) in rates_obj {
         if let Some(n) = v.as_f64() {
-            rates.insert(k.to_uppercase(), n);
+            rates.insert(k.to_ascii_uppercase(), n);
         }
     }
     Ok(FxRates {
@@ -43,7 +38,8 @@ pub fn open_er_api_latest(base: &str) -> ApiResult<FxRates> {
         date: raw
             .get("time_last_update_utc")
             .and_then(|v| v.as_str())
-            .map(str::to_string),
+            .unwrap_or("")
+            .to_string(),
         rates,
     })
 }
@@ -61,60 +57,52 @@ pub fn ecb_eur_latest() -> ApiResult<FxRates> {
         .and_then(|v| v.as_array())
         .cloned()
         .unwrap_or_default();
-    // Find CURRENCY dimension index and values
     let currency_dim = dimensions.iter().enumerate().find(|(_, d)| {
         d.get("id")
             .and_then(|v| v.as_str())
             .map(|s| s == "CURRENCY")
             .unwrap_or(false)
     });
-    let mut rates = BTreeMap::new();
+    let mut rates = HashMap::new();
     rates.insert("EUR".to_string(), 1.0);
-    if let Some((curr_idx, dim)) = currency_dim {
-        let values = dim
-            .get("values")
+    let Some((curr_idx, dim)) = currency_dim else {
+        return Err(ApiError::parse("could not parse ECB currency dimension"));
+    };
+    let values = dim
+        .get("values")
+        .and_then(|v| v.as_array())
+        .cloned()
+        .unwrap_or_default();
+    for (key, serie) in series {
+        let parts: Vec<&str> = key.split(':').collect();
+        let Some(code) = parts
+            .get(curr_idx)
+            .and_then(|i| i.parse::<usize>().ok())
+            .and_then(|i| values.get(i))
+            .and_then(|v| v.get("id"))
+            .and_then(|v| v.as_str())
+        else {
+            continue;
+        };
+        let obs = serie
+            .get("observations")
+            .and_then(|v| v.as_object())
+            .and_then(|o| o.values().next())
             .and_then(|v| v.as_array())
-            .cloned()
-            .unwrap_or_default();
-        for (key, serie) in series {
-            let parts: Vec<&str> = key.split(':').collect();
-            let curr_code = parts
-                .get(curr_idx)
-                .and_then(|i| i.parse::<usize>().ok())
-                .and_then(|i| values.get(i))
-                .and_then(|v| v.get("id"))
-                .and_then(|v| v.as_str());
-            let Some(code) = curr_code else {
-                continue;
-            };
-            // observations: { "0": [ rate, ... ] }
-            let obs = serie
-                .get("observations")
-                .and_then(|v| v.as_object())
-                .and_then(|o| o.values().next())
-                .and_then(|v| v.as_array())
-                .and_then(|a| a.first())
-                .and_then(|v| v.as_f64());
-            if let Some(rate) = obs {
-                // ECB quotes foreign currency per 1 EUR
-                rates.insert(code.to_uppercase(), rate);
-            }
+            .and_then(|a| a.first())
+            .and_then(|v| v.as_f64());
+        if let Some(rate) = obs {
+            rates.insert(code.to_ascii_uppercase(), rate);
         }
-    } else {
-        // Fallback: parse series keys loosely — CURRENCY is usually index 1 in EXR D..EUR.SP00.A
-        for (key, serie) in series {
-            let parts: Vec<&str> = key.split(':').collect();
-            // Without dimension map, skip if we can't resolve — try reading attributes
-            let _ = (parts, serie);
-        }
-        if rates.len() <= 1 {
-            return Err(ApiError::parse("could not parse ECB currency dimension"));
-        }
+    }
+    if rates.len() <= 1 {
+        return Err(ApiError::parse("ECB returned no currency rates"));
     }
     let date = raw
         .pointer("/structure/dimensions/observation/0/values/0/id")
         .and_then(|v| v.as_str())
-        .map(str::to_string);
+        .unwrap_or("")
+        .to_string();
     Ok(FxRates {
         base: "EUR".into(),
         date,
@@ -123,18 +111,43 @@ pub fn ecb_eur_latest() -> ApiResult<FxRates> {
 }
 
 /// Prefer Frankfurter; fall back to open.er-api, then ECB (EUR only).
-pub fn latest_with_fallback(base: &str) -> ApiResult<FxRates> {
+pub fn latest_with_fallback(base: &str, symbols: Option<&[String]>) -> ApiResult<FxRates> {
     let base_norm = normalize_currency(base)?;
-    match frankfurter_latest(&base_norm) {
+    match frankfurter_latest(&base_norm, symbols) {
         Ok(rates) => Ok(rates),
         Err(frank_err) => match open_er_api_latest(&base_norm) {
-            Ok(rates) => Ok(rates),
-            Err(er_err) if base_norm == "EUR" => ecb_eur_latest().map_err(|ecb_err| {
-                ApiError::network(format!(
-                    "FX fallbacks failed: frankfurter={}; er-api={}; ecb={}",
-                    frank_err.message, er_err.message, ecb_err.message
-                ))
-            }),
+            Ok(mut rates) => {
+                if let Some(syms) = symbols {
+                    let want: Vec<String> = syms
+                        .iter()
+                        .map(|s| s.trim().to_ascii_uppercase())
+                        .filter(|s| s.len() == 3)
+                        .collect();
+                    if !want.is_empty() {
+                        rates.rates.retain(|k, _| want.contains(k));
+                    }
+                }
+                Ok(rates)
+            }
+            Err(er_err) if base_norm == "EUR" => {
+                let mut rates = ecb_eur_latest().map_err(|ecb_err| {
+                    ApiError::network(format!(
+                        "FX fallbacks failed: frankfurter={}; er-api={}; ecb={}",
+                        frank_err.message, er_err.message, ecb_err.message
+                    ))
+                })?;
+                if let Some(syms) = symbols {
+                    let want: Vec<String> = syms
+                        .iter()
+                        .map(|s| s.trim().to_ascii_uppercase())
+                        .filter(|s| s.len() == 3)
+                        .collect();
+                    if !want.is_empty() {
+                        rates.rates.retain(|k, _| want.contains(k) || k == "EUR");
+                    }
+                }
+                Ok(rates)
+            }
             Err(er_err) => Err(ApiError::network(format!(
                 "FX fallbacks failed: frankfurter={}; er-api={}",
                 frank_err.message, er_err.message
@@ -152,7 +165,7 @@ pub fn convert_with_fallback(amount: f64, from: &str, to: &str) -> ApiResult<f64
     if from == to {
         return Ok(amount);
     }
-    let rates = latest_with_fallback(&from)?;
+    let rates = latest_with_fallback(&from, Some(std::slice::from_ref(&to)))?;
     let rate = rates
         .rates
         .get(&to)

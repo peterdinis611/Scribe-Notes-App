@@ -402,10 +402,16 @@ export async function createDailyBriefingDocument(args: OpenJournalArgs) {
   const otherOpen = openTasks.filter((task) => task.dueHint !== dateKey).slice(0, 20)
 
   let weatherLines: string[] = []
+  let sunLines: string[] = []
   try {
-    const { apisWeather } = await import('@/lib/apis')
+    const { apisWeather, apisSunTimes } = await import('@/lib/apis')
     // Default map centre (Bratislava) — local-first brief, opt-in network via Rust.
-    const weather = await apisWeather(48.1486, 17.1077, 3)
+    const lat = 48.1486
+    const lng = 17.1077
+    const [weather, sun] = await Promise.all([
+      apisWeather(lat, lng, 3),
+      apisSunTimes(lat, lng).catch(() => null),
+    ])
     const nowLine =
       weather.temperatureC != null
         ? `${weather.weatherLabel}, ${weather.temperatureC.toFixed(0)}°C`
@@ -415,6 +421,20 @@ export async function createDailyBriefingDocument(args: OpenJournalArgs) {
       const hi = day.tempMaxC != null ? `${day.tempMaxC.toFixed(0)}°` : '—'
       const lo = day.tempMinC != null ? `${day.tempMinC.toFixed(0)}°` : '—'
       weatherLines.push(`${day.date}: ${day.weatherLabel} (${lo}–${hi})`)
+    }
+    if (sun) {
+      const fmt = (iso: string) => {
+        try {
+          return new Date(iso).toLocaleTimeString(undefined, {
+            hour: '2-digit',
+            minute: '2-digit',
+          })
+        } catch {
+          return iso
+        }
+      }
+      sunLines.push(`${t('journal.dailyBriefingSunrise')}: ${fmt(sun.sunrise)}`)
+      sunLines.push(`${t('journal.dailyBriefingSunset')}: ${fmt(sun.sunset)}`)
     }
   } catch {
     weatherLines = []
@@ -426,18 +446,29 @@ export async function createDailyBriefingDocument(args: OpenJournalArgs) {
     headingNode(2, t('journal.dailyBriefingSummaryTitle')),
     textParagraph(t('journal.dailyBriefingSummaryPlaceholder')),
   ]
-  if (weatherLines.length) {
+  if (weatherLines.length || sunLines.length) {
     blocks.push(
       headingNode(2, t('journal.dailyBriefingWeatherTitle')),
       textParagraph(t('journal.dailyBriefingWeatherHint')),
-      {
+    )
+    if (weatherLines.length) {
+      blocks.push({
         type: 'bulletList',
         content: weatherLines.map((line) => ({
           type: 'listItem',
           content: [textParagraph(line)],
         })),
-      },
-    )
+      })
+    }
+    if (sunLines.length) {
+      blocks.push({
+        type: 'bulletList',
+        content: sunLines.map((line) => ({
+          type: 'listItem',
+          content: [textParagraph(line)],
+        })),
+      })
+    }
   }
   blocks.push(headingNode(2, t('journal.dailyBriefingDueTitle')))
 

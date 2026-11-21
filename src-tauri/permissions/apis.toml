@@ -9,6 +9,16 @@ description = "Allow apis_crossref"
 commands.allow = ["apis_crossref"]
 
 [[permission]]
+identifier = "allow-apis-food-product"
+description = "Allow apis_food_product"
+commands.allow = ["apis_food_product"]
+
+[[permission]]
+identifier = "allow-apis-food-search"
+description = "Allow apis_food_search"
+commands.allow = ["apis_food_search"]
+
+[[permission]]
 identifier = "allow-apis-fx-convert"
 description = "Allow apis_fx_convert"
 commands.allow = ["apis_fx_convert"]
@@ -24,14 +34,79 @@ description = "Allow apis_geocode"
 commands.allow = ["apis_geocode"]
 
 [[permission]]
+identifier = "allow-apis-inaturalist-nearby"
+description = "Allow apis_inaturalist_nearby"
+commands.allow = ["apis_inaturalist_nearby"]
+
+[[permission]]
+identifier = "allow-apis-inaturalist-taxa"
+description = "Allow apis_inaturalist_taxa"
+commands.allow = ["apis_inaturalist_taxa"]
+
+[[permission]]
+identifier = "allow-apis-musicbrainz"
+description = "Allow apis_musicbrainz"
+commands.allow = ["apis_musicbrainz"]
+
+[[permission]]
+identifier = "allow-apis-musicbrainz-cover"
+description = "Allow apis_musicbrainz_cover"
+commands.allow = ["apis_musicbrainz_cover"]
+
+[[permission]]
 identifier = "allow-apis-open-library"
 description = "Allow apis_open_library"
 commands.allow = ["apis_open_library"]
 
 [[permission]]
+identifier = "allow-apis-openverse"
+description = "Allow apis_openverse"
+commands.allow = ["apis_openverse"]
+
+[[permission]]
+identifier = "allow-apis-overpass-pois"
+description = "Allow apis_overpass_pois"
+commands.allow = ["apis_overpass_pois"]
+
+[[permission]]
+identifier = "allow-apis-pubmed"
+description = "Allow apis_pubmed"
+commands.allow = ["apis_pubmed"]
+
+[[permission]]
+identifier = "allow-apis-semantic-scholar"
+description = "Allow apis_semantic_scholar"
+commands.allow = ["apis_semantic_scholar"]
+
+[[permission]]
+identifier = "allow-apis-sun-times"
+description = "Allow apis_sun_times"
+commands.allow = ["apis_sun_times"]
+
+[[permission]]
+identifier = "allow-apis-tide-predictions"
+description = "Allow apis_tide_predictions"
+commands.allow = ["apis_tide_predictions"]
+
+[[permission]]
+identifier = "allow-apis-tide-stations"
+description = "Allow apis_tide_stations"
+commands.allow = ["apis_tide_stations"]
+
+[[permission]]
 identifier = "allow-apis-timezone"
 description = "Allow apis_timezone"
 commands.allow = ["apis_timezone"]
+
+[[permission]]
+identifier = "allow-apis-transit-plan"
+description = "Allow apis_transit_plan"
+commands.allow = ["apis_transit_plan"]
+
+[[permission]]
+identifier = "allow-apis-wayback"
+description = "Allow apis_wayback"
+commands.allow = ["apis_wayback"]
 
 [[permission]]
 identifier = "allow-apis-weather"
@@ -64,11 +139,26 @@ description = "Command group: apis"
 permissions = [
   "allow-apis-country",
   "allow-apis-crossref",
+  "allow-apis-food-product",
+  "allow-apis-food-search",
   "allow-apis-fx-convert",
   "allow-apis-fx-rates",
   "allow-apis-geocode",
+  "allow-apis-inaturalist-nearby",
+  "allow-apis-inaturalist-taxa",
+  "allow-apis-musicbrainz",
+  "allow-apis-musicbrainz-cover",
   "allow-apis-open-library",
+  "allow-apis-openverse",
+  "allow-apis-overpass-pois",
+  "allow-apis-pubmed",
+  "allow-apis-semantic-scholar",
+  "allow-apis-sun-times",
+  "allow-apis-tide-predictions",
+  "allow-apis-tide-stations",
   "allow-apis-timezone",
+  "allow-apis-transit-plan",
+  "allow-apis-wayback",
   "allow-apis-weather",
   "allow-apis-web-instant",
   "allow-apis-web-search",

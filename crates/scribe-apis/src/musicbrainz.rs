@@ -96,11 +96,13 @@ pub fn search_releases(query: &str, limit: usize) -> ApiResult<Vec<MusicRelease>
                 artist,
                 date: rel.date,
                 url: format!("https://musicbrainz.org/release/{id}"),
-                cover_url: cover_art(&id).ok().flatten(),
+                // Cover Art Archive is a separate call (rate limits) — use `cover_art`.
+                cover_url: None,
             })
         })
         .collect())
 }
+
 
 pub fn cover_art(release_mbid: &str) -> ApiResult<Option<String>> {
     let id = release_mbid.trim();

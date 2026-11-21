@@ -154,6 +154,7 @@ export function MapBlock({ node, updateAttributes, selected, editor, deleteNode 
   const [geocodeHits, setGeocodeHits] = useState<
     Array<{ displayName: string; lat: number; lng: number }>
   >([])
+  const [poiBusy, setPoiBusy] = useState(false)
   const [form, setForm] = useState<MapSpec>(() => {
     const parsed = parseMapSpec(currentSource)
     return parsed.ok
@@ -215,6 +216,39 @@ export function MapBlock({ node, updateAttributes, selected, editor, deleteNode 
       toast.error(t('map.geocodeError'))
     } finally {
       setGeocodeBusy(false)
+    }
+  }
+
+  async function runNearbyPois() {
+    if (poiBusy) return
+    setPoiBusy(true)
+    try {
+      const { apisOverpassPois } = await import('@/lib/apis')
+      const pois = await apisOverpassPois(form.lat, form.lng, {
+        radiusM: 900,
+        amenities: ['cafe', 'library', 'restaurant', 'pharmacy'],
+        limit: 12,
+      })
+      if (!pois.length) {
+        toast.error(t('map.poiEmpty'))
+        return
+      }
+      setForm((prev) => ({
+        ...prev,
+        markers: [
+          ...prev.markers,
+          ...pois.map((poi) => ({
+            lat: poi.latitude,
+            lng: poi.longitude,
+            label: `${poi.name} (${poi.kind})`,
+          })),
+        ],
+      }))
+      toast.success(t('map.poiApplied', { count: pois.length }))
+    } catch {
+      toast.error(t('map.poiError'))
+    } finally {
+      setPoiBusy(false)
     }
   }
 
@@ -312,6 +346,14 @@ export function MapBlock({ node, updateAttributes, selected, editor, deleteNode 
                 onClick={() => void runGeocode()}
               >
                 {geocodeBusy ? t('map.geocodeRunning') : t('map.geocodeSearch')}
+              </button>
+              <button
+                type="button"
+                className="map-block__btn"
+                disabled={poiBusy}
+                onClick={() => void runNearbyPois()}
+              >
+                {poiBusy ? t('map.poiRunning') : t('map.poiSearch')}
               </button>
             </div>
             {geocodeHits.length > 0 ? (

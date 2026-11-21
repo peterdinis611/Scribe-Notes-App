@@ -874,13 +874,19 @@ export async function runAgentResearchPack(
   goal: string,
 ): Promise<LibraryChatResult> {
   const claim = goal.trim() || 'key claims in this note'
-  const [citations, similar, takeaways, web] = await Promise.all([
+  const [citations, similar, takeaways, web, papers, pubmed] = await Promise.all([
     runAgentCitations(claim),
     nlpSimilarDocuments(documentId, 6).catch(() => []),
     nlpExtractTakeaways({ documentId, limit: 8 }).catch(() => null),
     import('@/lib/apis')
       .then(({ apisWebInstant }) => apisWebInstant(claim))
       .catch(() => null),
+    import('@/lib/apis')
+      .then(({ apisSemanticScholar }) => apisSemanticScholar(claim, 4))
+      .catch(() => []),
+    import('@/lib/apis')
+      .then(({ apisPubmed }) => apisPubmed(claim, 4))
+      .catch(() => []),
   ])
   const similarLines = (similar ?? []).slice(0, 6).map((item) => {
     const title = item.title || 'Related'
@@ -892,6 +898,7 @@ export async function runAgentResearchPack(
     .map((item) => item.text)
     .filter(Boolean)
   const webLines: string[] = []
+  const candidateUrls: string[] = []
   if (web) {
     if (web.heading) webLines.push(`**${web.heading}**`)
     if (web.abstractText) webLines.push(web.abstractText)
@@ -900,14 +907,48 @@ export async function runAgentResearchPack(
       webLines.push(
         related.url ? `- [${related.text}](${related.url})` : `- ${related.text}`,
       )
+      if (related.url) candidateUrls.push(related.url)
     }
-    if (web.abstractUrl) webLines.push(`[Source](${web.abstractUrl})`)
+    if (web.abstractUrl) {
+      webLines.push(`[Source](${web.abstractUrl})`)
+      candidateUrls.push(web.abstractUrl)
+    }
   }
+  const waybackLines: string[] = []
+  if (candidateUrls.length) {
+    const { apisWayback } = await import('@/lib/apis')
+    for (const url of candidateUrls.slice(0, 3)) {
+      try {
+        const snap = await apisWayback(url)
+        if (snap.available && snap.archivedUrl) {
+          waybackLines.push(`- [${snap.timestamp || 'snapshot'}](${snap.archivedUrl}) ← ${url}`)
+        }
+      } catch {
+        // skip unavailable archives
+      }
+    }
+  }
+  const paperLines = (papers ?? []).slice(0, 4).map((p) => {
+    const year = p.year != null ? ` (${p.year})` : ''
+    const authors = p.authors.slice(0, 3).join(', ')
+    const head = authors ? `${authors} — ` : ''
+    return p.url
+      ? `- ${head}[${p.title}](${p.url})${year}`
+      : `- ${head}${p.title}${year}`
+  })
+  const pubmedLines = (pubmed ?? []).slice(0, 4).map((p) => {
+    const authors = p.authors.slice(0, 3).join(', ')
+    const head = authors ? `${authors} — ` : ''
+    return `- ${head}[${p.title}](${p.url})`
+  })
   const parts = [
     citations.answer,
     similarLines.length ? `**Related notes**\n\n${bullets(similarLines)}` : '',
     takeawayLines.length ? `**Takeaways**\n\n${bullets(takeawayLines)}` : '',
     webLines.length ? `**Web (DuckDuckGo Instant Answer)**\n\n${webLines.join('\n')}` : '',
+    waybackLines.length ? `**Wayback snapshots**\n\n${waybackLines.join('\n')}` : '',
+    paperLines.length ? `**Semantic Scholar**\n\n${paperLines.join('\n')}` : '',
+    pubmedLines.length ? `**PubMed**\n\n${pubmedLines.join('\n')}` : '',
   ].filter(Boolean)
   return {
     answer: `**Research pack**\n\n${parts.join('\n\n')}`,
