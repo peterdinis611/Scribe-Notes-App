@@ -26,7 +26,7 @@ tauri-plugin-log = { version = "2", features = ["colored"] }
 tauri-plugin-dialog = "2"
 tauri-plugin-fs = "2"
 tauri-plugin-opener = "2"
-rusqlite = { version = "0.42", default-features = false, features = ["bundled", "cache"] }
+rusqlite = { version = "0.43", default-features = false, features = ["bundled", "cache"] }
 uuid = { version = "1", features = ["v4"] }
 chrono = { version = "0.4", features = ["clock"] }
 dirs = "6"
