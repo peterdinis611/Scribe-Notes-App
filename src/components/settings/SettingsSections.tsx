@@ -17,6 +17,7 @@ import { LibrariesSettingsList } from '@/components/settings/LibrariesSettingsLi
 import { LocaleKeysReference } from '@/components/settings/LocaleKeysReference'
 import { FontsSettingsSection } from '@/components/settings/FontsSettingsSection'
 import { McpSection } from '@/components/settings/McpSection'
+import { ApisSection } from '@/components/settings/ApisSection'
 import { AboutSection } from '@/components/settings/AboutSection'
 import { PrivacySection } from '@/components/settings/PrivacySection'
 import {
@@ -1057,6 +1058,8 @@ export function SettingsSectionContent({ section }: { section: SettingsSectionId
       )
     case 'mcp':
       return <McpSection />
+    case 'apis':
+      return <ApisSection />
     case 'privacy':
       return <PrivacySection />
     case 'about':

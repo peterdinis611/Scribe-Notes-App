@@ -1120,6 +1120,10 @@
       "about": {
         "label": "O aplikácii",
         "description": "Verzia a info"
+      },
+      "apis": {
+        "label": "Verejné API",
+        "description": "Zapnúť/vypnúť free opt-in sieťové zdroje"
       }
     },
     "interface": {
@@ -2586,6 +2590,168 @@
       "keepSaved": "Retencia aktualizovaná",
       "keepInvalid": "Zadaj limit aspoň 100",
       "keepError": "Nepodarilo sa uložiť retenciu"
+    },
+    "apis": {
+      "title": "Verejné API",
+      "description": "Sieťové volania na požiadanie. Vypnuté API sa pri funkcii vôbec nezavolá.",
+      "intro": "Všetky volania idú cez Rust na tomto Macu až po kliknutí — nie na pozadí. Vypni zdroje, ktoré nechceš používať.",
+      "on": "Zap",
+      "off": "Vyp",
+      "enableAll": "Zapnúť všetky",
+      "disableAll": "Vypnúť všetky",
+      "masterTitle": "Sieťové API",
+      "masterHint": "{{enabled}} z {{total}} zapnutých",
+      "allOn": "Všetky zapnuté",
+      "allOff": "Všetky vypnuté",
+      "partial": "{{enabled}} / {{total}} zapnutých",
+      "groups": {
+        "places": "Miesta a cestovanie",
+        "weather": "Počasie a kalendár",
+        "knowledge": "Vedomosti a hľadanie",
+        "research": "Research a články",
+        "media": "Médiá a kultúra",
+        "foodNature": "Jedlo a príroda",
+        "finance": "Financie a firma",
+        "writing": "Písanie"
+      },
+      "items": {
+        "nominatim": {
+          "label": "Nominatim (geokódovanie)",
+          "hint": "Hľadanie miest pre mapové bloky"
+        },
+        "open_meteo": {
+          "label": "Open-Meteo",
+          "hint": "Počasie v dennom briefingu"
+        },
+        "sunrise_sunset": {
+          "label": "Sunrise-Sunset",
+          "hint": "Východ/západ slnka v briefingu"
+        },
+        "nager": {
+          "label": "Nager.Date",
+          "hint": "Sviatky v briefingu"
+        },
+        "timezone": {
+          "label": "WorldTimeAPI",
+          "hint": "Časové pásma"
+        },
+        "overpass": {
+          "label": "OSM Overpass",
+          "hint": "POI v okolí na mape"
+        },
+        "osrm": {
+          "label": "OSRM",
+          "hint": "ETA autom medzi markermi"
+        },
+        "transit": {
+          "label": "OpenTripPlanner",
+          "hint": "Cestovné plány (tvoja OTP inštancia)"
+        },
+        "tides": {
+          "label": "NOAA tides",
+          "hint": "Prílivové stanice a predpovede"
+        },
+        "rest_countries": {
+          "label": "REST Countries",
+          "hint": "Informácie o krajinách"
+        },
+        "wikipedia": {
+          "label": "Wikipedia",
+          "hint": "Súhrny vo wiki hover kartách"
+        },
+        "wikidata": {
+          "label": "Wikidata",
+          "hint": "Entity pre wiki odkazy"
+        },
+        "duckduckgo": {
+          "label": "DuckDuckGo Instant",
+          "hint": "Rýchle odpovede vo researchi"
+        },
+        "searx": {
+          "label": "Searx",
+          "hint": "Web search cez tvoju Searx inštanciu"
+        },
+        "dictionary": {
+          "label": "Slovník / Wiktionary",
+          "hint": "Definície pre výber textu a glossary"
+        },
+        "datamuse": {
+          "label": "Datamuse",
+          "hint": "Synonymá pre rewrite / brainstorm"
+        },
+        "open_library": {
+          "label": "Open Library",
+          "hint": "Hľadanie kníh"
+        },
+        "crossref": {
+          "label": "Crossref",
+          "hint": "DOI / akademické práce"
+        },
+        "pubmed": {
+          "label": "PubMed",
+          "hint": "Medicínske články"
+        },
+        "semantic_scholar": {
+          "label": "Semantic Scholar",
+          "hint": "Články v research packu"
+        },
+        "openalex": {
+          "label": "OpenAlex",
+          "hint": "Vedecký graf v research packu"
+        },
+        "arxiv": {
+          "label": "arXiv",
+          "hint": "Preprinty"
+        },
+        "unpaywall": {
+          "label": "Unpaywall",
+          "hint": "OA PDF odkazy pri DOI"
+        },
+        "wayback": {
+          "label": "Wayback Machine",
+          "hint": "Archívne snapshoty vo researchi"
+        },
+        "openverse": {
+          "label": "Openverse",
+          "hint": "Obrázky s otvorenou licenciou"
+        },
+        "oembed": {
+          "label": "oEmbed / noembed",
+          "hint": "Názov a caption videa po vložení URL"
+        },
+        "met_museum": {
+          "label": "MET Museum",
+          "hint": "Umelecké objekty vo public domain"
+        },
+        "musicbrainz": {
+          "label": "MusicBrainz",
+          "hint": "Albumy / vydania"
+        },
+        "mealdb": {
+          "label": "TheMealDB",
+          "hint": "Recepty do food notes"
+        },
+        "open_food_facts": {
+          "label": "Open Food Facts",
+          "hint": "Produkty / výživa podľa čiarového kódu"
+        },
+        "inaturalist": {
+          "label": "iNaturalist",
+          "hint": "Druhy a pozorovania"
+        },
+        "quotable": {
+          "label": "Quotable",
+          "hint": "Voliteľný citát v dennom briefingu"
+        },
+        "frankfurter": {
+          "label": "Frankfurter / FX",
+          "hint": "Prepočet mien na faktúrach"
+        },
+        "vies": {
+          "label": "VIES",
+          "hint": "Overenie IČ DPH na faktúrach"
+        }
+      }
     }
   },
   "storageAccess": {
@@ -3204,7 +3370,7 @@
       "faceTitle": "Scribe pravopisný agent",
       "dockTitle": "Kontrola pravopisu",
       "dockAria": "Pracovný priestor pravopisného agenta",
-      "askingAbout": "Kontrolujem pravopis v „{{title}}“",
+      "askingAbout": "Pravopis pre „{{title}}“",
       "needsDocument": "Otvor poznámku na kontrolu pravopisu.",
       "emptyTitle": "Pravopisný agent",
       "emptyHint": "Lokálna SK/EN kontrola preklepov. Opravy jedným klikom.",
@@ -4930,6 +5096,7 @@
     "title": "Náhľad PDF",
     "ariaLabel": "Náhľad PDF: {{title}}",
     "export": "Exportovať",
+    "refresh": "Obnoviť",
     "generating": "Generujem PDF náhľad…",
     "loadingPages": "Otváram PDF…",
     "pageAria": "{{title}} — strana {{page}} z {{total}}",

@@ -3,6 +3,7 @@
  * Network runs in Rust — never call these hosts from the webview CSP.
  */
 import { invoke, isTauriRuntime } from '@/lib/tauri'
+import { isApiEnabled, type ApiId } from '@/lib/apis/prefs'
 
 export type GeocodeHit = {
   displayName: string
@@ -267,19 +268,22 @@ export type TideForecast = {
   predictions: TidePrediction[]
 }
 
-function requireTauri() {
+function requireApi(id: ApiId) {
   if (!isTauriRuntime()) {
     throw new Error('apis.requiresDesktop')
+  }
+  if (!isApiEnabled(id)) {
+    throw new Error('apis.disabled')
   }
 }
 
 export async function apisGeocode(query: string, limit = 5): Promise<GeocodeHit[]> {
-  requireTauri()
+  requireApi('nominatim')
   return invoke<GeocodeHit[]>('apis_geocode', { input: { query, limit } })
 }
 
 export async function apisWeather(lat: number, lng: number, days = 3): Promise<WeatherSnapshot> {
-  requireTauri()
+  requireApi('open_meteo')
   return invoke<WeatherSnapshot>('apis_weather', { input: { lat, lng, days } })
 }
 
@@ -287,17 +291,17 @@ export async function apisWikipediaSummary(
   title: string,
   lang = 'en',
 ): Promise<WikipediaSummary> {
-  requireTauri()
+  requireApi('wikipedia')
   return invoke<WikipediaSummary>('apis_wikipedia_summary', { input: { title, lang } })
 }
 
 export async function apisWikidataEntity(id: string, lang = 'en'): Promise<WikidataEntity> {
-  requireTauri()
+  requireApi('wikidata')
   return invoke<WikidataEntity>('apis_wikidata_entity', { input: { id, lang } })
 }
 
 export async function apisWebInstant(query: string): Promise<InstantAnswer> {
-  requireTauri()
+  requireApi('duckduckgo')
   return invoke<InstantAnswer>('apis_web_instant', { input: { query } })
 }
 
@@ -306,22 +310,22 @@ export async function apisWebSearch(
   instance: string,
   limit = 8,
 ): Promise<WebSearchResult> {
-  requireTauri()
+  requireApi('searx')
   return invoke<WebSearchResult>('apis_web_search', { input: { query, instance, limit } })
 }
 
 export async function apisOpenLibrary(query: string, limit = 8): Promise<BookHit[]> {
-  requireTauri()
+  requireApi('open_library')
   return invoke<BookHit[]>('apis_open_library', { input: { query, limit } })
 }
 
 export async function apisCrossref(query: string, limit = 8): Promise<CrossrefWork[]> {
-  requireTauri()
+  requireApi('crossref')
   return invoke<CrossrefWork[]>('apis_crossref', { input: { query, limit } })
 }
 
 export async function apisFxRates(base: string, symbols?: string[]): Promise<FxRates> {
-  requireTauri()
+  requireApi('frankfurter')
   return invoke<FxRates>('apis_fx_rates', { input: { base, symbols: symbols ?? null } })
 }
 
@@ -330,47 +334,47 @@ export async function apisFxConvert(
   from: string,
   to: string,
 ): Promise<{ amount: number; from: string; to: string; result: number }> {
-  requireTauri()
+  requireApi('frankfurter')
   return invoke('apis_fx_convert', { input: { amount, from, to } })
 }
 
 export async function apisCountry(query: string): Promise<CountryInfo[]> {
-  requireTauri()
+  requireApi('rest_countries')
   return invoke<CountryInfo[]>('apis_country', { input: { query } })
 }
 
 export async function apisTimezone(timezone: string): Promise<TimezoneInfo> {
-  requireTauri()
+  requireApi('timezone')
   return invoke<TimezoneInfo>('apis_timezone', { input: { timezone } })
 }
 
 export async function apisOpenverse(query: string, limit = 8): Promise<LicensedImage[]> {
-  requireTauri()
+  requireApi('openverse')
   return invoke<LicensedImage[]>('apis_openverse', { input: { query, limit } })
 }
 
 export async function apisWayback(url: string): Promise<WaybackSnapshot> {
-  requireTauri()
+  requireApi('wayback')
   return invoke<WaybackSnapshot>('apis_wayback', { input: { url } })
 }
 
 export async function apisPubmed(query: string, limit = 8): Promise<PubmedArticle[]> {
-  requireTauri()
+  requireApi('pubmed')
   return invoke<PubmedArticle[]>('apis_pubmed', { input: { query, limit } })
 }
 
 export async function apisSemanticScholar(query: string, limit = 8): Promise<ScholarPaper[]> {
-  requireTauri()
+  requireApi('semantic_scholar')
   return invoke<ScholarPaper[]>('apis_semantic_scholar', { input: { query, limit } })
 }
 
 export async function apisMusicbrainz(query: string, limit = 6): Promise<MusicRelease[]> {
-  requireTauri()
+  requireApi('musicbrainz')
   return invoke<MusicRelease[]>('apis_musicbrainz', { input: { query, limit } })
 }
 
 export async function apisMusicbrainzCover(mbid: string): Promise<{ coverUrl: string | null }> {
-  requireTauri()
+  requireApi('musicbrainz')
   return invoke('apis_musicbrainz_cover', { input: { mbid } })
 }
 
@@ -382,7 +386,7 @@ export async function apisTransitPlan(opts: {
   toLng: number
   limit?: number
 }): Promise<TransitPlan> {
-  requireTauri()
+  requireApi('transit')
   return invoke<TransitPlan>('apis_transit_plan', {
     input: {
       instance: opts.instance,
@@ -396,17 +400,17 @@ export async function apisTransitPlan(opts: {
 }
 
 export async function apisFoodProduct(barcode: string): Promise<FoodProduct> {
-  requireTauri()
+  requireApi('open_food_facts')
   return invoke<FoodProduct>('apis_food_product', { input: { barcode } })
 }
 
 export async function apisFoodSearch(query: string, limit = 8): Promise<FoodProduct[]> {
-  requireTauri()
+  requireApi('open_food_facts')
   return invoke<FoodProduct[]>('apis_food_search', { input: { query, limit } })
 }
 
 export async function apisInaturalistTaxa(query: string, limit = 8): Promise<NatureTaxon[]> {
-  requireTauri()
+  requireApi('inaturalist')
   return invoke<NatureTaxon[]>('apis_inaturalist_taxa', { input: { query, limit } })
 }
 
@@ -416,7 +420,7 @@ export async function apisInaturalistNearby(
   radiusKm = 5,
   limit = 10,
 ): Promise<NatureObservation[]> {
-  requireTauri()
+  requireApi('inaturalist')
   return invoke<NatureObservation[]>('apis_inaturalist_nearby', {
     input: { lat, lng, radiusKm, limit },
   })
@@ -427,7 +431,7 @@ export async function apisOverpassPois(
   lng: number,
   opts?: { radiusM?: number; amenities?: string[]; limit?: number },
 ): Promise<OverpassPoi[]> {
-  requireTauri()
+  requireApi('overpass')
   return invoke<OverpassPoi[]>('apis_overpass_pois', {
     input: {
       lat,
@@ -444,12 +448,12 @@ export async function apisSunTimes(
   lng: number,
   date?: string,
 ): Promise<SunTimes> {
-  requireTauri()
+  requireApi('sunrise_sunset')
   return invoke<SunTimes>('apis_sun_times', { input: { lat, lng, date: date ?? null } })
 }
 
 export async function apisTideStations(query: string, limit = 10): Promise<TideStation[]> {
-  requireTauri()
+  requireApi('tides')
   return invoke<TideStation[]>('apis_tide_stations', { input: { query, limit } })
 }
 
@@ -457,7 +461,7 @@ export async function apisTidePredictions(
   stationId: string,
   date?: string,
 ): Promise<TideForecast> {
-  requireTauri()
+  requireApi('tides')
   return invoke<TideForecast>('apis_tide_predictions', {
     input: { stationId, date: date ?? null },
   })
@@ -587,52 +591,52 @@ export type Quote = {
 }
 
 export async function apisNagerHolidays(year: number, country: string): Promise<PublicHoliday[]> {
-  requireTauri()
+  requireApi('nager')
   return invoke<PublicHoliday[]>('apis_nager_holidays', { input: { year, country } })
 }
 
 export async function apisMealdbSearch(query: string, limit = 8): Promise<MealRecipe[]> {
-  requireTauri()
+  requireApi('mealdb')
   return invoke<MealRecipe[]>('apis_mealdb_search', { input: { query, limit } })
 }
 
 export async function apisMealdbRandom(): Promise<MealRecipe> {
-  requireTauri()
+  requireApi('mealdb')
   return invoke<MealRecipe>('apis_mealdb_random')
 }
 
 export async function apisDictionary(word: string, lang?: string): Promise<DictionaryEntry> {
-  requireTauri()
+  requireApi('dictionary')
   return invoke<DictionaryEntry>('apis_dictionary', { input: { word, lang: lang ?? null } })
 }
 
 export async function apisDatamuseSynonyms(word: string, limit = 12): Promise<WordSuggestion[]> {
-  requireTauri()
+  requireApi('datamuse')
   return invoke<WordSuggestion[]>('apis_datamuse_synonyms', { input: { word, limit } })
 }
 
 export async function apisDatamuseMeansLike(word: string, limit = 12): Promise<WordSuggestion[]> {
-  requireTauri()
+  requireApi('datamuse')
   return invoke<WordSuggestion[]>('apis_datamuse_means_like', { input: { word, limit } })
 }
 
 export async function apisOpenAlex(query: string, limit = 8): Promise<OpenAlexWork[]> {
-  requireTauri()
+  requireApi('openalex')
   return invoke<OpenAlexWork[]>('apis_openalex', { input: { query, limit } })
 }
 
 export async function apisArxiv(query: string, limit = 6): Promise<ArxivPaper[]> {
-  requireTauri()
+  requireApi('arxiv')
   return invoke<ArxivPaper[]>('apis_arxiv', { input: { query, limit } })
 }
 
 export async function apisUnpaywall(doi: string, email?: string): Promise<UnpaywallResult> {
-  requireTauri()
+  requireApi('unpaywall')
   return invoke<UnpaywallResult>('apis_unpaywall', { input: { doi, email: email ?? null } })
 }
 
 export async function apisOembed(url: string): Promise<OEmbedInfo> {
-  requireTauri()
+  requireApi('oembed')
   return invoke<OEmbedInfo>('apis_oembed', { input: { url } })
 }
 
@@ -641,7 +645,7 @@ export async function apisMetSearch(
   limit = 6,
   publicDomainOnly = true,
 ): Promise<MetObject[]> {
-  requireTauri()
+  requireApi('met_museum')
   return invoke<MetObject[]>('apis_met_search', {
     input: { query, limit, publicDomainOnly },
   })
@@ -654,7 +658,7 @@ export async function apisOsrmRoute(opts: {
   toLat: number
   toLng: number
 }): Promise<RouteEta> {
-  requireTauri()
+  requireApi('osrm')
   return invoke<RouteEta>('apis_osrm_route', {
     input: {
       profile: opts.profile ?? 'driving',
@@ -667,13 +671,13 @@ export async function apisOsrmRoute(opts: {
 }
 
 export async function apisViesCheck(vatNumber: string, country?: string): Promise<VatCheck> {
-  requireTauri()
+  requireApi('vies')
   return invoke<VatCheck>('apis_vies_check', {
     input: { vatNumber, country: country ?? null },
   })
 }
 
 export async function apisQuotable(tags?: string): Promise<Quote> {
-  requireTauri()
+  requireApi('quotable')
   return invoke<Quote>('apis_quotable', { input: { tags: tags ?? null } })
 }

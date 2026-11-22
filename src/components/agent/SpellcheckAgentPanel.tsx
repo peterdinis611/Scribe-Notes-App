@@ -224,34 +224,41 @@ export function SpellcheckAgentPanel({ onClose: _onClose }: SpellcheckAgentPanel
   return (
     <div className="library-chat-panel agent-panel agent-panel--dock spellcheck-agent-panel">
       <div className="agent-panel-toolbar shrink-0">
-        <div className="spellcheck-agent-meta">
-          <SpellCheck2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--agent-dock-accent,var(--color-accent))]" aria-hidden />
-          <p className="library-chat-scope-meta">
-            {activeDocumentId
-              ? t('agent.spellAgent.askingAbout', { title: docTitle })
-              : t('agent.spellAgent.needsDocument')}
-          </p>
+        <div className="agent-panel-toolbar-row">
+          <div className="spellcheck-agent-meta">
+            <SpellCheck2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--agent-dock-accent,var(--color-accent))]" aria-hidden />
+            <p className="library-chat-scope-meta">
+              {activeDocumentId
+                ? t('agent.spellAgent.askingAbout', { title: docTitle })
+                : t('agent.spellAgent.needsDocument')}
+            </p>
+          </div>
+          {hasThread ? (
+            <button type="button" className="library-chat-clear" onClick={() => void clearThread()}>
+              <Eraser className="h-3 w-3" />
+              {t('agent.clearMemory')}
+            </button>
+          ) : null}
         </div>
-        {hasThread ? (
-          <button type="button" className="library-chat-clear" onClick={() => void clearThread()}>
-            <Eraser className="h-3 w-3" />
-            {t('agent.clearMemory')}
-          </button>
-        ) : null}
       </div>
 
-      <div className="library-chat-scroll">
-        <div className="library-chat-thread">
+      <div className="library-chat-thread">
+        <div className="flex min-h-full flex-col gap-3 px-2.5 pb-3 pt-2">
           {!hasThread && !loading ? (
-            <div className="agent-empty-state spellcheck-agent-empty">
-              <AgentBlobatar
-                name={SPELLCHECK_AGENT_BLOBATAR_NAME}
-                size={48}
-                mood={blobMood}
-                title={t('agent.spellAgent.faceTitle')}
-              />
-              <p className="agent-empty-title">{t('agent.spellAgent.emptyTitle')}</p>
-              <p className="agent-empty-copy">{t('agent.spellAgent.emptyHint')}</p>
+            <div className="library-empty-state library-empty-state--chat spellcheck-agent-empty">
+              <div className="library-empty-state-icon agent-empty-blobatar">
+                <AgentBlobatar
+                  name={SPELLCHECK_AGENT_BLOBATAR_NAME}
+                  size={40}
+                  mood={blobMood}
+                  title={t('agent.spellAgent.faceTitle')}
+                />
+              </div>
+              <p className="library-chat-brand-badge" role="status">
+                {t('agent.spellAgent.brandBadge')}
+              </p>
+              <p className="library-empty-state-title">{t('agent.spellAgent.emptyTitle')}</p>
+              <p className="library-empty-state-text">{t('agent.spellAgent.emptyHint')}</p>
               <button
                 type="button"
                 className="spellcheck-agent-primary"

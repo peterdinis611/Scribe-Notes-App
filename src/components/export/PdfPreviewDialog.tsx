@@ -1,9 +1,8 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Download, Loader2, X } from 'lucide-react'
+import { Download, Loader2, RefreshCw, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { IconTooltip } from '@/components/ui/tooltip'
-import { EmbedPdfPageViewer } from '@/components/export/EmbedPdfPageViewer'
 import { previewPdfExport } from '@/lib/db/api'
 import { base64ToPdfUrl } from '@/lib/pdf/pdf-viewer-config'
 import type { PageSetup } from '@/lib/editor/page-setup'
@@ -17,6 +16,8 @@ type PdfPreviewDialogProps = {
   plainText: string
   pageSetup?: PageSetup
   onExport: () => void
+  /** Ask parent to re-serialize print HTML from the live document. */
+  onRequestFreshHtml?: () => void
 }
 
 export function PdfPreviewDialog({
@@ -27,49 +28,79 @@ export function PdfPreviewDialog({
   plainText,
   pageSetup,
   onExport,
+  onRequestFreshHtml,
 }: PdfPreviewDialogProps) {
   const { t } = useTranslation()
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  /** Snapshot frozen when the sheet opens — avoids regen on every autosave. */
+  const snapshotRef = useRef<{
+    html: string
+    plainText: string
+    title: string
+    pageSetup?: PageSetup
+  } | null>(null)
+  const genSeq = useRef(0)
 
   const close = useCallback(() => onOpenChange(false), [onOpenChange])
 
+  const generate = useCallback(
+    async (snap: {
+      html: string
+      plainText: string
+      title: string
+      pageSetup?: PageSetup
+    }) => {
+      if (!snap.html.trim()) return
+      const seq = ++genSeq.current
+      setLoading(true)
+      setError(null)
+      try {
+        const result = await previewPdfExport(
+          snap.html,
+          snap.plainText,
+          snap.title,
+          snap.pageSetup,
+        )
+        if (seq !== genSeq.current) return
+        setPdfUrl((current) => {
+          if (current) URL.revokeObjectURL(current)
+          return base64ToPdfUrl(result.dataBase64)
+        })
+      } catch (cause: unknown) {
+        if (seq !== genSeq.current) return
+        const message = cause instanceof Error ? cause.message : String(cause)
+        setError(message || t('pdfPreview.errorFallback'))
+      } finally {
+        if (seq === genSeq.current) setLoading(false)
+      }
+    },
+    [t],
+  )
+
+  // Open → freeze snapshot once and generate. Close → revoke URL.
   useEffect(() => {
     if (!open) {
+      genSeq.current += 1
+      snapshotRef.current = null
       setPdfUrl((current) => {
         if (current) URL.revokeObjectURL(current)
         return null
       })
       setError(null)
+      setLoading(false)
       return
     }
-
-    let cancelled = false
-    setLoading(true)
-    setError(null)
-
-    void previewPdfExport(html, plainText, title, pageSetup)
-      .then((result) => {
-        if (cancelled) return
-        setPdfUrl((current) => {
-          if (current) URL.revokeObjectURL(current)
-          return base64ToPdfUrl(result.dataBase64)
-        })
-      })
-      .catch((cause: unknown) => {
-        if (cancelled) return
-        const message = cause instanceof Error ? cause.message : String(cause)
-        setError(message || t('pdfPreview.errorFallback'))
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
-
-    return () => {
-      cancelled = true
+    if (!html.trim()) {
+      // Parent is (re)serializing — keep spinner up.
+      setLoading(true)
+      return
     }
-  }, [open, html, plainText, title, pageSetup, t])
+    if (snapshotRef.current) return
+    snapshotRef.current = { html, plainText, title, pageSetup }
+    void generate(snapshotRef.current)
+  }, [open, html, plainText, title, pageSetup, generate])
 
   useEffect(() => {
     if (!open) return
@@ -84,6 +115,23 @@ export function PdfPreviewDialog({
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [open, close])
+
+  function refresh() {
+    snapshotRef.current = null
+    setPdfUrl((current) => {
+      if (current) URL.revokeObjectURL(current)
+      return null
+    })
+    setError(null)
+    setLoading(true)
+    if (onRequestFreshHtml) {
+      onRequestFreshHtml()
+      return
+    }
+    const snap = { html, plainText, title, pageSetup }
+    snapshotRef.current = snap
+    void generate(snap)
+  }
 
   return (
     <div
@@ -110,6 +158,15 @@ export function PdfPreviewDialog({
           </div>
 
           <div className="pdf-preview-toolbar">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={loading || !html.trim()}
+              onClick={refresh}
+            >
+              <RefreshCw className="h-3.5 w-3.5 shrink-0" />
+              {t('pdfPreview.refresh')}
+            </Button>
             <Button variant="outline" size="sm" disabled={loading || !!error} onClick={onExport}>
               <Download className="h-3.5 w-3.5 shrink-0" />
               {t('pdfPreview.export')}
@@ -139,7 +196,11 @@ export function PdfPreviewDialog({
           )}
 
           {!loading && !error && pdfUrl && (
-            <EmbedPdfPageViewer key={pdfUrl} url={pdfUrl} title={title} />
+            <iframe
+              className="pdf-preview-native-frame"
+              title={t('pdfPreview.ariaLabel', { title })}
+              src={pdfUrl}
+            />
           )}
         </div>
       </div>

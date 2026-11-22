@@ -39,6 +39,7 @@ const McpPage = lazyPage(() => import('@/pages/settings/McpPage'), 'McpPage')
 const CapturePage = lazyPage(() => import('@/pages/settings/CapturePage'), 'CapturePage')
 const NlpPage = lazyPage(() => import('@/pages/settings/NlpPage'), 'NlpPage')
 const AgentPage = lazyPage(() => import('@/pages/settings/AgentPage'), 'AgentPage')
+const ApisPage = lazyPage(() => import('@/pages/settings/ApisPage'), 'ApisPage')
 
 function withSuspense(Page: ComponentType) {
   return function SuspendedPage() {
@@ -186,6 +187,12 @@ const settingsCaptureRoute = createRoute({
   component: withSuspense(CapturePage),
 })
 
+const settingsApisRoute = createRoute({
+  getParentRoute: () => settingsLayoutRoute,
+  path: 'apis',
+  component: withSuspense(ApisPage),
+})
+
 /** Legacy path from when Plugins lived under Settings. */
 const settingsPluginsRedirectRoute = createRoute({
   getParentRoute: () => settingsLayoutRoute,
@@ -246,6 +253,7 @@ const routeTree = rootRoute.addChildren([
       settingsNlpRoute,
       settingsAgentRoute,
       settingsCaptureRoute,
+      settingsApisRoute,
       settingsPluginsRedirectRoute,
       settingsAuditRedirectRoute,
       settingsDocsRedirectRoute,

@@ -46,16 +46,23 @@ fn cleanup(window: &tauri::WebviewWindow, temp_html: &Path, temp_pdf: &Path) {
 fn wait_for_written_file(path: &Path) -> Result<(), String> {
     let deadline = Instant::now() + Duration::from_secs(60);
     let mut last_len: Option<u64> = None;
+    let mut stable_hits = 0_u8;
     while Instant::now() < deadline {
-        std::thread::sleep(Duration::from_millis(200));
+        std::thread::sleep(Duration::from_millis(40));
         let len = match std::fs::metadata(path) {
             Ok(meta) if meta.len() > 0 => meta.len(),
             _ => continue,
         };
         if last_len == Some(len) {
-            return Ok(());
+            stable_hits += 1;
+            // Two consecutive equal sizes (~80ms) is enough; avoid the old 400ms+ floor.
+            if stable_hits >= 2 {
+                return Ok(());
+            }
+        } else {
+            stable_hits = 0;
+            last_len = Some(len);
         }
-        last_len = Some(len);
     }
     Err("Časový limit pri zápise PDF vypršal.".into())
 }
@@ -107,7 +114,8 @@ pub async fn render_html_to_pdf(
         return Err("Časový limit pri renderovaní dokumentu pre PDF vypršal.".into());
     }
 
-    std::thread::sleep(Duration::from_millis(350));
+    // Brief settle after load — keep short; print waits for the file write separately.
+    std::thread::sleep(Duration::from_millis(80));
 
     let pdf_path = temp_pdf.to_string_lossy().to_string();
     let margins = PrintMargins {
@@ -199,7 +207,8 @@ pub async fn print_html(app: AppHandle, input: RenderPdfInput) -> Result<(), Str
         return Err("Časový limit pri renderovaní dokumentu pre tlač vypršal.".into());
     }
 
-    std::thread::sleep(Duration::from_millis(350));
+    // Brief settle after load — keep short; print waits for the file write separately.
+    std::thread::sleep(Duration::from_millis(80));
 
     let margins = PrintMargins {
         top: px_to_pt(input.margin_top_px),

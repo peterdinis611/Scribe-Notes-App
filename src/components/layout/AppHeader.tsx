@@ -214,6 +214,8 @@ function EditorChrome() {
   const { t } = useTranslation()
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false)
   const [exportHtml, setExportHtml] = useState('')
+  /** Bump to re-serialize print HTML (open + refresh) without tracking every keystroke. */
+  const [pdfHtmlGen, setPdfHtmlGen] = useState(0)
 
   const pdfPreviewPayload = useMemo(() => {
     if (!document) return null
@@ -229,18 +231,20 @@ function EditorChrome() {
     }
   }, [document, pageSetup])
 
+  // Print HTML only when preview opens or user hits Refresh — not on every doc edit.
   useEffect(() => {
-    if (!pdfPreviewPayload) {
-      setExportHtml('')
+    if (!pdfPreviewOpen || !document) {
+      if (!pdfPreviewOpen) setExportHtml('')
       return
     }
+    setExportHtml('')
     let cancelled = false
     void tiptapJsonToHtmlPreferRust({
-      contentJson: pdfPreviewPayload.contentJson,
-      title: pdfPreviewPayload.title,
-      documentId: pdfPreviewPayload.documentId,
+      contentJson: document.contentJson,
+      title: document.title,
+      documentId: document.id,
       options: {
-        pageSetup: pdfPreviewPayload.pageSetup,
+        pageSetup,
         forPrint: true,
       },
     }).then((html) => {
@@ -249,7 +253,8 @@ function EditorChrome() {
     return () => {
       cancelled = true
     }
-  }, [pdfPreviewPayload])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: freeze on open/refresh token
+  }, [pdfPreviewOpen, pdfHtmlGen])
 
   async function handleExport(
     format: 'pdf' | 'docx' | 'txt' | 'pages' | 'md' | 'md-llm' | 'html' | 'html-zip' | 'epub',
@@ -591,7 +596,14 @@ function EditorChrome() {
             onImportPdfHighlights={() => void handleImportPdfHighlights()}
             onPluginImport={(id) => void handlePluginImport(id)}
             onRevealFile={() => void handleRevealFile()}
-            onPdfPreview={document ? () => setPdfPreviewOpen(true) : undefined}
+            onPdfPreview={
+              document
+                ? () => {
+                    setPdfHtmlGen((n) => n + 1)
+                    setPdfPreviewOpen(true)
+                  }
+                : undefined
+            }
             onPrint={
               document
                 ? () => {
@@ -721,6 +733,7 @@ function EditorChrome() {
             plainText={pdfPreviewPayload.plainText}
             pageSetup={pdfPreviewPayload.pageSetup}
             onExport={() => void handleExport('pdf')}
+            onRequestFreshHtml={() => setPdfHtmlGen((n) => n + 1)}
           />
         </Suspense>
       )}

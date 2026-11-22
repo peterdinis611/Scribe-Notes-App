@@ -5244,11 +5244,25 @@ html:not([data-ui-skin]) .agent-persona-tab.is-active {
 }
 
 .spellcheck-agent-empty {
-  text-align: left;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.35rem;
+  gap: 0.45rem;
+  min-height: 100%;
+  justify-content: center;
+  padding-block: 20px 12px;
+}
+
+.spellcheck-agent-empty .spellcheck-agent-primary {
+  margin-top: 0.35rem;
+}
+
+.spellcheck-agent-empty .spellcheck-agent-focus-row {
+  justify-content: center;
+  width: 100%;
+  margin-top: 0.15rem;
+}
+
+.spellcheck-agent-panel .library-chat-composer {
+  /* Idle spell dock is short — don't let the composer eat the empty state. */
+  max-height: min(36%, 200px);
 }
 
 .spellcheck-agent-primary {
@@ -5422,6 +5436,33 @@ html:not([data-ui-skin]) .agent-persona-tab.is-active {
   flex: 1;
 }
 
+/*
+ * Block stack on purpose — AgentPanel puts scope / meta / chips as direct
+ * children. Never use row flex here or scope tabs collide with Naučiť/História.
+ */
+.agent-panel-toolbar {
+  display: block;
+  min-width: 0;
+  width: 100%;
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+}
+
+.agent-panel-toolbar > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Horizontal helper for Spellcheck meta + clear only. */
+.agent-panel-toolbar-row {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .agent-blobatar--thinking {
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 45%, transparent);
 }
@@ -5514,8 +5555,10 @@ html:not([data-ui-skin]) .agent-persona-tab.is-active {
 }
 
 .agent-scope-switch {
-  display: inline-flex;
+  display: flex;
   width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   border-radius: 10px;
   border: 1px solid color-mix(in srgb, var(--color-border) 85%, transparent);
   background: color-mix(in srgb, var(--color-surface) 92%, transparent);
@@ -5525,6 +5568,13 @@ html:not([data-ui-skin]) .agent-persona-tab.is-active {
 
 .agent-scope-switch .library-chat-scope-tab {
   border-radius: 8px;
+  /* Icon + long SK labels ("Táto poznámka") must shrink, not overflow. */
+  min-width: 0;
+  padding-inline: 6px;
+}
+
+.agent-scope-switch .library-chat-scope-tab svg {
+  flex-shrink: 0;
 }
 
 .editor-panel-rail-btn--agent,
@@ -5542,6 +5592,8 @@ html:not([data-ui-skin]) .agent-persona-tab.is-active {
 .agent-capability-chip {
   display: inline-flex;
   align-items: center;
+  flex: 0 1 auto;
+  max-width: 100%;
   border-radius: 999px;
   border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
   background: color-mix(in srgb, var(--color-surface) 88%, var(--color-accent));
@@ -5549,6 +5601,9 @@ html:not([data-ui-skin]) .agent-persona-tab.is-active {
   font-size: 10.5px;
   font-weight: 600;
   color: var(--color-muted-foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .agent-plan-meta {
@@ -5794,7 +5849,8 @@ html:not([data-ui-skin]) .agent-persona-tab.is-active {
 .library-chat-scope-tab {
   display: inline-flex;
   height: 28px;
-  flex: 1;
+  min-width: 0;
+  flex: 1 1 0;
   align-items: center;
   justify-content: center;
   gap: 6px;
@@ -5804,6 +5860,9 @@ html:not([data-ui-skin]) .agent-persona-tab.is-active {
   color: color-mix(in srgb, var(--color-foreground) 82%, var(--color-muted-foreground));
   font-size: 11.5px;
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   transition: background 120ms ease, color 120ms ease;
 }
 

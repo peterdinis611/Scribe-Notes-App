@@ -1120,6 +1120,10 @@
       "about": {
         "label": "Névjegy",
         "description": "Verzió és információk"
+      },
+      "apis": {
+        "label": "Nyilvános API-k",
+        "description": "Hálózati források ki/be"
       }
     },
     "interface": {
@@ -2586,6 +2590,168 @@
       "keepSaved": "Megőrzés frissítve",
       "keepInvalid": "Adj meg legalább 100-as limitet",
       "keepError": "Nem sikerült menteni a megőrzést"
+    },
+    "apis": {
+      "title": "Nyilvános API-k",
+      "description": "Opt-in network calls from Scribe. Off means that feature skips the network.",
+      "intro": "All calls run in Rust on this Mac when you click — never in the background. Disable any source you do not want used.",
+      "on": "On",
+      "off": "Off",
+      "enableAll": "Enable all",
+      "disableAll": "Disable all",
+      "masterTitle": "Network APIs",
+      "masterHint": "{{enabled}} of {{total}} enabled",
+      "allOn": "All enabled",
+      "allOff": "All disabled",
+      "partial": "{{enabled}} / {{total}} enabled",
+      "groups": {
+        "places": "Places & travel",
+        "weather": "Weather & calendar",
+        "knowledge": "Knowledge & search",
+        "research": "Research & papers",
+        "media": "Media & culture",
+        "foodNature": "Food & nature",
+        "finance": "Finance & business",
+        "writing": "Writing helpers"
+      },
+      "items": {
+        "nominatim": {
+          "label": "Nominatim (geocode)",
+          "hint": "Place search for map blocks"
+        },
+        "open_meteo": {
+          "label": "Open-Meteo",
+          "hint": "Weather in daily briefing"
+        },
+        "sunrise_sunset": {
+          "label": "Sunrise-Sunset",
+          "hint": "Sunrise/sunset in daily briefing"
+        },
+        "nager": {
+          "label": "Nager.Date",
+          "hint": "Public holidays in briefing"
+        },
+        "timezone": {
+          "label": "WorldTimeAPI",
+          "hint": "Timezone lookup"
+        },
+        "overpass": {
+          "label": "OSM Overpass",
+          "hint": "Nearby POIs on the map"
+        },
+        "osrm": {
+          "label": "OSRM",
+          "hint": "Drive ETA between map markers"
+        },
+        "transit": {
+          "label": "OpenTripPlanner",
+          "hint": "Transit plans (your OTP instance)"
+        },
+        "tides": {
+          "label": "NOAA tides",
+          "hint": "Tide stations and predictions"
+        },
+        "rest_countries": {
+          "label": "REST Countries",
+          "hint": "Country facts"
+        },
+        "wikipedia": {
+          "label": "Wikipedia",
+          "hint": "Summaries in wiki hover cards"
+        },
+        "wikidata": {
+          "label": "Wikidata",
+          "hint": "Entity labels for wiki links"
+        },
+        "duckduckgo": {
+          "label": "DuckDuckGo Instant",
+          "hint": "Instant answers in research"
+        },
+        "searx": {
+          "label": "Searx",
+          "hint": "Web search via your Searx instance"
+        },
+        "dictionary": {
+          "label": "Dictionary / Wiktionary",
+          "hint": "Definitions for selection & glossary"
+        },
+        "datamuse": {
+          "label": "Datamuse",
+          "hint": "Synonyms for rewrite / brainstorm"
+        },
+        "open_library": {
+          "label": "Open Library",
+          "hint": "Book search"
+        },
+        "crossref": {
+          "label": "Crossref",
+          "hint": "DOI / academic works"
+        },
+        "pubmed": {
+          "label": "PubMed",
+          "hint": "Medical paper search"
+        },
+        "semantic_scholar": {
+          "label": "Semantic Scholar",
+          "hint": "Paper search in research pack"
+        },
+        "openalex": {
+          "label": "OpenAlex",
+          "hint": "Scholarly graph in research pack"
+        },
+        "arxiv": {
+          "label": "arXiv",
+          "hint": "Preprint search"
+        },
+        "unpaywall": {
+          "label": "Unpaywall",
+          "hint": "OA PDF links for DOIs"
+        },
+        "wayback": {
+          "label": "Wayback Machine",
+          "hint": "Archive snapshots in research"
+        },
+        "openverse": {
+          "label": "Openverse",
+          "hint": "Open-licensed images"
+        },
+        "oembed": {
+          "label": "oEmbed / noembed",
+          "hint": "Video title & caption on paste"
+        },
+        "met_museum": {
+          "label": "MET Museum",
+          "hint": "Public-domain art objects"
+        },
+        "musicbrainz": {
+          "label": "MusicBrainz",
+          "hint": "Album / release search"
+        },
+        "mealdb": {
+          "label": "TheMealDB",
+          "hint": "Recipes for food notes"
+        },
+        "open_food_facts": {
+          "label": "Open Food Facts",
+          "hint": "Product / barcode nutrition"
+        },
+        "inaturalist": {
+          "label": "iNaturalist",
+          "hint": "Species and observations"
+        },
+        "quotable": {
+          "label": "Quotable",
+          "hint": "Optional quote in daily briefing"
+        },
+        "frankfurter": {
+          "label": "Frankfurter / FX",
+          "hint": "Currency convert on invoices"
+        },
+        "vies": {
+          "label": "VIES",
+          "hint": "EU VAT ID check on invoices"
+        }
+      }
     }
   },
   "storageAccess": {
@@ -3200,7 +3366,7 @@
       "faceTitle": "Scribe Helyesírás-ellenőrző ügynök",
       "dockTitle": "Ellenőrizd a jegyzetet",
       "dockAria": "Helyesírás-ellenőrző ügynök munkaterület",
-      "askingAbout": "Helyesírás ellenőrzése a “{{title}}”",
+      "askingAbout": "Helyesírás: “{{title}}”",
       "needsDocument": "Nyiss meg egy jegyzetet a helyesírás ellenőrzéséhez.",
       "emptyTitle": "Helyesírás-ellenőrző ügynök",
       "emptyHint": "Offline SK/EN hibajavítás. Javítások alkalmazása egy kattintással.",
