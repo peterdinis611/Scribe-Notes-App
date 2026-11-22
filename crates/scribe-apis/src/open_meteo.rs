@@ -123,6 +123,84 @@ pub fn forecast(lat: f64, lng: f64, days: usize) -> ApiResult<WeatherSnapshot> {
     })
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AirQualitySnapshot {
+    pub latitude: f64,
+    pub longitude: f64,
+    pub timezone: String,
+    pub european_aqi: Option<f64>,
+    pub us_aqi: Option<f64>,
+    pub pm10: Option<f64>,
+    #[serde(rename = "pm25")]
+    pub pm2_5: Option<f64>,
+    pub carbon_monoxide: Option<f64>,
+    pub nitrogen_dioxide: Option<f64>,
+    pub sulphur_dioxide: Option<f64>,
+    pub ozone: Option<f64>,
+    pub aqi_label: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct AirQualityResponse {
+    latitude: f64,
+    longitude: f64,
+    timezone: Option<String>,
+    current: Option<AirCurrentBlock>,
+}
+
+#[derive(Debug, Deserialize)]
+struct AirCurrentBlock {
+    european_aqi: Option<f64>,
+    us_aqi: Option<f64>,
+    pm10: Option<f64>,
+    pm2_5: Option<f64>,
+    carbon_monoxide: Option<f64>,
+    nitrogen_dioxide: Option<f64>,
+    sulphur_dioxide: Option<f64>,
+    ozone: Option<f64>,
+}
+
+pub fn aqi_label(european_aqi: Option<f64>) -> String {
+    match european_aqi.map(|v| v.round() as i64).unwrap_or(-1) {
+        0..=20 => "Good".into(),
+        21..=40 => "Fair".into(),
+        41..=60 => "Moderate".into(),
+        61..=80 => "Poor".into(),
+        81..=100 => "Very poor".into(),
+        n if n > 100 => "Extremely poor".into(),
+        _ => "Unknown".into(),
+    }
+}
+
+pub fn air_quality(lat: f64, lng: f64) -> ApiResult<AirQualitySnapshot> {
+    if !(-90.0..=90.0).contains(&lat) || !(-180.0..=180.0).contains(&lng) {
+        return Err(ApiError::invalid("lat/lng out of range"));
+    }
+    let url = format!(
+        "https://air-quality-api.open-meteo.com/v1/air-quality?latitude={lat}&longitude={lng}\
+         &current=european_aqi,us_aqi,pm10,pm2_5,carbon_monoxide,nitrogen_dioxide,sulphur_dioxide,ozone\
+         &timezone=auto"
+    );
+    let raw: AirQualityResponse = get_json(&url)?;
+    let current = raw.current;
+    let european_aqi = current.as_ref().and_then(|c| c.european_aqi);
+    Ok(AirQualitySnapshot {
+        latitude: raw.latitude,
+        longitude: raw.longitude,
+        timezone: raw.timezone.unwrap_or_else(|| "UTC".into()),
+        european_aqi,
+        us_aqi: current.as_ref().and_then(|c| c.us_aqi),
+        pm10: current.as_ref().and_then(|c| c.pm10),
+        pm2_5: current.as_ref().and_then(|c| c.pm2_5),
+        carbon_monoxide: current.as_ref().and_then(|c| c.carbon_monoxide),
+        nitrogen_dioxide: current.as_ref().and_then(|c| c.nitrogen_dioxide),
+        sulphur_dioxide: current.as_ref().and_then(|c| c.sulphur_dioxide),
+        ozone: current.as_ref().and_then(|c| c.ozone),
+        aqi_label: aqi_label(european_aqi),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -135,5 +213,15 @@ mod tests {
     #[test]
     fn rejects_bad_coords() {
         assert!(forecast(200.0, 0.0, 3).is_err());
+    }
+
+    #[test]
+    fn aqi_good() {
+        assert_eq!(aqi_label(Some(12.0)), "Good");
+    }
+
+    #[test]
+    fn aq_rejects_bad_coords() {
+        assert!(air_quality(200.0, 0.0).is_err());
     }
 }

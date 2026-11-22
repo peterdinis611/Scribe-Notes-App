@@ -526,3 +526,124 @@ pub fn apis_quotable(input: QuoteInput) -> Result<serde_json::Value, String> {
     let quote = scribe_apis::quotable_random(input.tags.as_deref()).map_err(map_err)?;
     serde_json::to_value(quote).map_err(|e| e.to_string())
 }
+
+#[tauri::command]
+pub fn apis_photon(input: GeocodeInput) -> Result<serde_json::Value, String> {
+    let hits =
+        scribe_apis::photon_geocode(&input.query, input.limit.unwrap_or(5) as usize).map_err(map_err)?;
+    serde_json::to_value(hits).map_err(|e| e.to_string())
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LatLngInput {
+    pub lat: f64,
+    pub lng: f64,
+}
+
+#[tauri::command]
+pub fn apis_air_quality(input: LatLngInput) -> Result<serde_json::Value, String> {
+    let snap = scribe_apis::weather_air_quality(input.lat, input.lng).map_err(map_err)?;
+    serde_json::to_value(snap).map_err(|e| e.to_string())
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LanguageToolInput {
+    pub text: String,
+    pub language: Option<String>,
+}
+
+#[tauri::command]
+pub fn apis_languagetool(input: LanguageToolInput) -> Result<serde_json::Value, String> {
+    let check =
+        scribe_apis::languagetool_check(&input.text, input.language.as_deref()).map_err(map_err)?;
+    serde_json::to_value(check).map_err(|e| e.to_string())
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TranslateInput {
+    pub text: String,
+    pub source: Option<String>,
+    pub target: String,
+    pub instance: Option<String>,
+}
+
+#[tauri::command]
+pub fn apis_libretranslate(input: TranslateInput) -> Result<serde_json::Value, String> {
+    let result = scribe_apis::libretranslate_translate(
+        &input.text,
+        input.source.as_deref(),
+        &input.target,
+        input.instance.as_deref(),
+    )
+    .map_err(map_err)?;
+    serde_json::to_value(result).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn apis_europeana(input: QueryLimitInput) -> Result<serde_json::Value, String> {
+    let hits =
+        scribe_apis::europeana_search(&input.query, input.limit.unwrap_or(8) as usize).map_err(map_err)?;
+    serde_json::to_value(hits).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn apis_rijksmuseum(input: QueryLimitInput) -> Result<serde_json::Value, String> {
+    let hits = scribe_apis::rijksmuseum_search(&input.query, input.limit.unwrap_or(8) as usize)
+        .map_err(map_err)?;
+    serde_json::to_value(hits).map_err(|e| e.to_string())
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VatComplyVatInput {
+    pub vat_number: String,
+}
+
+#[tauri::command]
+pub fn apis_vatcomply_check(input: VatComplyVatInput) -> Result<serde_json::Value, String> {
+    let info = scribe_apis::vatcomply_check(&input.vat_number).map_err(map_err)?;
+    serde_json::to_value(info).map_err(|e| e.to_string())
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VatComplyRateInput {
+    pub country: String,
+}
+
+#[tauri::command]
+pub fn apis_vatcomply_rate(input: VatComplyRateInput) -> Result<serde_json::Value, String> {
+    let info = scribe_apis::vatcomply_rate(&input.country).map_err(map_err)?;
+    serde_json::to_value(info).map_err(|e| e.to_string())
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OpenCitationsInput {
+    pub doi: String,
+    pub limit: Option<u32>,
+}
+
+#[tauri::command]
+pub fn apis_opencitations(input: OpenCitationsInput) -> Result<serde_json::Value, String> {
+    let bundle = scribe_apis::opencitations_doi(&input.doi, input.limit.unwrap_or(8) as usize)
+        .map_err(map_err)?;
+    serde_json::to_value(bundle).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn apis_freesound(input: QueryLimitInput) -> Result<serde_json::Value, String> {
+    let hits =
+        scribe_apis::freesound_search(&input.query, input.limit.unwrap_or(8) as usize).map_err(map_err)?;
+    serde_json::to_value(hits).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn apis_podcasts(input: QueryLimitInput) -> Result<serde_json::Value, String> {
+    let hits =
+        scribe_apis::podcasts_search(&input.query, input.limit.unwrap_or(8) as usize).map_err(map_err)?;
+    serde_json::to_value(hits).map_err(|e| e.to_string())
+}

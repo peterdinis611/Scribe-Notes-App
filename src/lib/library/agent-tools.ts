@@ -709,8 +709,22 @@ export async function runAgentRewrite(
   const synonymSection = synonymBlocks.length
     ? `\n\n**Datamuse**\n\n${synonymBlocks.join('\n')}`
     : ''
+  let grammarSection = ''
+  try {
+    const { apisLanguageTool } = await import('@/lib/apis')
+    const lt = await apisLanguageTool(source.slice(0, 4000), 'auto')
+    const lines = lt.matches.slice(0, 6).map((m) => {
+      const fix = m.replacements[0] ? ` → _${m.replacements[0]}_` : ''
+      return `- ${m.shortMessage || m.message}${fix}`
+    })
+    if (lines.length) {
+      grammarSection = `\n\n**LanguageTool** (_${lt.language}_)\n\n${lines.join('\n')}`
+    }
+  } catch {
+    // optional
+  }
   return {
-    answer: `**Rewrite** (_${result.mode}_)\n\n${result.output}${synonymSection}`,
+    answer: `**Rewrite** (_${result.mode}_)\n\n${result.output}${synonymSection}${grammarSection}`,
     citations: [{ documentId, title: 'Rewrite', snippet: result.original.slice(0, 120) }],
     rewriteSource: result.original || source,
   }
@@ -849,22 +863,36 @@ export async function runAgentTranslate(
   if (!source.trim()) {
     return { answer: 'Nothing to translate — select text or open a note.', citations: [] }
   }
-  const target = /\bsk\b|sloven/i.test(goal)
-    ? 'Slovak'
-    : /\ben\b|english|anglick/i.test(goal)
-      ? 'English'
-      : /sloven/i.test(goal)
-        ? 'Slovak'
-        : 'English'
-  const result = await nlpRewriteSelection(
-    source.slice(0, 4000),
-    'clarity',
-    `Translate the following text into ${target}. Keep meaning; do not add commentary.`,
-  )
-  return {
-    answer: `**Translate → ${target}**\n\n${result.output}`,
-    citations: [{ documentId, title: 'Translate', snippet: source.slice(0, 120) }],
-    rewriteSource: source.slice(0, 800),
+  const targetCode = /\bsk\b|sloven/i.test(goal)
+    ? 'sk'
+    : /\bde\b|german|nemeck/i.test(goal)
+      ? 'de'
+      : /\bfr\b|french|franc/i.test(goal)
+        ? 'fr'
+        : 'en'
+  const targetLabel =
+    targetCode === 'sk' ? 'Slovak' : targetCode === 'de' ? 'German' : targetCode === 'fr' ? 'French' : 'English'
+  try {
+    const { apisLibreTranslate } = await import('@/lib/apis')
+    const translated = await apisLibreTranslate(source.slice(0, 4000), targetCode, {
+      source: 'auto',
+    })
+    return {
+      answer: `**Translate → ${targetLabel}** _(LibreTranslate)_\n\n${translated.translatedText}`,
+      citations: [{ documentId, title: 'Translate', snippet: source.slice(0, 120) }],
+      rewriteSource: source.slice(0, 800),
+    }
+  } catch {
+    const result = await nlpRewriteSelection(
+      source.slice(0, 4000),
+      'clarity',
+      `Translate the following text into ${targetLabel}. Keep meaning; do not add commentary.`,
+    )
+    return {
+      answer: `**Translate → ${targetLabel}**\n\n${result.output}`,
+      citations: [{ documentId, title: 'Translate', snippet: source.slice(0, 120) }],
+      rewriteSource: source.slice(0, 800),
+    }
   }
 }
 
@@ -898,7 +926,7 @@ export async function runAgentResearchPack(
   goal: string,
 ): Promise<LibraryChatResult> {
   const claim = goal.trim() || 'key claims in this note'
-  const [citations, similar, takeaways, web, papers, pubmed, openalex, arxiv, meals, met] =
+  const [citations, similar, takeaways, web, papers, pubmed, openalex, arxiv, meals, met, euro, rijks, sounds, pods] =
     await Promise.all([
       runAgentCitations(claim),
       nlpSimilarDocuments(documentId, 6).catch(() => []),
@@ -926,6 +954,26 @@ export async function runAgentResearchPack(
       /art|museum|paint|kultúr|creative/i.test(claim)
         ? import('@/lib/apis')
             .then(({ apisMetSearch }) => apisMetSearch(claim, 3, true))
+            .catch(() => [])
+        : Promise.resolve([]),
+      /art|museum|europe|heritage|kultúr|paint/i.test(claim)
+        ? import('@/lib/apis')
+            .then(({ apisEuropeana }) => apisEuropeana(claim, 3))
+            .catch(() => [])
+        : Promise.resolve([]),
+      /art|museum|rijks|dutch|paint/i.test(claim)
+        ? import('@/lib/apis')
+            .then(({ apisRijksmuseum }) => apisRijksmuseum(claim, 3))
+            .catch(() => [])
+        : Promise.resolve([]),
+      /sound|audio|sfx|zvuk|freesound/i.test(claim)
+        ? import('@/lib/apis')
+            .then(({ apisFreesound }) => apisFreesound(claim, 3))
+            .catch(() => [])
+        : Promise.resolve([]),
+      /podcast|episode|show|podcast/i.test(claim)
+        ? import('@/lib/apis')
+            .then(({ apisPodcasts }) => apisPodcasts(claim, 3))
             .catch(() => [])
         : Promise.resolve([]),
     ])
@@ -1025,6 +1073,42 @@ export async function runAgentResearchPack(
       ? `- [${o.title}](${o.objectUrl})${artist}`
       : `- ${o.title}${artist}`
   })
+  const citationLines: string[] = []
+  if (dois.length) {
+    const { apisOpenCitations } = await import('@/lib/apis')
+    for (const doi of dois.slice(0, 2)) {
+      try {
+        const bundle = await apisOpenCitations(doi, 4)
+        if (bundle.citedBy.length) {
+          citationLines.push(`**${doi}** cited by ${bundle.citingCount}+`)
+          for (const link of bundle.citedBy.slice(0, 3)) {
+            citationLines.push(`- ${link.citing}`)
+          }
+        }
+      } catch {
+        // skip
+      }
+    }
+  }
+  const euroLines = (euro ?? []).slice(0, 3).map((img) => {
+    const href = img.foreignLandingUrl || img.url
+    const credit = img.creator ? ` — ${img.creator}` : ''
+    return `- [${img.title}](${href})${credit}`
+  })
+  const rijksLines = (rijks ?? []).slice(0, 3).map((img) => {
+    const href = img.foreignLandingUrl || img.url
+    const credit = img.creator ? ` — ${img.creator}` : ''
+    return `- [${img.title}](${href})${credit}`
+  })
+  const soundLines = (sounds ?? []).slice(0, 3).map((s) => {
+    const href = s.foreignLandingUrl || s.url
+    return `- [${s.title}](${href})`
+  })
+  const podLines = (pods ?? []).slice(0, 3).map((p) => {
+    const href = p.itunesUrl || p.feedUrl
+    const artist = p.artist ? ` — ${p.artist}` : ''
+    return href ? `- [${p.title}](${href})${artist}` : `- ${p.title}${artist}`
+  })
   const parts = [
     citations.answer,
     similarLines.length ? `**Related notes**\n\n${bullets(similarLines)}` : '',
@@ -1036,8 +1120,13 @@ export async function runAgentResearchPack(
     openalexLines.length ? `**OpenAlex**\n\n${openalexLines.join('\n')}` : '',
     arxivLines.length ? `**arXiv**\n\n${arxivLines.join('\n')}` : '',
     oaLines.length ? `**Unpaywall (OA PDF)**\n\n${oaLines.join('\n')}` : '',
+    citationLines.length ? `**OpenCitations**\n\n${citationLines.join('\n')}` : '',
     mealLines.length ? `**TheMealDB**\n\n${mealLines.join('\n')}` : '',
     metLines.length ? `**MET Museum**\n\n${metLines.join('\n')}` : '',
+    euroLines.length ? `**Europeana**\n\n${euroLines.join('\n')}` : '',
+    rijksLines.length ? `**Rijksmuseum**\n\n${rijksLines.join('\n')}` : '',
+    soundLines.length ? `**Freesound**\n\n${soundLines.join('\n')}` : '',
+    podLines.length ? `**Podcasts**\n\n${podLines.join('\n')}` : '',
   ].filter(Boolean)
   return {
     answer: `**Research pack**\n\n${parts.join('\n\n')}`,

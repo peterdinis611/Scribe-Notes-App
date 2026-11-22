@@ -277,7 +277,24 @@ function requireApi(id: ApiId) {
   }
 }
 
+export async function apisPhoton(query: string, limit = 5): Promise<GeocodeHit[]> {
+  requireApi('photon')
+  return invoke<GeocodeHit[]>('apis_photon', { input: { query, limit } })
+}
+
+/** Nominatim first; falls back to Photon when Nominatim fails or is disabled. */
 export async function apisGeocode(query: string, limit = 5): Promise<GeocodeHit[]> {
+  if (isApiEnabled('nominatim') && isTauriRuntime()) {
+    try {
+      const hits = await invoke<GeocodeHit[]>('apis_geocode', { input: { query, limit } })
+      if (hits.length) return hits
+    } catch {
+      // fall through to Photon
+    }
+  }
+  if (isApiEnabled('photon')) {
+    return apisPhoton(query, limit)
+  }
   requireApi('nominatim')
   return invoke<GeocodeHit[]>('apis_geocode', { input: { query, limit } })
 }
@@ -285,6 +302,26 @@ export async function apisGeocode(query: string, limit = 5): Promise<GeocodeHit[
 export async function apisWeather(lat: number, lng: number, days = 3): Promise<WeatherSnapshot> {
   requireApi('open_meteo')
   return invoke<WeatherSnapshot>('apis_weather', { input: { lat, lng, days } })
+}
+
+export type AirQualitySnapshot = {
+  latitude: number
+  longitude: number
+  timezone: string
+  europeanAqi?: number | null
+  usAqi?: number | null
+  pm10?: number | null
+  pm25?: number | null
+  carbonMonoxide?: number | null
+  nitrogenDioxide?: number | null
+  sulphurDioxide?: number | null
+  ozone?: number | null
+  aqiLabel: string
+}
+
+export async function apisAirQuality(lat: number, lng: number): Promise<AirQualitySnapshot> {
+  requireApi('open_meteo')
+  return invoke<AirQualitySnapshot>('apis_air_quality', { input: { lat, lng } })
 }
 
 export async function apisWikipediaSummary(
@@ -680,4 +717,142 @@ export async function apisViesCheck(vatNumber: string, country?: string): Promis
 export async function apisQuotable(tags?: string): Promise<Quote> {
   requireApi('quotable')
   return invoke<Quote>('apis_quotable', { input: { tags: tags ?? null } })
+}
+
+export type GrammarMatch = {
+  message: string
+  shortMessage?: string | null
+  offset: number
+  length: number
+  replacements: string[]
+  ruleId?: string | null
+  category?: string | null
+  excerpt?: string | null
+}
+
+export type GrammarCheck = {
+  language: string
+  matches: GrammarMatch[]
+}
+
+export async function apisLanguageTool(
+  text: string,
+  language?: string,
+): Promise<GrammarCheck> {
+  requireApi('languagetool')
+  return invoke<GrammarCheck>('apis_languagetool', {
+    input: { text, language: language ?? null },
+  })
+}
+
+export type Translation = {
+  translatedText: string
+  detectedLanguage?: string | null
+  source: string
+  target: string
+  instance: string
+}
+
+export async function apisLibreTranslate(
+  text: string,
+  target: string,
+  opts?: { source?: string; instance?: string },
+): Promise<Translation> {
+  requireApi('libretranslate')
+  return invoke<Translation>('apis_libretranslate', {
+    input: {
+      text,
+      target,
+      source: opts?.source ?? null,
+      instance: opts?.instance ?? null,
+    },
+  })
+}
+
+export async function apisEuropeana(query: string, limit = 8): Promise<LicensedImage[]> {
+  requireApi('europeana')
+  return invoke<LicensedImage[]>('apis_europeana', { input: { query, limit } })
+}
+
+export async function apisRijksmuseum(query: string, limit = 8): Promise<LicensedImage[]> {
+  requireApi('rijksmuseum')
+  return invoke<LicensedImage[]>('apis_rijksmuseum', { input: { query, limit } })
+}
+
+export type VatRateInfo = {
+  countryCode: string
+  standardRate?: number | null
+  currency?: string | null
+  name?: string | null
+}
+
+export type VatNumberInfo = {
+  countryCode: string
+  vatNumber: string
+  valid: boolean
+  name?: string | null
+  address?: string | null
+}
+
+export async function apisVatcomplyCheck(vatNumber: string): Promise<VatNumberInfo> {
+  requireApi('vatcomply')
+  return invoke<VatNumberInfo>('apis_vatcomply_check', { input: { vatNumber } })
+}
+
+export async function apisVatcomplyRate(country: string): Promise<VatRateInfo> {
+  requireApi('vatcomply')
+  return invoke<VatRateInfo>('apis_vatcomply_rate', { input: { country } })
+}
+
+export type CitationLink = {
+  citing: string
+  cited: string
+  creation?: string | null
+  timespan?: string | null
+  journalSelfCite?: string | null
+}
+
+export type CitationBundle = {
+  doi: string
+  citingCount: number
+  citedBy: CitationLink[]
+  references: CitationLink[]
+}
+
+export async function apisOpenCitations(doi: string, limit = 8): Promise<CitationBundle> {
+  requireApi('opencitations')
+  return invoke<CitationBundle>('apis_opencitations', { input: { doi, limit } })
+}
+
+export type SoundClip = {
+  title: string
+  url: string
+  thumbnail?: string | null
+  creator?: string | null
+  license?: string | null
+  licenseUrl?: string | null
+  foreignLandingUrl?: string | null
+  duration?: number | null
+  source?: string | null
+}
+
+export async function apisFreesound(query: string, limit = 8): Promise<SoundClip[]> {
+  requireApi('freesound')
+  return invoke<SoundClip[]>('apis_freesound', { input: { query, limit } })
+}
+
+export type PodcastShow = {
+  title: string
+  artist?: string | null
+  feedUrl?: string | null
+  artworkUrl?: string | null
+  genre?: string | null
+  trackCount?: number | null
+  country?: string | null
+  itunesUrl?: string | null
+}
+
+export async function apisPodcasts(query: string, limit = 8): Promise<PodcastShow[]> {
+  requireApi('podcasts')
+  return invoke<PodcastShow[]>('apis_podcasts', { input: { query, limit } })
 }

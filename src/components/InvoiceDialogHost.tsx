@@ -81,14 +81,42 @@ export function InvoiceDialogHost() {
     if (raw.trim().length < 6) return
     setVatBusy(true)
     try {
-      const { apisViesCheck } = await import('@/lib/apis')
-      const result = await apisViesCheck(raw.trim())
+      const { apisViesCheck, apisVatcomplyCheck, apisVatcomplyRate } = await import('@/lib/apis')
+      let result: {
+        countryCode: string
+        vatNumber: string
+        valid: boolean
+        name?: string | null
+        address?: string | null
+      }
+      try {
+        result = await apisViesCheck(raw.trim())
+      } catch {
+        result = await apisVatcomplyCheck(raw.trim())
+      }
+      let rateHint = ''
+      try {
+        const rate = await apisVatcomplyRate(result.countryCode)
+        if (rate.standardRate != null) {
+          rateHint = t('invoiceDialog.vatRate', {
+            country: rate.name || rate.countryCode,
+            rate: rate.standardRate,
+          })
+        }
+      } catch {
+        // optional rate lookup
+      }
       if (result.valid) {
         setVatHint(
-          t('invoiceDialog.vatValid', {
-            vat: `${result.countryCode}${result.vatNumber}`,
-            name: result.name || '—',
-          }),
+          [
+            t('invoiceDialog.vatValid', {
+              vat: `${result.countryCode}${result.vatNumber}`,
+              name: result.name || '—',
+            }),
+            rateHint,
+          ]
+            .filter(Boolean)
+            .join(' · '),
         )
         if (which === 'company' && result.name) {
           setDraft((prev) => ({
@@ -111,7 +139,9 @@ export function InvoiceDialogHost() {
           }))
         }
       } else {
-        setVatHint(t('invoiceDialog.vatInvalid'))
+        setVatHint(
+          [t('invoiceDialog.vatInvalid'), rateHint].filter(Boolean).join(' · '),
+        )
       }
     } catch {
       setVatHint(t('invoiceDialog.vatError'))

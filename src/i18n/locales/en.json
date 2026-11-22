@@ -2619,9 +2619,13 @@
           "label": "Nominatim (geocode)",
           "hint": "Place search for map blocks"
         },
+        "photon": {
+          "label": "Photon (Komoot)",
+          "hint": "Geocode fallback when Nominatim is down"
+        },
         "open_meteo": {
           "label": "Open-Meteo",
-          "hint": "Weather in daily briefing"
+          "hint": "Weather + air quality in daily briefing"
         },
         "sunrise_sunset": {
           "label": "Sunrise-Sunset",
@@ -2679,6 +2683,14 @@
           "label": "Datamuse",
           "hint": "Synonyms for rewrite / brainstorm"
         },
+        "languagetool": {
+          "label": "LanguageTool",
+          "hint": "Grammar check for selection & coach"
+        },
+        "libretranslate": {
+          "label": "LibreTranslate",
+          "hint": "Translate selection / agent /translate"
+        },
         "open_library": {
           "label": "Open Library",
           "hint": "Book search"
@@ -2707,6 +2719,10 @@
           "label": "Unpaywall",
           "hint": "OA PDF links for DOIs"
         },
+        "opencitations": {
+          "label": "OpenCitations",
+          "hint": "Who cites a DOI in research pack"
+        },
         "wayback": {
           "label": "Wayback Machine",
           "hint": "Archive snapshots in research"
@@ -2714,6 +2730,14 @@
         "openverse": {
           "label": "Openverse",
           "hint": "Open-licensed images"
+        },
+        "europeana": {
+          "label": "Europeana",
+          "hint": "EU cultural heritage images (CC)"
+        },
+        "rijksmuseum": {
+          "label": "Rijksmuseum",
+          "hint": "Rijksmuseum open images (CC)"
         },
         "oembed": {
           "label": "oEmbed / noembed",
@@ -2726,6 +2750,14 @@
         "musicbrainz": {
           "label": "MusicBrainz",
           "hint": "Album / release search"
+        },
+        "freesound": {
+          "label": "Freesound",
+          "hint": "CC audio clips for media notes"
+        },
+        "podcasts": {
+          "label": "Podcasts (iTunes)",
+          "hint": "Podcast discovery without API keys"
         },
         "mealdb": {
           "label": "TheMealDB",
@@ -2750,6 +2782,10 @@
         "vies": {
           "label": "VIES",
           "hint": "EU VAT ID check on invoices"
+        },
+        "vatcomply": {
+          "label": "VATComply",
+          "hint": "VAT rates + backup VAT check on invoices"
         }
       }
     }
@@ -5766,11 +5802,12 @@
     "fxApplied": "Converted {{from}} → {{to}} at {{rate}}",
     "fxError": "FX convert failed — check network and ISO codes (EUR, USD…)",
     "vatPlaceholder": "VAT ID (e.g. SK2020264768)",
-    "vatCheck": "Check VIES",
-    "vatRunning": "VIES…",
+    "vatCheck": "Check VAT",
+    "vatRunning": "Checking…",
     "vatValid": "Valid {{vat}} — {{name}}",
-    "vatInvalid": "VAT number not valid in VIES",
-    "vatError": "VIES check failed — service may be down",
+    "vatInvalid": "VAT number not valid",
+    "vatError": "VAT check failed — service may be down",
+    "vatRate": "{{country}} standard VAT {{rate}}%",
     "dueInDays": "Due in (days)",
     "paymentMethod": "Payment method",
     "notes": "Notes",

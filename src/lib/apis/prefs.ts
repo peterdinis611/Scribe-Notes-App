@@ -5,6 +5,7 @@ export const APIS_PREFS_KEY = 'scribe-apis-enabled-v1'
 /** Stable ids — match `crates/scribe-apis` modules / FE wrappers. */
 export const API_IDS = [
   'nominatim',
+  'photon',
   'open_meteo',
   'sunrise_sunset',
   'nager',
@@ -20,6 +21,8 @@ export const API_IDS = [
   'searx',
   'dictionary',
   'datamuse',
+  'languagetool',
+  'libretranslate',
   'open_library',
   'crossref',
   'pubmed',
@@ -27,17 +30,23 @@ export const API_IDS = [
   'openalex',
   'arxiv',
   'unpaywall',
+  'opencitations',
   'wayback',
   'openverse',
+  'europeana',
+  'rijksmuseum',
   'oembed',
   'met_museum',
   'musicbrainz',
+  'freesound',
+  'podcasts',
   'mealdb',
   'open_food_facts',
   'inaturalist',
   'quotable',
   'frankfurter',
   'vies',
+  'vatcomply',
 ] as const
 
 export type ApiId = (typeof API_IDS)[number]
@@ -60,7 +69,7 @@ export type ApiGroup = {
 export const API_GROUPS: ApiGroup[] = [
   {
     id: 'places',
-    apis: ['nominatim', 'overpass', 'osrm', 'transit', 'rest_countries', 'tides'],
+    apis: ['nominatim', 'photon', 'overpass', 'osrm', 'transit', 'rest_countries', 'tides'],
   },
   {
     id: 'weather',
@@ -79,12 +88,22 @@ export const API_GROUPS: ApiGroup[] = [
       'openalex',
       'arxiv',
       'unpaywall',
+      'opencitations',
       'wayback',
     ],
   },
   {
     id: 'media',
-    apis: ['openverse', 'oembed', 'met_museum', 'musicbrainz'],
+    apis: [
+      'openverse',
+      'europeana',
+      'rijksmuseum',
+      'oembed',
+      'met_museum',
+      'musicbrainz',
+      'freesound',
+      'podcasts',
+    ],
   },
   {
     id: 'foodNature',
@@ -92,11 +111,11 @@ export const API_GROUPS: ApiGroup[] = [
   },
   {
     id: 'finance',
-    apis: ['frankfurter', 'vies'],
+    apis: ['frankfurter', 'vies', 'vatcomply'],
   },
   {
     id: 'writing',
-    apis: ['dictionary', 'datamuse'],
+    apis: ['dictionary', 'datamuse', 'languagetool', 'libretranslate'],
   },
 ]
 

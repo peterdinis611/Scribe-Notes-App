@@ -2619,9 +2619,13 @@
           "label": "Nominatim (geokódovanie)",
           "hint": "Hľadanie miest pre mapové bloky"
         },
+        "photon": {
+          "label": "Photon (Komoot)",
+          "hint": "Fallback geokódovania, keď Nominatim vypadne"
+        },
         "open_meteo": {
           "label": "Open-Meteo",
-          "hint": "Počasie v dennom briefingu"
+          "hint": "Počasie + kvalita ovzdušia v dennom briefingu"
         },
         "sunrise_sunset": {
           "label": "Sunrise-Sunset",
@@ -2679,6 +2683,14 @@
           "label": "Datamuse",
           "hint": "Synonymá pre rewrite / brainstorm"
         },
+        "languagetool": {
+          "label": "LanguageTool",
+          "hint": "Gramatika pre výber textu a coach"
+        },
+        "libretranslate": {
+          "label": "LibreTranslate",
+          "hint": "Preklad výberu / agent /translate"
+        },
         "open_library": {
           "label": "Open Library",
           "hint": "Hľadanie kníh"
@@ -2707,6 +2719,10 @@
           "label": "Unpaywall",
           "hint": "OA PDF odkazy pri DOI"
         },
+        "opencitations": {
+          "label": "OpenCitations",
+          "hint": "Citácie DOI v research packu"
+        },
         "wayback": {
           "label": "Wayback Machine",
           "hint": "Archívne snapshoty vo researchi"
@@ -2714,6 +2730,14 @@
         "openverse": {
           "label": "Openverse",
           "hint": "Obrázky s otvorenou licenciou"
+        },
+        "europeana": {
+          "label": "Europeana",
+          "hint": "EU kultúrne obrázky (CC)"
+        },
+        "rijksmuseum": {
+          "label": "Rijksmuseum",
+          "hint": "Obrázky Rijksmuseum (CC)"
         },
         "oembed": {
           "label": "oEmbed / noembed",
@@ -2726,6 +2750,14 @@
         "musicbrainz": {
           "label": "MusicBrainz",
           "hint": "Albumy / vydania"
+        },
+        "freesound": {
+          "label": "Freesound",
+          "hint": "CC audio klipy do media notes"
+        },
+        "podcasts": {
+          "label": "Podcasty (iTunes)",
+          "hint": "Hľadanie podcastov bez API kľúčov"
         },
         "mealdb": {
           "label": "TheMealDB",
@@ -2750,6 +2782,10 @@
         "vies": {
           "label": "VIES",
           "hint": "Overenie IČ DPH na faktúrach"
+        },
+        "vatcomply": {
+          "label": "VATComply",
+          "hint": "Sadzby DPH + záložné overenie na faktúrach"
         }
       }
     }
@@ -5784,11 +5820,12 @@
     "fxApplied": "Prepočítané {{from}} → {{to}} kurzom {{rate}}",
     "fxError": "FX prepočet zlyhal — skontroluj sieť a ISO kódy (EUR, USD…)",
     "vatPlaceholder": "IČ DPH (napr. SK2020264768)",
-    "vatCheck": "Overiť VIES",
-    "vatRunning": "VIES…",
+    "vatCheck": "Overiť DPH",
+    "vatRunning": "Overujem…",
     "vatValid": "Platné {{vat}} — {{name}}",
-    "vatInvalid": "IČ DPH nie je platné vo VIES",
-    "vatError": "VIES overenie zlyhalo — služba môže byť nedostupná",
+    "vatInvalid": "IČ DPH nie je platné",
+    "vatError": "Overenie DPH zlyhalo — služba môže byť nedostupná",
+    "vatRate": "{{country}} základná DPH {{rate}} %",
     "dueInDays": "Splatnosť (dni)",
     "paymentMethod": "Spôsob platby",
     "notes": "Poznámky",

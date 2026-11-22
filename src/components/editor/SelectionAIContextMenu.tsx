@@ -74,6 +74,20 @@ export function SelectionAIContextMenu({
     setCoachHints(null)
     setCoachScore(null)
     try {
+      if (mode === 'translate_sk' || mode === 'translate_en') {
+        const target = mode === 'translate_sk' ? 'sk' : 'en'
+        try {
+          const { apisLibreTranslate } = await import('@/lib/apis')
+          const translated = await apisLibreTranslate(text.slice(0, 4000), target, {
+            source: 'auto',
+          })
+          setResult(translated.translatedText)
+          setCustomOpen(false)
+          return
+        } catch {
+          // fall through to local rewrite
+        }
+      }
       const res = await nlpRewriteSelection(text, mode, instruction)
       setResult(res.output)
       setCustomOpen(false)
@@ -160,8 +174,26 @@ export function SelectionAIContextMenu({
     setResult(null)
     try {
       const res = await nlpWritingCoach({ text, limit: 10 })
-      setCoachHints(res.hints ?? [])
-      setCoachScore(typeof res.score === 'number' ? res.score : null)
+      let hints = res.hints ?? []
+      let score = typeof res.score === 'number' ? res.score : null
+      try {
+        const { apisLanguageTool } = await import('@/lib/apis')
+        const lt = await apisLanguageTool(text.slice(0, 8000), 'auto')
+        const ltHints: WritingCoachHint[] = lt.matches.slice(0, 8).map((m, i) => ({
+          code: m.ruleId || `lt-${i}`,
+          severity: 'warn' as const,
+          message: m.shortMessage || m.message,
+          excerpt: m.excerpt || undefined,
+        }))
+        if (ltHints.length) {
+          hints = [...ltHints, ...hints].slice(0, 12)
+          if (score == null) score = Math.max(40, 100 - ltHints.length * 8)
+        }
+      } catch {
+        // LanguageTool optional
+      }
+      setCoachHints(hints)
+      setCoachScore(score)
       setCustomOpen(false)
     } catch (error) {
       toast.error(t('aiRewrite.coachError'), String(error))

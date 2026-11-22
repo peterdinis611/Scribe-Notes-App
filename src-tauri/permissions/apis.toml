@@ -1,4 +1,9 @@
 [[permission]]
+identifier = "allow-apis-air-quality"
+description = "Allow apis_air_quality"
+commands.allow = ["apis_air_quality"]
+
+[[permission]]
 identifier = "allow-apis-arxiv"
 description = "Allow apis_arxiv"
 commands.allow = ["apis_arxiv"]
@@ -29,6 +34,11 @@ description = "Allow apis_dictionary"
 commands.allow = ["apis_dictionary"]
 
 [[permission]]
+identifier = "allow-apis-europeana"
+description = "Allow apis_europeana"
+commands.allow = ["apis_europeana"]
+
+[[permission]]
 identifier = "allow-apis-food-product"
 description = "Allow apis_food_product"
 commands.allow = ["apis_food_product"]
@@ -37,6 +47,11 @@ commands.allow = ["apis_food_product"]
 identifier = "allow-apis-food-search"
 description = "Allow apis_food_search"
 commands.allow = ["apis_food_search"]
+
+[[permission]]
+identifier = "allow-apis-freesound"
+description = "Allow apis_freesound"
+commands.allow = ["apis_freesound"]
 
 [[permission]]
 identifier = "allow-apis-fx-convert"
@@ -62,6 +77,16 @@ commands.allow = ["apis_inaturalist_nearby"]
 identifier = "allow-apis-inaturalist-taxa"
 description = "Allow apis_inaturalist_taxa"
 commands.allow = ["apis_inaturalist_taxa"]
+
+[[permission]]
+identifier = "allow-apis-languagetool"
+description = "Allow apis_languagetool"
+commands.allow = ["apis_languagetool"]
+
+[[permission]]
+identifier = "allow-apis-libretranslate"
+description = "Allow apis_libretranslate"
+commands.allow = ["apis_libretranslate"]
 
 [[permission]]
 identifier = "allow-apis-mealdb-random"
@@ -109,6 +134,11 @@ description = "Allow apis_openalex"
 commands.allow = ["apis_openalex"]
 
 [[permission]]
+identifier = "allow-apis-opencitations"
+description = "Allow apis_opencitations"
+commands.allow = ["apis_opencitations"]
+
+[[permission]]
 identifier = "allow-apis-openverse"
 description = "Allow apis_openverse"
 commands.allow = ["apis_openverse"]
@@ -124,6 +154,16 @@ description = "Allow apis_overpass_pois"
 commands.allow = ["apis_overpass_pois"]
 
 [[permission]]
+identifier = "allow-apis-photon"
+description = "Allow apis_photon"
+commands.allow = ["apis_photon"]
+
+[[permission]]
+identifier = "allow-apis-podcasts"
+description = "Allow apis_podcasts"
+commands.allow = ["apis_podcasts"]
+
+[[permission]]
 identifier = "allow-apis-pubmed"
 description = "Allow apis_pubmed"
 commands.allow = ["apis_pubmed"]
@@ -132,6 +172,11 @@ commands.allow = ["apis_pubmed"]
 identifier = "allow-apis-quotable"
 description = "Allow apis_quotable"
 commands.allow = ["apis_quotable"]
+
+[[permission]]
+identifier = "allow-apis-rijksmuseum"
+description = "Allow apis_rijksmuseum"
+commands.allow = ["apis_rijksmuseum"]
 
 [[permission]]
 identifier = "allow-apis-semantic-scholar"
@@ -167,6 +212,16 @@ commands.allow = ["apis_transit_plan"]
 identifier = "allow-apis-unpaywall"
 description = "Allow apis_unpaywall"
 commands.allow = ["apis_unpaywall"]
+
+[[permission]]
+identifier = "allow-apis-vatcomply-check"
+description = "Allow apis_vatcomply_check"
+commands.allow = ["apis_vatcomply_check"]
+
+[[permission]]
+identifier = "allow-apis-vatcomply-rate"
+description = "Allow apis_vatcomply_rate"
+commands.allow = ["apis_vatcomply_rate"]
 
 [[permission]]
 identifier = "allow-apis-vies-check"
@@ -207,19 +262,24 @@ commands.allow = ["apis_wikipedia_summary"]
 identifier = "group-apis"
 description = "Command group: apis"
 permissions = [
+  "allow-apis-air-quality",
   "allow-apis-arxiv",
   "allow-apis-country",
   "allow-apis-crossref",
   "allow-apis-datamuse-means-like",
   "allow-apis-datamuse-synonyms",
   "allow-apis-dictionary",
+  "allow-apis-europeana",
   "allow-apis-food-product",
   "allow-apis-food-search",
+  "allow-apis-freesound",
   "allow-apis-fx-convert",
   "allow-apis-fx-rates",
   "allow-apis-geocode",
   "allow-apis-inaturalist-nearby",
   "allow-apis-inaturalist-taxa",
+  "allow-apis-languagetool",
+  "allow-apis-libretranslate",
   "allow-apis-mealdb-random",
   "allow-apis-mealdb-search",
   "allow-apis-met-search",
@@ -229,11 +289,15 @@ permissions = [
   "allow-apis-oembed",
   "allow-apis-open-library",
   "allow-apis-openalex",
+  "allow-apis-opencitations",
   "allow-apis-openverse",
   "allow-apis-osrm-route",
   "allow-apis-overpass-pois",
+  "allow-apis-photon",
+  "allow-apis-podcasts",
   "allow-apis-pubmed",
   "allow-apis-quotable",
+  "allow-apis-rijksmuseum",
   "allow-apis-semantic-scholar",
   "allow-apis-sun-times",
   "allow-apis-tide-predictions",
@@ -241,6 +305,8 @@ permissions = [
   "allow-apis-timezone",
   "allow-apis-transit-plan",
   "allow-apis-unpaywall",
+  "allow-apis-vatcomply-check",
+  "allow-apis-vatcomply-rate",
   "allow-apis-vies-check",
   "allow-apis-wayback",
   "allow-apis-weather",

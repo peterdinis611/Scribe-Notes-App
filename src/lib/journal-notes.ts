@@ -406,13 +406,15 @@ export async function createDailyBriefingDocument(args: OpenJournalArgs) {
   let holidayLines: string[] = []
   let quoteLines: string[] = []
   try {
-    const { apisWeather, apisSunTimes, apisNagerHolidays, apisQuotable } = await import('@/lib/apis')
+    const { apisWeather, apisAirQuality, apisSunTimes, apisNagerHolidays, apisQuotable } =
+      await import('@/lib/apis')
     // Default map centre (Bratislava) — local-first brief, opt-in network via Rust.
     const lat = 48.1486
     const lng = 17.1077
     const year = Number(dateKey.slice(0, 4)) || new Date().getFullYear()
-    const [weather, sun, holidays, quote] = await Promise.all([
+    const [weather, aq, sun, holidays, quote] = await Promise.all([
       apisWeather(lat, lng, 3),
+      apisAirQuality(lat, lng).catch(() => null),
       apisSunTimes(lat, lng).catch(() => null),
       apisNagerHolidays(year, 'SK').catch(() => []),
       apisQuotable().catch(() => null),
@@ -422,6 +424,12 @@ export async function createDailyBriefingDocument(args: OpenJournalArgs) {
         ? `${weather.weatherLabel}, ${weather.temperatureC.toFixed(0)}°C`
         : weather.weatherLabel
     weatherLines.push(nowLine)
+    if (aq) {
+      const aqi =
+        aq.europeanAqi != null ? `EAQI ${aq.europeanAqi.toFixed(0)}` : aq.aqiLabel
+      const pm = aq.pm25 != null ? `, PM2.5 ${aq.pm25.toFixed(0)}` : ''
+      weatherLines.push(`Air: ${aq.aqiLabel} (${aqi}${pm})`)
+    }
     for (const day of weather.daily.slice(0, 3)) {
       const hi = day.tempMaxC != null ? `${day.tempMaxC.toFixed(0)}°` : '—'
       const lo = day.tempMinC != null ? `${day.tempMinC.toFixed(0)}°` : '—'
