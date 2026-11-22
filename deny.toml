@@ -1,5 +1,9 @@
 # cargo-deny — https://embarkstudios.github.io/cargo-deny/
 
+# cargo-deny ≥0.22 dropped CLI `--all-features`; enable via graph config instead.
+[graph]
+all-features = true
+
 [advisories]
 version = 2
 yanked = "warn"
@@ -26,6 +30,8 @@ allow = [
   "OpenSSL",
   "NCSA",
   "BSL-1.0",
+  # webpki-roots (rustls)
+  "CDLA-Permissive-2.0",
 ]
 confidence-threshold = 0.8
 

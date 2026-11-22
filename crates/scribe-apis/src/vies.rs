@@ -41,10 +41,9 @@ fn xml_local_text(xml: &str, local: &str) -> Option<String> {
     let ns = format!(":{local}>");
     let start = if let Some(i) = xml.find(&bare) {
         i + bare.len()
-    } else if let Some(i) = xml.find(&ns) {
-        i + ns.len()
     } else {
-        return None;
+        let i = xml.find(&ns)?;
+        i + ns.len()
     };
     let rest = &xml[start..];
     let close_bare = format!("</{local}>");
