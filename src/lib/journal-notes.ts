@@ -402,9 +402,9 @@ export async function createDailyBriefingDocument(args: OpenJournalArgs) {
   const otherOpen = openTasks.filter((task) => task.dueHint !== dateKey).slice(0, 20)
 
   let weatherLines: string[] = []
-  let sunLines: string[] = []
-  let holidayLines: string[] = []
-  let quoteLines: string[] = []
+  const sunLines: string[] = []
+  const holidayLines: string[] = []
+  const quoteLines: string[] = []
   try {
     const { apisWeather, apisAirQuality, apisSunTimes, apisNagerHolidays, apisQuotable } =
       await import('@/lib/apis')
