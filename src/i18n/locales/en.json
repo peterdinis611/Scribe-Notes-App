@@ -1120,6 +1120,10 @@
       "about": {
         "label": "About",
         "description": "Version and info"
+      },
+      "apis": {
+        "label": "Public APIs",
+        "description": "Toggle free opt-in network sources"
       }
     },
     "interface": {
@@ -2586,6 +2590,204 @@
       "keepSaved": "Retention updated",
       "keepInvalid": "Enter a keep limit of at least 100",
       "keepError": "Could not update retention"
+    },
+    "apis": {
+      "title": "Public APIs",
+      "description": "Opt-in network calls from Scribe. Off means that feature skips the network.",
+      "intro": "All calls run in Rust on this Mac when you click — never in the background. Disable any source you do not want used.",
+      "on": "On",
+      "off": "Off",
+      "enableAll": "Enable all",
+      "disableAll": "Disable all",
+      "masterTitle": "Network APIs",
+      "masterHint": "{{enabled}} of {{total}} enabled",
+      "allOn": "All enabled",
+      "allOff": "All disabled",
+      "partial": "{{enabled}} / {{total}} enabled",
+      "groups": {
+        "places": "Places & travel",
+        "weather": "Weather & calendar",
+        "knowledge": "Knowledge & search",
+        "research": "Research & papers",
+        "media": "Media & culture",
+        "foodNature": "Food & nature",
+        "finance": "Finance & business",
+        "writing": "Writing helpers"
+      },
+      "items": {
+        "nominatim": {
+          "label": "Nominatim (geocode)",
+          "hint": "Place search for map blocks"
+        },
+        "photon": {
+          "label": "Photon (Komoot)",
+          "hint": "Geocode fallback when Nominatim is down"
+        },
+        "open_meteo": {
+          "label": "Open-Meteo",
+          "hint": "Weather + air quality in daily briefing"
+        },
+        "sunrise_sunset": {
+          "label": "Sunrise-Sunset",
+          "hint": "Sunrise/sunset in daily briefing"
+        },
+        "nager": {
+          "label": "Nager.Date",
+          "hint": "Public holidays in briefing"
+        },
+        "timezone": {
+          "label": "WorldTimeAPI",
+          "hint": "Timezone lookup"
+        },
+        "overpass": {
+          "label": "OSM Overpass",
+          "hint": "Nearby POIs on the map"
+        },
+        "osrm": {
+          "label": "OSRM",
+          "hint": "Drive ETA between map markers"
+        },
+        "transit": {
+          "label": "OpenTripPlanner",
+          "hint": "Transit plans (your OTP instance)"
+        },
+        "tides": {
+          "label": "NOAA tides",
+          "hint": "Tide stations and predictions"
+        },
+        "rest_countries": {
+          "label": "REST Countries",
+          "hint": "Country facts"
+        },
+        "wikipedia": {
+          "label": "Wikipedia",
+          "hint": "Summaries in wiki hover cards"
+        },
+        "wikidata": {
+          "label": "Wikidata",
+          "hint": "Entity labels for wiki links"
+        },
+        "duckduckgo": {
+          "label": "DuckDuckGo Instant",
+          "hint": "Instant answers in research"
+        },
+        "searx": {
+          "label": "Searx",
+          "hint": "Web search via your Searx instance"
+        },
+        "dictionary": {
+          "label": "Dictionary / Wiktionary",
+          "hint": "Definitions for selection & glossary"
+        },
+        "datamuse": {
+          "label": "Datamuse",
+          "hint": "Synonyms for rewrite / brainstorm"
+        },
+        "languagetool": {
+          "label": "LanguageTool",
+          "hint": "Grammar check for selection & coach"
+        },
+        "libretranslate": {
+          "label": "LibreTranslate",
+          "hint": "Translate selection / agent /translate"
+        },
+        "open_library": {
+          "label": "Open Library",
+          "hint": "Book search"
+        },
+        "crossref": {
+          "label": "Crossref",
+          "hint": "DOI / academic works"
+        },
+        "pubmed": {
+          "label": "PubMed",
+          "hint": "Medical paper search"
+        },
+        "semantic_scholar": {
+          "label": "Semantic Scholar",
+          "hint": "Paper search in research pack"
+        },
+        "openalex": {
+          "label": "OpenAlex",
+          "hint": "Scholarly graph in research pack"
+        },
+        "arxiv": {
+          "label": "arXiv",
+          "hint": "Preprint search"
+        },
+        "unpaywall": {
+          "label": "Unpaywall",
+          "hint": "OA PDF links for DOIs"
+        },
+        "opencitations": {
+          "label": "OpenCitations",
+          "hint": "Who cites a DOI in research pack"
+        },
+        "wayback": {
+          "label": "Wayback Machine",
+          "hint": "Archive snapshots in research"
+        },
+        "openverse": {
+          "label": "Openverse",
+          "hint": "Open-licensed images"
+        },
+        "europeana": {
+          "label": "Europeana",
+          "hint": "EU cultural heritage images (CC)"
+        },
+        "rijksmuseum": {
+          "label": "Rijksmuseum",
+          "hint": "Rijksmuseum open images (CC)"
+        },
+        "oembed": {
+          "label": "oEmbed / noembed",
+          "hint": "Video title & caption on paste"
+        },
+        "met_museum": {
+          "label": "MET Museum",
+          "hint": "Public-domain art objects"
+        },
+        "musicbrainz": {
+          "label": "MusicBrainz",
+          "hint": "Album / release search"
+        },
+        "freesound": {
+          "label": "Freesound",
+          "hint": "CC audio clips for media notes"
+        },
+        "podcasts": {
+          "label": "Podcasts (iTunes)",
+          "hint": "Podcast discovery without API keys"
+        },
+        "mealdb": {
+          "label": "TheMealDB",
+          "hint": "Recipes for food notes"
+        },
+        "open_food_facts": {
+          "label": "Open Food Facts",
+          "hint": "Product / barcode nutrition"
+        },
+        "inaturalist": {
+          "label": "iNaturalist",
+          "hint": "Species and observations"
+        },
+        "quotable": {
+          "label": "Quotable",
+          "hint": "Optional quote in daily briefing"
+        },
+        "frankfurter": {
+          "label": "Frankfurter / FX",
+          "hint": "Currency convert on invoices"
+        },
+        "vies": {
+          "label": "VIES",
+          "hint": "EU VAT ID check on invoices"
+        },
+        "vatcomply": {
+          "label": "VATComply",
+          "hint": "VAT rates + backup VAT check on invoices"
+        }
+      }
     }
   },
   "storageAccess": {
@@ -3200,7 +3402,7 @@
       "faceTitle": "Scribe Spellcheck Agent",
       "dockTitle": "Proofread this note",
       "dockAria": "Spellcheck agent workspace",
-      "askingAbout": "Checking spelling in “{{title}}”",
+      "askingAbout": "Spelling for “{{title}}”",
       "needsDocument": "Open a note to check spelling.",
       "emptyTitle": "Spellcheck Agent",
       "emptyHint": "Offline SK/EN typo check. Apply fixes in one click.",
@@ -4673,6 +4875,8 @@
   "wikiLink": {
     "modified": "Edited {{time}}",
     "emptyDocument": "Empty document",
+    "wikipedia": "Wikipedia: ",
+    "wikipediaOpen": "Open article",
     "previewHint": "Preview of the target document — click the link or use the button below.",
     "openDocument": "Open document",
     "unresolvedTitle": "Unresolved wiki link",
@@ -4912,6 +5116,7 @@
     "title": "PDF preview",
     "ariaLabel": "PDF preview: {{title}}",
     "export": "Export",
+    "refresh": "Refresh",
     "generating": "Generating PDF preview…",
     "loadingPages": "Opening PDF…",
     "pageAria": "{{title}} — page {{page}} of {{total}}",
@@ -5299,6 +5504,12 @@
     "dailyBriefingJournalTitle": "Journal",
     "dailyBriefingJournalHint": "Open today’s note from ⌘K → Today, or write below.",
     "dailyBriefingSummaryPlaceholder": "Brief overview of what needs attention today.",
+    "dailyBriefingWeatherTitle": "Weather",
+    "dailyBriefingWeatherHint": "Open-Meteo forecast + sunrise/sunset (default: Bratislava). Opt-in network via Scribe APIs.",
+    "dailyBriefingSunrise": "Sunrise",
+    "dailyBriefingSunset": "Sunset",
+    "dailyBriefingHolidaysTitle": "Holidays",
+    "dailyBriefingQuoteTitle": "Quote",
     "dailyBriefingError": "Failed to create daily briefing",
     "heatWorkflowHint": "Darker days = more journal notes that day. Click a day or use ⌘K for yesterday / tomorrow.",
     "heatDayTitle": "{{date}} · {{count}} notes",
@@ -5407,6 +5618,23 @@
     "formMode": "Form",
     "jsonMode": "JSON",
     "titleLabel": "Title",
+    "geocodeLabel": "Search place",
+    "geocodePlaceholder": "Bratislava, Vienna…",
+    "geocodeSearch": "Geocode",
+    "geocodeRunning": "Searching…",
+    "geocodeEmpty": "No places found",
+    "geocodeError": "Geocoding failed — check network (Nominatim)",
+    "geocodeApplied": "Place applied to the map",
+    "poiSearch": "Nearby POIs",
+    "poiRunning": "Overpass…",
+    "poiEmpty": "No cafés / libraries nearby",
+    "poiError": "Overpass POI search failed",
+    "poiApplied": "Added {{count}} nearby places",
+    "etaSearch": "Drive ETA",
+    "etaRunning": "OSRM…",
+    "etaNeedMarkers": "Add at least two markers for ETA",
+    "etaResult": "{{km}} km · ~{{mins}} min ({{profile}})",
+    "etaError": "OSRM routing failed",
     "lat": "Latitude",
     "lng": "Longitude",
     "zoom": "Zoom",
@@ -5565,6 +5793,21 @@
     "addItem": "Add item",
     "removeItem": "Remove item",
     "taxPercent": "Tax %",
+    "fxTitle": "Convert unit prices (Frankfurter / ECB)",
+    "fxFrom": "From currency",
+    "fxTo": "To currency",
+    "fxConvert": "Convert line prices",
+    "fxRunning": "Converting…",
+    "fxHint": "Uses today’s ECB rates via Frankfurter. Multiplies every unit price.",
+    "fxApplied": "Converted {{from}} → {{to}} at {{rate}}",
+    "fxError": "FX convert failed — check network and ISO codes (EUR, USD…)",
+    "vatPlaceholder": "VAT ID (e.g. SK2020264768)",
+    "vatCheck": "Check VAT",
+    "vatRunning": "Checking…",
+    "vatValid": "Valid {{vat}} — {{name}}",
+    "vatInvalid": "VAT number not valid",
+    "vatError": "VAT check failed — service may be down",
+    "vatRate": "{{country}} standard VAT {{rate}}%",
     "dueInDays": "Due in (days)",
     "paymentMethod": "Payment method",
     "notes": "Notes",
@@ -5675,6 +5918,8 @@
     "flashcards": "Flashcards",
     "flashcardsEmpty": "No flashcards from this selection",
     "flashcardsError": "Could not extract flashcards",
+    "dictionary": "Dictionary",
+    "dictionaryError": "Dictionary lookup failed",
     "coachTitle": "Writing coach",
     "coachScore": "Score {{score}}",
     "coachEmpty": "No style issues in this selection.",

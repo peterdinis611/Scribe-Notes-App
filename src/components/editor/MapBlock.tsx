@@ -5,6 +5,7 @@ import { Component, useEffect, useMemo, useRef, useState, type ErrorInfo, type R
 import { useTranslation } from 'react-i18next'
 import { Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { toast } from '@/lib/toast'
 import {
   MAP_DEFAULT_SOURCE,
   mapOsmHref,
@@ -148,6 +149,14 @@ export function MapBlock({ node, updateAttributes, selected, editor, deleteNode 
   const [editing, setEditing] = useState(false)
   const [advancedJson, setAdvancedJson] = useState(false)
   const [draft, setDraft] = useState(currentSource)
+  const [geocodeQuery, setGeocodeQuery] = useState('')
+  const [geocodeBusy, setGeocodeBusy] = useState(false)
+  const [geocodeHits, setGeocodeHits] = useState<
+    Array<{ displayName: string; lat: number; lng: number }>
+  >([])
+  const [poiBusy, setPoiBusy] = useState(false)
+  const [etaBusy, setEtaBusy] = useState(false)
+  const [etaHint, setEtaHint] = useState<string | null>(null)
   const [form, setForm] = useState<MapSpec>(() => {
     const parsed = parseMapSpec(currentSource)
     return parsed.ok
@@ -193,6 +202,94 @@ export function MapBlock({ node, updateAttributes, selected, editor, deleteNode 
       ...prev,
       markers: prev.markers.filter((_, i) => i !== index),
     }))
+  }
+
+  async function runGeocode() {
+    const q = geocodeQuery.trim()
+    if (q.length < 2 || geocodeBusy) return
+    setGeocodeBusy(true)
+    try {
+      const { apisGeocode } = await import('@/lib/apis')
+      const hits = await apisGeocode(q, 5)
+      setGeocodeHits(hits)
+      if (!hits.length) toast.error(t('map.geocodeEmpty'))
+    } catch {
+      setGeocodeHits([])
+      toast.error(t('map.geocodeError'))
+    } finally {
+      setGeocodeBusy(false)
+    }
+  }
+
+  async function runNearbyPois() {
+    if (poiBusy) return
+    setPoiBusy(true)
+    try {
+      const { apisOverpassPois } = await import('@/lib/apis')
+      const pois = await apisOverpassPois(form.lat, form.lng, {
+        radiusM: 900,
+        amenities: ['cafe', 'library', 'restaurant', 'pharmacy'],
+        limit: 12,
+      })
+      if (!pois.length) {
+        toast.error(t('map.poiEmpty'))
+        return
+      }
+      setForm((prev) => ({
+        ...prev,
+        markers: [
+          ...prev.markers,
+          ...pois.map((poi) => ({
+            lat: poi.latitude,
+            lng: poi.longitude,
+            label: `${poi.name} (${poi.kind})`,
+          })),
+        ],
+      }))
+      toast.success(t('map.poiApplied', { count: pois.length }))
+    } catch {
+      toast.error(t('map.poiError'))
+    } finally {
+      setPoiBusy(false)
+    }
+  }
+
+  async function runOsrmEta() {
+    if (etaBusy) return
+    const points =
+      form.markers.length >= 2
+        ? form.markers
+        : [
+            { lat: form.lat, lng: form.lng, label: '' },
+            ...(form.markers[0] ? [form.markers[0]] : []),
+          ]
+    if (points.length < 2) {
+      toast.error(t('map.etaNeedMarkers'))
+      return
+    }
+    setEtaBusy(true)
+    try {
+      const { apisOsrmRoute } = await import('@/lib/apis')
+      const a = points[0]
+      const b = points[1]
+      const route = await apisOsrmRoute({
+        profile: 'driving',
+        fromLat: a.lat,
+        fromLng: a.lng,
+        toLat: b.lat,
+        toLng: b.lng,
+      })
+      const km = (route.distanceM / 1000).toFixed(1)
+      const mins = Math.max(1, Math.round(route.durationSec / 60))
+      const hint = t('map.etaResult', { km, mins, profile: route.profile })
+      setEtaHint(hint)
+      toast.success(hint)
+    } catch {
+      setEtaHint(null)
+      toast.error(t('map.etaError'))
+    } finally {
+      setEtaBusy(false)
+    }
   }
 
   return (
@@ -267,6 +364,76 @@ export function MapBlock({ node, updateAttributes, selected, editor, deleteNode 
                 onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))}
               />
             </label>
+            <div className="map-block__geocode">
+              <label>
+                <span>{t('map.geocodeLabel')}</span>
+                <input
+                  value={geocodeQuery}
+                  placeholder={t('map.geocodePlaceholder')}
+                  onChange={(event) => setGeocodeQuery(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault()
+                      void runGeocode()
+                    }
+                  }}
+                />
+              </label>
+              <button
+                type="button"
+                className="map-block__btn"
+                disabled={geocodeBusy || geocodeQuery.trim().length < 2}
+                onClick={() => void runGeocode()}
+              >
+                {geocodeBusy ? t('map.geocodeRunning') : t('map.geocodeSearch')}
+              </button>
+              <button
+                type="button"
+                className="map-block__btn"
+                disabled={poiBusy}
+                onClick={() => void runNearbyPois()}
+              >
+                {poiBusy ? t('map.poiRunning') : t('map.poiSearch')}
+              </button>
+              <button
+                type="button"
+                className="map-block__btn"
+                disabled={etaBusy}
+                onClick={() => void runOsrmEta()}
+              >
+                {etaBusy ? t('map.etaRunning') : t('map.etaSearch')}
+              </button>
+            </div>
+            {etaHint ? <p className="map-block__click-hint">{etaHint}</p> : null}
+            {geocodeHits.length > 0 ? (
+              <ul className="map-block__geocode-hits">
+                {geocodeHits.map((hit) => (
+                  <li key={`${hit.lat}-${hit.lng}-${hit.displayName}`}>
+                    <button
+                      type="button"
+                      className="map-block__geocode-hit"
+                      onClick={() => {
+                        setForm((prev) => ({
+                          ...prev,
+                          lat: hit.lat,
+                          lng: hit.lng,
+                          title: prev.title?.trim() ? prev.title : hit.displayName.split(',')[0]?.trim() || hit.displayName,
+                          markers: [
+                            ...prev.markers,
+                            { lat: hit.lat, lng: hit.lng, label: hit.displayName.split(',')[0]?.trim() || hit.displayName },
+                          ],
+                        }))
+                        setGeocodeHits([])
+                        setGeocodeQuery('')
+                        toast.success(t('map.geocodeApplied'))
+                      }}
+                    >
+                      {hit.displayName}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
             <div className="map-block__form-row">
               <label>
                 <span>{t('map.lat')}</span>

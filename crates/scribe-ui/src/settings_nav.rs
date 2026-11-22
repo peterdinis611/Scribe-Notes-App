@@ -15,6 +15,7 @@ pub enum SettingsSection {
     Nlp,
     Agent,
     Capture,
+    Apis,
     Privacy,
     About,
 }
@@ -31,6 +32,7 @@ impl SettingsSection {
             Self::Nlp => "nlp",
             Self::Agent => "agent",
             Self::Capture => "capture",
+            Self::Apis => "apis",
             Self::Privacy => "privacy",
             Self::About => "about",
         }
@@ -47,6 +49,7 @@ impl SettingsSection {
             "nlp" => Some(Self::Nlp),
             "agent" => Some(Self::Agent),
             "capture" => Some(Self::Capture),
+            "apis" => Some(Self::Apis),
             "privacy" => Some(Self::Privacy),
             "about" => Some(Self::About),
             _ => None,
@@ -72,7 +75,8 @@ mod tests {
     fn known_sections() {
         assert!(is_settings_section("agent"));
         assert!(is_settings_section("nlp"));
+        assert!(is_settings_section("apis"));
         assert!(!is_settings_section("audit"));
-        assert_eq!(settings_section_ids().len(), 11);
+        assert_eq!(settings_section_ids().len(), 12);
     }
 }

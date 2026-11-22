@@ -1,6 +1,6 @@
 [package]
 name = "app"
-version = "5.4.0"
+version = "5.5.0"
 description = "A Tauri App"
 authors = ["Peter Dinis"]
 license = "MIT"
@@ -47,6 +47,7 @@ scribe-capture = { path = "../crates/scribe-capture" }
 scribe-toast = { path = "../crates/scribe-toast" }
 scribe-websockets = { path = "../crates/scribe-websockets", features = ["server"] }
 scribe-logging = { path = "../crates/scribe-logging" }
+scribe-apis = { path = "../crates/scribe-apis" }
 sha2 = "0.10"
 tauri-plugin-persisted-scope = { version = "2.3.7", features = ["protocol-asset"] }
 tauri-plugin-positioner = { version = "2.4.0", features = ["tray-icon"] }

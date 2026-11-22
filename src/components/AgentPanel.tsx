@@ -1439,7 +1439,10 @@ export function AgentPanel({
         ) : null}
 
         {scope === 'document' && toolOptions.length > 0 ? (
-          <div className="mt-2 flex flex-wrap gap-1 px-0.5" aria-label={t('agent.capabilitiesLabel')}>
+          <div
+            className="mt-2 flex w-full min-w-0 flex-wrap gap-1 px-0.5"
+            aria-label={t('agent.capabilitiesLabel')}
+          >
             {toolOptions.slice(0, 6).map((tool) => (
               <span key={tool} className="agent-capability-chip">
                 {t(TOOL_LABEL_KEYS[tool])}
@@ -1448,7 +1451,7 @@ export function AgentPanel({
           </div>
         ) : null}
 
-        <div className="mt-2 flex flex-wrap items-center gap-1.5 px-0.5">
+        <div className="mt-2 flex w-full min-w-0 flex-wrap items-center gap-1.5 px-0.5">
           <button
             type="button"
             className="library-chat-chip"

@@ -34,11 +34,121 @@ export function InvoiceDialogHost() {
   const open = useAppSelector((state) => state.ui.invoiceDialog.open)
   const seed = useAppSelector((state) => state.ui.invoiceDialog.seed)
   const [draft, setDraft] = useState<InvoiceDialogDraft>(() => loadInvoiceDraft())
+  const [fxFrom, setFxFrom] = useState('EUR')
+  const [fxTo, setFxTo] = useState('USD')
+  const [fxBusy, setFxBusy] = useState(false)
+  const [fxHint, setFxHint] = useState<string | null>(null)
+  const [vatBusy, setVatBusy] = useState(false)
+  const [vatHint, setVatHint] = useState<string | null>(null)
 
   useEffect(() => {
     if (!open) return
     setDraft(normalizeInvoiceDraft({ ...loadInvoiceDraft(), ...(seed ?? {}) } as Partial<InvoiceDialogDraft>))
+    setFxHint(null)
+    setVatHint(null)
   }, [open, seed])
+
+  async function convertPricesWithFx() {
+    if (fxBusy) return
+    setFxBusy(true)
+    try {
+      const { apisFxConvert } = await import('@/lib/apis')
+      const sample = await apisFxConvert(1, fxFrom, fxTo)
+      setDraft((prev) => ({
+        ...prev,
+        items: prev.items.map((item) => ({
+          ...item,
+          unitPrice: Math.round(item.unitPrice * sample.result * 100) / 100,
+        })),
+      }))
+      setFxHint(
+        t('invoiceDialog.fxApplied', {
+          from: fxFrom.toUpperCase(),
+          to: fxTo.toUpperCase(),
+          rate: sample.result.toFixed(4),
+        }),
+      )
+    } catch {
+      setFxHint(t('invoiceDialog.fxError'))
+    } finally {
+      setFxBusy(false)
+    }
+  }
+
+  async function checkVat(which: 'company' | 'billTo') {
+    if (vatBusy) return
+    const raw = which === 'company' ? draft.companyVat : draft.billToVat
+    if (raw.trim().length < 6) return
+    setVatBusy(true)
+    try {
+      const { apisViesCheck, apisVatcomplyCheck, apisVatcomplyRate } = await import('@/lib/apis')
+      let result: {
+        countryCode: string
+        vatNumber: string
+        valid: boolean
+        name?: string | null
+        address?: string | null
+      }
+      try {
+        result = await apisViesCheck(raw.trim())
+      } catch {
+        result = await apisVatcomplyCheck(raw.trim())
+      }
+      let rateHint = ''
+      try {
+        const rate = await apisVatcomplyRate(result.countryCode)
+        if (rate.standardRate != null) {
+          rateHint = t('invoiceDialog.vatRate', {
+            country: rate.name || rate.countryCode,
+            rate: rate.standardRate,
+          })
+        }
+      } catch {
+        // optional rate lookup
+      }
+      if (result.valid) {
+        setVatHint(
+          [
+            t('invoiceDialog.vatValid', {
+              vat: `${result.countryCode}${result.vatNumber}`,
+              name: result.name || '—',
+            }),
+            rateHint,
+          ]
+            .filter(Boolean)
+            .join(' · '),
+        )
+        if (which === 'company' && result.name) {
+          setDraft((prev) => ({
+            ...prev,
+            companyName: prev.companyName.trim() ? prev.companyName : result.name || prev.companyName,
+            companyAddress: prev.companyAddress.trim()
+              ? prev.companyAddress
+              : result.address || prev.companyAddress,
+            companyVat: `${result.countryCode}${result.vatNumber}`,
+          }))
+        }
+        if (which === 'billTo' && result.name) {
+          setDraft((prev) => ({
+            ...prev,
+            billToName: prev.billToName.trim() ? prev.billToName : result.name || prev.billToName,
+            billToAddress: prev.billToAddress.trim()
+              ? prev.billToAddress
+              : result.address || prev.billToAddress,
+            billToVat: `${result.countryCode}${result.vatNumber}`,
+          }))
+        }
+      } else {
+        setVatHint(
+          [t('invoiceDialog.vatInvalid'), rateHint].filter(Boolean).join(' · '),
+        )
+      }
+    } catch {
+      setVatHint(t('invoiceDialog.vatError'))
+    } finally {
+      setVatBusy(false)
+    }
+  }
 
   const totals = useMemo(() => {
     const subtotal = draft.items.reduce(
@@ -116,6 +226,22 @@ export function InvoiceDialogHost() {
                   placeholder={t('invoiceDialog.address')}
                   onChange={(e) => setDraft((prev) => ({ ...prev, companyAddress: e.target.value }))}
                 />
+                <div className="flex flex-wrap items-center gap-2">
+                  <Input
+                    value={draft.companyVat}
+                    placeholder={t('invoiceDialog.vatPlaceholder')}
+                    onChange={(e) => setDraft((prev) => ({ ...prev, companyVat: e.target.value }))}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={vatBusy || draft.companyVat.trim().length < 6}
+                    onClick={() => void checkVat('company')}
+                  >
+                    {vatBusy ? t('invoiceDialog.vatRunning') : t('invoiceDialog.vatCheck')}
+                  </Button>
+                </div>
               </fieldset>
 
               <fieldset className="grid gap-2 rounded-[var(--radius-md)] border border-[var(--color-border)] p-3 sm:col-span-2">
@@ -142,6 +268,25 @@ export function InvoiceDialogHost() {
                   placeholder={t('invoiceDialog.phone')}
                   onChange={(e) => setDraft((prev) => ({ ...prev, billToPhone: e.target.value }))}
                 />
+                <div className="flex flex-wrap items-center gap-2">
+                  <Input
+                    value={draft.billToVat}
+                    placeholder={t('invoiceDialog.vatPlaceholder')}
+                    onChange={(e) => setDraft((prev) => ({ ...prev, billToVat: e.target.value }))}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={vatBusy || draft.billToVat.trim().length < 6}
+                    onClick={() => void checkVat('billTo')}
+                  >
+                    {vatBusy ? t('invoiceDialog.vatRunning') : t('invoiceDialog.vatCheck')}
+                  </Button>
+                </div>
+                {vatHint ? (
+                  <p className="text-[11px] text-[var(--color-muted-foreground)]">{vatHint}</p>
+                ) : null}
               </fieldset>
 
               <fieldset className="grid gap-2 sm:col-span-2">
@@ -224,6 +369,40 @@ export function InvoiceDialogHost() {
                   }
                 />
               </label>
+              <div className="grid gap-1.5 text-[12px] sm:col-span-2">
+                <span className="font-medium">{t('invoiceDialog.fxTitle')}</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Input
+                    className="w-20"
+                    value={fxFrom}
+                    aria-label={t('invoiceDialog.fxFrom')}
+                    onChange={(e) => setFxFrom(e.target.value.toUpperCase())}
+                  />
+                  <span className="text-[var(--color-muted-foreground)]">→</span>
+                  <Input
+                    className="w-20"
+                    value={fxTo}
+                    aria-label={t('invoiceDialog.fxTo')}
+                    onChange={(e) => setFxTo(e.target.value.toUpperCase())}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={fxBusy || fxFrom.trim().length !== 3 || fxTo.trim().length !== 3}
+                    onClick={() => void convertPricesWithFx()}
+                  >
+                    {fxBusy ? t('invoiceDialog.fxRunning') : t('invoiceDialog.fxConvert')}
+                  </Button>
+                </div>
+                {fxHint ? (
+                  <p className="text-[11px] text-[var(--color-muted-foreground)]">{fxHint}</p>
+                ) : (
+                  <p className="text-[11px] text-[var(--color-muted-foreground)]">
+                    {t('invoiceDialog.fxHint')}
+                  </p>
+                )}
+              </div>
               <label className="grid gap-1.5 text-[12px]">
                 <span className="font-medium">{t('invoiceDialog.dueInDays')}</span>
                 <Input

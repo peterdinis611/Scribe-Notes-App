@@ -12,6 +12,7 @@ const RUST_SETTINGS_SECTION_IDS = [
   'nlp',
   'agent',
   'capture',
+  'apis',
   'privacy',
   'about',
 ] as const satisfies readonly SettingsSection[]
@@ -23,6 +24,7 @@ describe('isSettingsSection', () => {
     expect(isSettingsSection('nlp')).toBe(true)
     expect(isSettingsSection('agent')).toBe(true)
     expect(isSettingsSection('capture')).toBe(true)
+    expect(isSettingsSection('apis')).toBe(true)
     expect(isSettingsSection('about')).toBe(true)
     expect(isSettingsSection('privacy')).toBe(true)
   })
@@ -36,7 +38,7 @@ describe('isSettingsSection', () => {
     for (const id of RUST_SETTINGS_SECTION_IDS) {
       expect(isSettingsSection(id)).toBe(true)
     }
-    expect(RUST_SETTINGS_SECTION_IDS).toHaveLength(11)
+    expect(RUST_SETTINGS_SECTION_IDS).toHaveLength(12)
   })
 })
 

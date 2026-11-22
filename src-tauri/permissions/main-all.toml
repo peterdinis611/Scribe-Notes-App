@@ -4,6 +4,7 @@ description = "All Scribe app commands for the main window (IPC ACL baseline)"
 permissions = [
   "group-agent",
   "group-antivirus",
+  "group-apis",
   "group-audit",
   "group-backup",
   "group-capture",

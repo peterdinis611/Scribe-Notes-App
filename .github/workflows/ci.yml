@@ -116,6 +116,9 @@ jobs:
       - name: Clippy scribe-websockets
         run: cargo clippy -p scribe-websockets --locked --all-targets -- -D warnings
 
+      - name: Clippy scribe-apis
+        run: cargo clippy -p scribe-apis --locked --all-targets -- -D warnings
+
       - name: Test workspace crates (exclude app)
         run: cargo test --workspace --exclude app --locked
 
@@ -162,10 +165,8 @@ jobs:
       - name: Cargo test (workspace + app)
         run: cargo test --workspace --locked
 
-  # Optional macOS smoke test. Use macos-15 only — macos-14 hosted runners
-  # frequently cancel before acquire, and a cancelled job still marks the whole
-  # workflow conclusion as "cancelled" even with continue-on-error.
-  # Hard macOS release gate remains in Build (primary + fallback).
+  # Optional macOS smoke test (macos-15). Soft: capacity cancellations must not
+  # fail the whole CI suite. Hard macOS release gate remains in Build.
   rust-macos:
     name: Rust (macos-15)
     runs-on: macos-15

@@ -685,8 +685,46 @@ export async function runAgentRewrite(
       ? 'formal'
       : 'clarity'
   const result = await nlpRewriteSelection(source, mode, goal.slice(0, 200))
+  const seedWord = source
+    .split(/\s+/)
+    .map((w) => w.replace(/[^\p{L}\p{N}-]/gu, ''))
+    .filter((w) => w.length >= 4)
+    .slice(0, 3)
+  const synonymBlocks: string[] = []
+  try {
+    const { apisDatamuseSynonyms, apisDatamuseMeansLike } = await import('@/lib/apis')
+    for (const word of seedWord) {
+      const [syn, means] = await Promise.all([
+        apisDatamuseSynonyms(word, 6).catch(() => []),
+        apisDatamuseMeansLike(word, 4).catch(() => []),
+      ])
+      const synWords = syn.map((s) => s.word).filter(Boolean)
+      const meanWords = means.map((s) => s.word).filter(Boolean)
+      if (synWords.length) synonymBlocks.push(`**${word}** synonyms: ${synWords.join(', ')}`)
+      if (meanWords.length) synonymBlocks.push(`**${word}** means-like: ${meanWords.join(', ')}`)
+    }
+  } catch {
+    // optional enrichment
+  }
+  const synonymSection = synonymBlocks.length
+    ? `\n\n**Datamuse**\n\n${synonymBlocks.join('\n')}`
+    : ''
+  let grammarSection = ''
+  try {
+    const { apisLanguageTool } = await import('@/lib/apis')
+    const lt = await apisLanguageTool(source.slice(0, 4000), 'auto')
+    const lines = lt.matches.slice(0, 6).map((m) => {
+      const fix = m.replacements[0] ? ` → _${m.replacements[0]}_` : ''
+      return `- ${m.shortMessage || m.message}${fix}`
+    })
+    if (lines.length) {
+      grammarSection = `\n\n**LanguageTool** (_${lt.language}_)\n\n${lines.join('\n')}`
+    }
+  } catch {
+    // optional
+  }
   return {
-    answer: `**Rewrite** (_${result.mode}_)\n\n${result.output}`,
+    answer: `**Rewrite** (_${result.mode}_)\n\n${result.output}${synonymSection}${grammarSection}`,
     citations: [{ documentId, title: 'Rewrite', snippet: result.original.slice(0, 120) }],
     rewriteSource: result.original || source,
   }
@@ -825,22 +863,36 @@ export async function runAgentTranslate(
   if (!source.trim()) {
     return { answer: 'Nothing to translate — select text or open a note.', citations: [] }
   }
-  const target = /\bsk\b|sloven/i.test(goal)
-    ? 'Slovak'
-    : /\ben\b|english|anglick/i.test(goal)
-      ? 'English'
-      : /sloven/i.test(goal)
-        ? 'Slovak'
-        : 'English'
-  const result = await nlpRewriteSelection(
-    source.slice(0, 4000),
-    'clarity',
-    `Translate the following text into ${target}. Keep meaning; do not add commentary.`,
-  )
-  return {
-    answer: `**Translate → ${target}**\n\n${result.output}`,
-    citations: [{ documentId, title: 'Translate', snippet: source.slice(0, 120) }],
-    rewriteSource: source.slice(0, 800),
+  const targetCode = /\bsk\b|sloven/i.test(goal)
+    ? 'sk'
+    : /\bde\b|german|nemeck/i.test(goal)
+      ? 'de'
+      : /\bfr\b|french|franc/i.test(goal)
+        ? 'fr'
+        : 'en'
+  const targetLabel =
+    targetCode === 'sk' ? 'Slovak' : targetCode === 'de' ? 'German' : targetCode === 'fr' ? 'French' : 'English'
+  try {
+    const { apisLibreTranslate } = await import('@/lib/apis')
+    const translated = await apisLibreTranslate(source.slice(0, 4000), targetCode, {
+      source: 'auto',
+    })
+    return {
+      answer: `**Translate → ${targetLabel}** _(LibreTranslate)_\n\n${translated.translatedText}`,
+      citations: [{ documentId, title: 'Translate', snippet: source.slice(0, 120) }],
+      rewriteSource: source.slice(0, 800),
+    }
+  } catch {
+    const result = await nlpRewriteSelection(
+      source.slice(0, 4000),
+      'clarity',
+      `Translate the following text into ${targetLabel}. Keep meaning; do not add commentary.`,
+    )
+    return {
+      answer: `**Translate → ${targetLabel}**\n\n${result.output}`,
+      citations: [{ documentId, title: 'Translate', snippet: source.slice(0, 120) }],
+      rewriteSource: source.slice(0, 800),
+    }
   }
 }
 
@@ -874,11 +926,57 @@ export async function runAgentResearchPack(
   goal: string,
 ): Promise<LibraryChatResult> {
   const claim = goal.trim() || 'key claims in this note'
-  const [citations, similar, takeaways] = await Promise.all([
-    runAgentCitations(claim),
-    nlpSimilarDocuments(documentId, 6).catch(() => []),
-    nlpExtractTakeaways({ documentId, limit: 8 }).catch(() => null),
-  ])
+  const [citations, similar, takeaways, web, papers, pubmed, openalex, arxiv, meals, met, euro, rijks, sounds, pods] =
+    await Promise.all([
+      runAgentCitations(claim),
+      nlpSimilarDocuments(documentId, 6).catch(() => []),
+      nlpExtractTakeaways({ documentId, limit: 8 }).catch(() => null),
+      import('@/lib/apis')
+        .then(({ apisWebInstant }) => apisWebInstant(claim))
+        .catch(() => null),
+      import('@/lib/apis')
+        .then(({ apisSemanticScholar }) => apisSemanticScholar(claim, 4))
+        .catch(() => []),
+      import('@/lib/apis')
+        .then(({ apisPubmed }) => apisPubmed(claim, 4))
+        .catch(() => []),
+      import('@/lib/apis')
+        .then(({ apisOpenAlex }) => apisOpenAlex(claim, 4))
+        .catch(() => []),
+      import('@/lib/apis')
+        .then(({ apisArxiv }) => apisArxiv(claim, 3))
+        .catch(() => []),
+      /meal|recipe|cook|jedlo|recept/i.test(claim)
+        ? import('@/lib/apis')
+            .then(({ apisMealdbSearch }) => apisMealdbSearch(claim, 3))
+            .catch(() => [])
+        : Promise.resolve([]),
+      /art|museum|paint|kultúr|creative/i.test(claim)
+        ? import('@/lib/apis')
+            .then(({ apisMetSearch }) => apisMetSearch(claim, 3, true))
+            .catch(() => [])
+        : Promise.resolve([]),
+      /art|museum|europe|heritage|kultúr|paint/i.test(claim)
+        ? import('@/lib/apis')
+            .then(({ apisEuropeana }) => apisEuropeana(claim, 3))
+            .catch(() => [])
+        : Promise.resolve([]),
+      /art|museum|rijks|dutch|paint/i.test(claim)
+        ? import('@/lib/apis')
+            .then(({ apisRijksmuseum }) => apisRijksmuseum(claim, 3))
+            .catch(() => [])
+        : Promise.resolve([]),
+      /sound|audio|sfx|zvuk|freesound/i.test(claim)
+        ? import('@/lib/apis')
+            .then(({ apisFreesound }) => apisFreesound(claim, 3))
+            .catch(() => [])
+        : Promise.resolve([]),
+      /podcast|episode|show|podcast/i.test(claim)
+        ? import('@/lib/apis')
+            .then(({ apisPodcasts }) => apisPodcasts(claim, 3))
+            .catch(() => [])
+        : Promise.resolve([]),
+    ])
   const similarLines = (similar ?? []).slice(0, 6).map((item) => {
     const title = item.title || 'Related'
     const snip = item.snippet ? `: ${item.snippet}` : ''
@@ -888,10 +986,147 @@ export async function runAgentResearchPack(
     .slice(0, 8)
     .map((item) => item.text)
     .filter(Boolean)
+  const webLines: string[] = []
+  const candidateUrls: string[] = []
+  if (web) {
+    if (web.heading) webLines.push(`**${web.heading}**`)
+    if (web.abstractText) webLines.push(web.abstractText)
+    else if (web.answer) webLines.push(web.answer)
+    for (const related of web.related.slice(0, 4)) {
+      webLines.push(
+        related.url ? `- [${related.text}](${related.url})` : `- ${related.text}`,
+      )
+      if (related.url) candidateUrls.push(related.url)
+    }
+    if (web.abstractUrl) {
+      webLines.push(`[Source](${web.abstractUrl})`)
+      candidateUrls.push(web.abstractUrl)
+    }
+  }
+  const waybackLines: string[] = []
+  if (candidateUrls.length) {
+    const { apisWayback } = await import('@/lib/apis')
+    for (const url of candidateUrls.slice(0, 3)) {
+      try {
+        const snap = await apisWayback(url)
+        if (snap.available && snap.archivedUrl) {
+          waybackLines.push(`- [${snap.timestamp || 'snapshot'}](${snap.archivedUrl}) ← ${url}`)
+        }
+      } catch {
+        // skip unavailable archives
+      }
+    }
+  }
+  const paperLines = (papers ?? []).slice(0, 4).map((p) => {
+    const year = p.year != null ? ` (${p.year})` : ''
+    const authors = p.authors.slice(0, 3).join(', ')
+    const head = authors ? `${authors} — ` : ''
+    return p.url
+      ? `- ${head}[${p.title}](${p.url})${year}`
+      : `- ${head}${p.title}${year}`
+  })
+  const pubmedLines = (pubmed ?? []).slice(0, 4).map((p) => {
+    const authors = p.authors.slice(0, 3).join(', ')
+    const head = authors ? `${authors} — ` : ''
+    return `- ${head}[${p.title}](${p.url})`
+  })
+  const openalexLines: string[] = []
+  const dois: string[] = []
+  for (const p of openalex ?? []) {
+    const year = p.year != null ? ` (${p.year})` : ''
+    const authors = p.authors.slice(0, 3).join(', ')
+    const head = authors ? `${authors} — ` : ''
+    const link = p.oaUrl || p.url
+    openalexLines.push(link ? `- ${head}[${p.title}](${link})${year}` : `- ${head}${p.title}${year}`)
+    if (p.doi) dois.push(p.doi)
+  }
+  const arxivLines = (arxiv ?? []).slice(0, 3).map((p) => {
+    const authors = p.authors.slice(0, 3).join(', ')
+    const head = authors ? `${authors} — ` : ''
+    const href = p.pdfUrl || p.absUrl
+    return `- ${head}[${p.title}](${href})`
+  })
+  const oaLines: string[] = []
+  if (dois.length) {
+    const { apisUnpaywall } = await import('@/lib/apis')
+    for (const doi of dois.slice(0, 3)) {
+      try {
+        const oa = await apisUnpaywall(doi)
+        if (oa.isOa && (oa.pdfUrl || oa.landingPageUrl)) {
+          oaLines.push(
+            `- [${oa.title || doi}](${oa.pdfUrl || oa.landingPageUrl}) (${oa.oaStatus || 'OA'})`,
+          )
+        }
+      } catch {
+        // skip
+      }
+    }
+  }
+  const mealLines = (meals ?? []).slice(0, 3).map((m) => {
+    const area = m.area ? ` · ${m.area}` : ''
+    const ings = m.ingredients.slice(0, 6).join(', ')
+    return `- **${m.name}**${area}${ings ? `\n  Ingredients: ${ings}` : ''}`
+  })
+  const metLines = (met ?? []).slice(0, 3).map((o) => {
+    const artist = o.artist ? ` — ${o.artist}` : ''
+    return o.objectUrl
+      ? `- [${o.title}](${o.objectUrl})${artist}`
+      : `- ${o.title}${artist}`
+  })
+  const citationLines: string[] = []
+  if (dois.length) {
+    const { apisOpenCitations } = await import('@/lib/apis')
+    for (const doi of dois.slice(0, 2)) {
+      try {
+        const bundle = await apisOpenCitations(doi, 4)
+        if (bundle.citedBy.length) {
+          citationLines.push(`**${doi}** cited by ${bundle.citingCount}+`)
+          for (const link of bundle.citedBy.slice(0, 3)) {
+            citationLines.push(`- ${link.citing}`)
+          }
+        }
+      } catch {
+        // skip
+      }
+    }
+  }
+  const euroLines = (euro ?? []).slice(0, 3).map((img) => {
+    const href = img.foreignLandingUrl || img.url
+    const credit = img.creator ? ` — ${img.creator}` : ''
+    return `- [${img.title}](${href})${credit}`
+  })
+  const rijksLines = (rijks ?? []).slice(0, 3).map((img) => {
+    const href = img.foreignLandingUrl || img.url
+    const credit = img.creator ? ` — ${img.creator}` : ''
+    return `- [${img.title}](${href})${credit}`
+  })
+  const soundLines = (sounds ?? []).slice(0, 3).map((s) => {
+    const href = s.foreignLandingUrl || s.url
+    return `- [${s.title}](${href})`
+  })
+  const podLines = (pods ?? []).slice(0, 3).map((p) => {
+    const href = p.itunesUrl || p.feedUrl
+    const artist = p.artist ? ` — ${p.artist}` : ''
+    return href ? `- [${p.title}](${href})${artist}` : `- ${p.title}${artist}`
+  })
   const parts = [
     citations.answer,
     similarLines.length ? `**Related notes**\n\n${bullets(similarLines)}` : '',
     takeawayLines.length ? `**Takeaways**\n\n${bullets(takeawayLines)}` : '',
+    webLines.length ? `**Web (DuckDuckGo Instant Answer)**\n\n${webLines.join('\n')}` : '',
+    waybackLines.length ? `**Wayback snapshots**\n\n${waybackLines.join('\n')}` : '',
+    paperLines.length ? `**Semantic Scholar**\n\n${paperLines.join('\n')}` : '',
+    pubmedLines.length ? `**PubMed**\n\n${pubmedLines.join('\n')}` : '',
+    openalexLines.length ? `**OpenAlex**\n\n${openalexLines.join('\n')}` : '',
+    arxivLines.length ? `**arXiv**\n\n${arxivLines.join('\n')}` : '',
+    oaLines.length ? `**Unpaywall (OA PDF)**\n\n${oaLines.join('\n')}` : '',
+    citationLines.length ? `**OpenCitations**\n\n${citationLines.join('\n')}` : '',
+    mealLines.length ? `**TheMealDB**\n\n${mealLines.join('\n')}` : '',
+    metLines.length ? `**MET Museum**\n\n${metLines.join('\n')}` : '',
+    euroLines.length ? `**Europeana**\n\n${euroLines.join('\n')}` : '',
+    rijksLines.length ? `**Rijksmuseum**\n\n${rijksLines.join('\n')}` : '',
+    soundLines.length ? `**Freesound**\n\n${soundLines.join('\n')}` : '',
+    podLines.length ? `**Podcasts**\n\n${podLines.join('\n')}` : '',
   ].filter(Boolean)
   return {
     answer: `**Research pack**\n\n${parts.join('\n\n')}`,

@@ -1,6 +1,7 @@
 pub mod libraries;
 pub mod agent;
 pub mod antivirus;
+pub mod apis;
 pub mod audit;
 pub mod ui;
 pub mod vault_crypto;

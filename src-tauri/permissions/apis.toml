@@ -1,0 +1,317 @@
+[[permission]]
+identifier = "allow-apis-air-quality"
+description = "Allow apis_air_quality"
+commands.allow = ["apis_air_quality"]
+
+[[permission]]
+identifier = "allow-apis-arxiv"
+description = "Allow apis_arxiv"
+commands.allow = ["apis_arxiv"]
+
+[[permission]]
+identifier = "allow-apis-country"
+description = "Allow apis_country"
+commands.allow = ["apis_country"]
+
+[[permission]]
+identifier = "allow-apis-crossref"
+description = "Allow apis_crossref"
+commands.allow = ["apis_crossref"]
+
+[[permission]]
+identifier = "allow-apis-datamuse-means-like"
+description = "Allow apis_datamuse_means_like"
+commands.allow = ["apis_datamuse_means_like"]
+
+[[permission]]
+identifier = "allow-apis-datamuse-synonyms"
+description = "Allow apis_datamuse_synonyms"
+commands.allow = ["apis_datamuse_synonyms"]
+
+[[permission]]
+identifier = "allow-apis-dictionary"
+description = "Allow apis_dictionary"
+commands.allow = ["apis_dictionary"]
+
+[[permission]]
+identifier = "allow-apis-europeana"
+description = "Allow apis_europeana"
+commands.allow = ["apis_europeana"]
+
+[[permission]]
+identifier = "allow-apis-food-product"
+description = "Allow apis_food_product"
+commands.allow = ["apis_food_product"]
+
+[[permission]]
+identifier = "allow-apis-food-search"
+description = "Allow apis_food_search"
+commands.allow = ["apis_food_search"]
+
+[[permission]]
+identifier = "allow-apis-freesound"
+description = "Allow apis_freesound"
+commands.allow = ["apis_freesound"]
+
+[[permission]]
+identifier = "allow-apis-fx-convert"
+description = "Allow apis_fx_convert"
+commands.allow = ["apis_fx_convert"]
+
+[[permission]]
+identifier = "allow-apis-fx-rates"
+description = "Allow apis_fx_rates"
+commands.allow = ["apis_fx_rates"]
+
+[[permission]]
+identifier = "allow-apis-geocode"
+description = "Allow apis_geocode"
+commands.allow = ["apis_geocode"]
+
+[[permission]]
+identifier = "allow-apis-inaturalist-nearby"
+description = "Allow apis_inaturalist_nearby"
+commands.allow = ["apis_inaturalist_nearby"]
+
+[[permission]]
+identifier = "allow-apis-inaturalist-taxa"
+description = "Allow apis_inaturalist_taxa"
+commands.allow = ["apis_inaturalist_taxa"]
+
+[[permission]]
+identifier = "allow-apis-languagetool"
+description = "Allow apis_languagetool"
+commands.allow = ["apis_languagetool"]
+
+[[permission]]
+identifier = "allow-apis-libretranslate"
+description = "Allow apis_libretranslate"
+commands.allow = ["apis_libretranslate"]
+
+[[permission]]
+identifier = "allow-apis-mealdb-random"
+description = "Allow apis_mealdb_random"
+commands.allow = ["apis_mealdb_random"]
+
+[[permission]]
+identifier = "allow-apis-mealdb-search"
+description = "Allow apis_mealdb_search"
+commands.allow = ["apis_mealdb_search"]
+
+[[permission]]
+identifier = "allow-apis-met-search"
+description = "Allow apis_met_search"
+commands.allow = ["apis_met_search"]
+
+[[permission]]
+identifier = "allow-apis-musicbrainz"
+description = "Allow apis_musicbrainz"
+commands.allow = ["apis_musicbrainz"]
+
+[[permission]]
+identifier = "allow-apis-musicbrainz-cover"
+description = "Allow apis_musicbrainz_cover"
+commands.allow = ["apis_musicbrainz_cover"]
+
+[[permission]]
+identifier = "allow-apis-nager-holidays"
+description = "Allow apis_nager_holidays"
+commands.allow = ["apis_nager_holidays"]
+
+[[permission]]
+identifier = "allow-apis-oembed"
+description = "Allow apis_oembed"
+commands.allow = ["apis_oembed"]
+
+[[permission]]
+identifier = "allow-apis-open-library"
+description = "Allow apis_open_library"
+commands.allow = ["apis_open_library"]
+
+[[permission]]
+identifier = "allow-apis-openalex"
+description = "Allow apis_openalex"
+commands.allow = ["apis_openalex"]
+
+[[permission]]
+identifier = "allow-apis-opencitations"
+description = "Allow apis_opencitations"
+commands.allow = ["apis_opencitations"]
+
+[[permission]]
+identifier = "allow-apis-openverse"
+description = "Allow apis_openverse"
+commands.allow = ["apis_openverse"]
+
+[[permission]]
+identifier = "allow-apis-osrm-route"
+description = "Allow apis_osrm_route"
+commands.allow = ["apis_osrm_route"]
+
+[[permission]]
+identifier = "allow-apis-overpass-pois"
+description = "Allow apis_overpass_pois"
+commands.allow = ["apis_overpass_pois"]
+
+[[permission]]
+identifier = "allow-apis-photon"
+description = "Allow apis_photon"
+commands.allow = ["apis_photon"]
+
+[[permission]]
+identifier = "allow-apis-podcasts"
+description = "Allow apis_podcasts"
+commands.allow = ["apis_podcasts"]
+
+[[permission]]
+identifier = "allow-apis-pubmed"
+description = "Allow apis_pubmed"
+commands.allow = ["apis_pubmed"]
+
+[[permission]]
+identifier = "allow-apis-quotable"
+description = "Allow apis_quotable"
+commands.allow = ["apis_quotable"]
+
+[[permission]]
+identifier = "allow-apis-rijksmuseum"
+description = "Allow apis_rijksmuseum"
+commands.allow = ["apis_rijksmuseum"]
+
+[[permission]]
+identifier = "allow-apis-semantic-scholar"
+description = "Allow apis_semantic_scholar"
+commands.allow = ["apis_semantic_scholar"]
+
+[[permission]]
+identifier = "allow-apis-sun-times"
+description = "Allow apis_sun_times"
+commands.allow = ["apis_sun_times"]
+
+[[permission]]
+identifier = "allow-apis-tide-predictions"
+description = "Allow apis_tide_predictions"
+commands.allow = ["apis_tide_predictions"]
+
+[[permission]]
+identifier = "allow-apis-tide-stations"
+description = "Allow apis_tide_stations"
+commands.allow = ["apis_tide_stations"]
+
+[[permission]]
+identifier = "allow-apis-timezone"
+description = "Allow apis_timezone"
+commands.allow = ["apis_timezone"]
+
+[[permission]]
+identifier = "allow-apis-transit-plan"
+description = "Allow apis_transit_plan"
+commands.allow = ["apis_transit_plan"]
+
+[[permission]]
+identifier = "allow-apis-unpaywall"
+description = "Allow apis_unpaywall"
+commands.allow = ["apis_unpaywall"]
+
+[[permission]]
+identifier = "allow-apis-vatcomply-check"
+description = "Allow apis_vatcomply_check"
+commands.allow = ["apis_vatcomply_check"]
+
+[[permission]]
+identifier = "allow-apis-vatcomply-rate"
+description = "Allow apis_vatcomply_rate"
+commands.allow = ["apis_vatcomply_rate"]
+
+[[permission]]
+identifier = "allow-apis-vies-check"
+description = "Allow apis_vies_check"
+commands.allow = ["apis_vies_check"]
+
+[[permission]]
+identifier = "allow-apis-wayback"
+description = "Allow apis_wayback"
+commands.allow = ["apis_wayback"]
+
+[[permission]]
+identifier = "allow-apis-weather"
+description = "Allow apis_weather"
+commands.allow = ["apis_weather"]
+
+[[permission]]
+identifier = "allow-apis-web-instant"
+description = "Allow apis_web_instant"
+commands.allow = ["apis_web_instant"]
+
+[[permission]]
+identifier = "allow-apis-web-search"
+description = "Allow apis_web_search"
+commands.allow = ["apis_web_search"]
+
+[[permission]]
+identifier = "allow-apis-wikidata-entity"
+description = "Allow apis_wikidata_entity"
+commands.allow = ["apis_wikidata_entity"]
+
+[[permission]]
+identifier = "allow-apis-wikipedia-summary"
+description = "Allow apis_wikipedia_summary"
+commands.allow = ["apis_wikipedia_summary"]
+
+[[set]]
+identifier = "group-apis"
+description = "Command group: apis"
+permissions = [
+  "allow-apis-air-quality",
+  "allow-apis-arxiv",
+  "allow-apis-country",
+  "allow-apis-crossref",
+  "allow-apis-datamuse-means-like",
+  "allow-apis-datamuse-synonyms",
+  "allow-apis-dictionary",
+  "allow-apis-europeana",
+  "allow-apis-food-product",
+  "allow-apis-food-search",
+  "allow-apis-freesound",
+  "allow-apis-fx-convert",
+  "allow-apis-fx-rates",
+  "allow-apis-geocode",
+  "allow-apis-inaturalist-nearby",
+  "allow-apis-inaturalist-taxa",
+  "allow-apis-languagetool",
+  "allow-apis-libretranslate",
+  "allow-apis-mealdb-random",
+  "allow-apis-mealdb-search",
+  "allow-apis-met-search",
+  "allow-apis-musicbrainz",
+  "allow-apis-musicbrainz-cover",
+  "allow-apis-nager-holidays",
+  "allow-apis-oembed",
+  "allow-apis-open-library",
+  "allow-apis-openalex",
+  "allow-apis-opencitations",
+  "allow-apis-openverse",
+  "allow-apis-osrm-route",
+  "allow-apis-overpass-pois",
+  "allow-apis-photon",
+  "allow-apis-podcasts",
+  "allow-apis-pubmed",
+  "allow-apis-quotable",
+  "allow-apis-rijksmuseum",
+  "allow-apis-semantic-scholar",
+  "allow-apis-sun-times",
+  "allow-apis-tide-predictions",
+  "allow-apis-tide-stations",
+  "allow-apis-timezone",
+  "allow-apis-transit-plan",
+  "allow-apis-unpaywall",
+  "allow-apis-vatcomply-check",
+  "allow-apis-vatcomply-rate",
+  "allow-apis-vies-check",
+  "allow-apis-wayback",
+  "allow-apis-weather",
+  "allow-apis-web-instant",
+  "allow-apis-web-search",
+  "allow-apis-wikidata-entity",
+  "allow-apis-wikipedia-summary",
+]

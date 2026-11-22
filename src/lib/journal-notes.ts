@@ -401,13 +401,123 @@ export async function createDailyBriefingDocument(args: OpenJournalArgs) {
   const dueToday = openTasks.filter((task) => task.dueHint === dateKey)
   const otherOpen = openTasks.filter((task) => task.dueHint !== dateKey).slice(0, 20)
 
+  let weatherLines: string[] = []
+  const sunLines: string[] = []
+  const holidayLines: string[] = []
+  const quoteLines: string[] = []
+  try {
+    const { apisWeather, apisAirQuality, apisSunTimes, apisNagerHolidays, apisQuotable } =
+      await import('@/lib/apis')
+    // Default map centre (Bratislava) — local-first brief, opt-in network via Rust.
+    const lat = 48.1486
+    const lng = 17.1077
+    const year = Number(dateKey.slice(0, 4)) || new Date().getFullYear()
+    const [weather, aq, sun, holidays, quote] = await Promise.all([
+      apisWeather(lat, lng, 3),
+      apisAirQuality(lat, lng).catch(() => null),
+      apisSunTimes(lat, lng).catch(() => null),
+      apisNagerHolidays(year, 'SK').catch(() => []),
+      apisQuotable().catch(() => null),
+    ])
+    const nowLine =
+      weather.temperatureC != null
+        ? `${weather.weatherLabel}, ${weather.temperatureC.toFixed(0)}°C`
+        : weather.weatherLabel
+    weatherLines.push(nowLine)
+    if (aq) {
+      const aqi =
+        aq.europeanAqi != null ? `EAQI ${aq.europeanAqi.toFixed(0)}` : aq.aqiLabel
+      const pm = aq.pm25 != null ? `, PM2.5 ${aq.pm25.toFixed(0)}` : ''
+      weatherLines.push(`Air: ${aq.aqiLabel} (${aqi}${pm})`)
+    }
+    for (const day of weather.daily.slice(0, 3)) {
+      const hi = day.tempMaxC != null ? `${day.tempMaxC.toFixed(0)}°` : '—'
+      const lo = day.tempMinC != null ? `${day.tempMinC.toFixed(0)}°` : '—'
+      weatherLines.push(`${day.date}: ${day.weatherLabel} (${lo}–${hi})`)
+    }
+    if (sun) {
+      const fmt = (iso: string) => {
+        try {
+          return new Date(iso).toLocaleTimeString(undefined, {
+            hour: '2-digit',
+            minute: '2-digit',
+          })
+        } catch {
+          return iso
+        }
+      }
+      sunLines.push(`${t('journal.dailyBriefingSunrise')}: ${fmt(sun.sunrise)}`)
+      sunLines.push(`${t('journal.dailyBriefingSunset')}: ${fmt(sun.sunset)}`)
+    }
+    const todayHoliday = (holidays ?? []).find((h) => h.date === dateKey)
+    if (todayHoliday) {
+      holidayLines.push(
+        `${todayHoliday.localName || todayHoliday.name} (${todayHoliday.countryCode})`,
+      )
+    } else {
+      const upcoming = (holidays ?? [])
+        .filter((h) => h.date > dateKey)
+        .slice(0, 3)
+        .map((h) => `${h.date}: ${h.localName || h.name}`)
+      holidayLines.push(...upcoming)
+    }
+    if (quote?.content) {
+      const by = quote.author ? ` — ${quote.author}` : ''
+      quoteLines.push(`“${quote.content}”${by}`)
+    }
+  } catch {
+    weatherLines = []
+  }
+
   const title = t('journal.dailyBriefingTitle', { date: dateKey })
   const blocks: TipTapNode[] = [
     headingNode(1, title),
     headingNode(2, t('journal.dailyBriefingSummaryTitle')),
     textParagraph(t('journal.dailyBriefingSummaryPlaceholder')),
-    headingNode(2, t('journal.dailyBriefingDueTitle')),
   ]
+  if (weatherLines.length || sunLines.length) {
+    blocks.push(
+      headingNode(2, t('journal.dailyBriefingWeatherTitle')),
+      textParagraph(t('journal.dailyBriefingWeatherHint')),
+    )
+    if (weatherLines.length) {
+      blocks.push({
+        type: 'bulletList',
+        content: weatherLines.map((line) => ({
+          type: 'listItem',
+          content: [textParagraph(line)],
+        })),
+      })
+    }
+    if (sunLines.length) {
+      blocks.push({
+        type: 'bulletList',
+        content: sunLines.map((line) => ({
+          type: 'listItem',
+          content: [textParagraph(line)],
+        })),
+      })
+    }
+  }
+  if (holidayLines.length) {
+    blocks.push(
+      headingNode(2, t('journal.dailyBriefingHolidaysTitle')),
+      {
+        type: 'bulletList',
+        content: holidayLines.map((line) => ({
+          type: 'listItem',
+          content: [textParagraph(line)],
+        })),
+      },
+    )
+  }
+  if (quoteLines.length) {
+    blocks.push(
+      headingNode(2, t('journal.dailyBriefingQuoteTitle')),
+      ...quoteLines.map((line) => textParagraph(line)),
+    )
+  }
+  blocks.push(headingNode(2, t('journal.dailyBriefingDueTitle')))
 
   if (dueToday.length > 0) {
     blocks.push({

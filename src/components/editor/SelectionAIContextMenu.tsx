@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import {
+  BookOpen,
   Bot,
   Check,
   GraduationCap,
@@ -73,6 +74,20 @@ export function SelectionAIContextMenu({
     setCoachHints(null)
     setCoachScore(null)
     try {
+      if (mode === 'translate_sk' || mode === 'translate_en') {
+        const target = mode === 'translate_sk' ? 'sk' : 'en'
+        try {
+          const { apisLibreTranslate } = await import('@/lib/apis')
+          const translated = await apisLibreTranslate(text.slice(0, 4000), target, {
+            source: 'auto',
+          })
+          setResult(translated.translatedText)
+          setCustomOpen(false)
+          return
+        } catch {
+          // fall through to local rewrite
+        }
+      }
       const res = await nlpRewriteSelection(text, mode, instruction)
       setResult(res.output)
       setCustomOpen(false)
@@ -159,8 +174,26 @@ export function SelectionAIContextMenu({
     setResult(null)
     try {
       const res = await nlpWritingCoach({ text, limit: 10 })
-      setCoachHints(res.hints ?? [])
-      setCoachScore(typeof res.score === 'number' ? res.score : null)
+      let hints = res.hints ?? []
+      let score = typeof res.score === 'number' ? res.score : null
+      try {
+        const { apisLanguageTool } = await import('@/lib/apis')
+        const lt = await apisLanguageTool(text.slice(0, 8000), 'auto')
+        const ltHints: WritingCoachHint[] = lt.matches.slice(0, 8).map((m, i) => ({
+          code: m.ruleId || `lt-${i}`,
+          severity: 'warn' as const,
+          message: m.shortMessage || m.message,
+          excerpt: m.excerpt || undefined,
+        }))
+        if (ltHints.length) {
+          hints = [...ltHints, ...hints].slice(0, 12)
+          if (score == null) score = Math.max(40, 100 - ltHints.length * 8)
+        }
+      } catch {
+        // LanguageTool optional
+      }
+      setCoachHints(hints)
+      setCoachScore(score)
       setCustomOpen(false)
     } catch (error) {
       toast.error(t('aiRewrite.coachError'), String(error))
@@ -234,6 +267,34 @@ export function SelectionAIContextMenu({
       setCustomOpen(false)
     } catch (error) {
       toast.error(t('aiRewrite.flashcardsError'), String(error))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleDictionary() {
+    const text = selectedText.trim()
+    const word = text.split(/\s+/)[0]?.replace(/[^\p{L}\p{N}-]/gu, '') ?? ''
+    if (!word || loading) return
+    setLoading(true)
+    setCoachHints(null)
+    setCoachScore(null)
+    try {
+      const { apisDictionary, apisDatamuseSynonyms } = await import('@/lib/apis')
+      const [entry, syns] = await Promise.all([
+        apisDictionary(word),
+        apisDatamuseSynonyms(word, 8).catch(() => []),
+      ])
+      const senseLines = entry.senses.slice(0, 5).map((s, i) => {
+        const pos = s.partOfSpeech ? `_${s.partOfSpeech}_ · ` : ''
+        const ex = s.example ? `\n   e.g. ${s.example}` : ''
+        return `${i + 1}. ${pos}${s.definition}${ex}`
+      })
+      const synLine = syns.length ? `\n\n**Synonyms:** ${syns.map((s) => s.word).join(', ')}` : ''
+      setResult(`**${entry.word}** (${entry.provider})${entry.phonetic ? ` · ${entry.phonetic}` : ''}\n\n${senseLines.join('\n')}${synLine}`)
+      setCustomOpen(false)
+    } catch (error) {
+      toast.error(t('aiRewrite.dictionaryError'), String(error))
     } finally {
       setLoading(false)
     }
@@ -400,6 +461,14 @@ export function SelectionAIContextMenu({
           >
             <Layers className="h-3.5 w-3.5" aria-hidden />
             {t('aiRewrite.flashcards')}
+          </button>
+          <button
+            type="button"
+            className="selection-ai__mode"
+            onClick={() => void handleDictionary()}
+          >
+            <BookOpen className="h-3.5 w-3.5" aria-hidden />
+            {t('aiRewrite.dictionary')}
           </button>
           <button
             type="button"
