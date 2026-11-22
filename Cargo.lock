@@ -168,9 +168,9 @@ dependencies = [
 
 [[package]]
 name = "askama_escape"
-version = "0.10.3"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "619743e34b5ba4e9703bba34deac3427c72507c7159f5fd030aea8cac0cfe341"
+checksum = "3df27b8d5ddb458c5fb1bbc1ce172d4a38c614a97d550b0ac89003897fb01de4"
 
 [[package]]
 name = "async-broadcast"
@@ -1208,7 +1208,7 @@ version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "60a247114500f1a78e87022defa8173de847accfada8e8809dfae23a118a580c"
 dependencies = [
- "dioxus-core",
+ "dioxus-core 0.6.3",
  "dioxus-core-macro",
  "dioxus-hooks",
  "dioxus-html",
@@ -1222,18 +1222,39 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9c03f451a119e47433c16e2d8eb5b15bf7d6e6734eb1a4c47574e6711dadff8d"
 dependencies = [
  "const_format",
- "dioxus-core-types",
+ "dioxus-core-types 0.6.2",
  "futures-channel",
  "futures-util",
- "generational-box",
+ "generational-box 0.6.2",
  "longest-increasing-subsequence",
  "rustc-hash 1.1.0",
  "rustversion",
- "serde",
  "slab",
  "slotmap",
  "tracing",
  "warnings",
+]
+
+[[package]]
+name = "dioxus-core"
+version = "0.7.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1b232228ada232c0adc151e41ebd9ef70cc04683db097fa0dc6015979fa01722"
+dependencies = [
+ "anyhow",
+ "const_format",
+ "dioxus-core-types 0.7.10",
+ "futures-channel",
+ "futures-util",
+ "generational-box 0.7.10",
+ "longest-increasing-subsequence",
+ "rustc-hash 2.1.3",
+ "rustversion",
+ "serde",
+ "slab",
+ "slotmap",
+ "subsecond",
+ "tracing",
 ]
 
 [[package]]
@@ -1259,16 +1280,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "dioxus-core-types"
+version = "0.7.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "96007ed6cbad951dfed82d83c581aabd95bc591f351f5666d454ddbe7845b324"
+
+[[package]]
 name = "dioxus-hooks"
 version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "948e2b3f20d9d4b2c300aaa60281b1755f3298684448920b27106da5841896d0"
 dependencies = [
- "dioxus-core",
+ "dioxus-core 0.6.3",
  "dioxus-signals",
  "futures-channel",
  "futures-util",
- "generational-box",
+ "generational-box 0.6.2",
  "rustversion",
  "slab",
  "tracing",
@@ -1282,15 +1309,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "59c9a40e6fee20ce7990095492dedb6a753eebe05e67d28271a249de74dc796d"
 dependencies = [
  "async-trait",
- "dioxus-core",
+ "dioxus-core 0.6.3",
  "dioxus-core-macro",
- "dioxus-core-types",
+ "dioxus-core-types 0.6.2",
  "dioxus-hooks",
  "dioxus-html-internal-macro",
  "enumset",
  "euclid 0.22.14",
  "futures-channel",
- "generational-box",
+ "generational-box 0.6.2",
  "keyboard-types 0.7.0",
  "lazy-js-bundle",
  "rustversion",
@@ -1327,10 +1354,10 @@ version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "10e032dbb3a2c0386ec8b8ee59bc20b5aeb67038147c855801237b45b13d72ac"
 dependencies = [
- "dioxus-core",
+ "dioxus-core 0.6.3",
  "futures-channel",
  "futures-util",
- "generational-box",
+ "generational-box 0.6.2",
  "once_cell",
  "parking_lot",
  "rustc-hash 1.1.0",
@@ -1340,14 +1367,14 @@ dependencies = [
 
 [[package]]
 name = "dioxus-ssr"
-version = "0.6.2"
+version = "0.7.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "38e1fac097e71ccec4e9e15d44b68393be2981276e42170703180bceb0b6f122"
+checksum = "4544ecf908962909de403bfdf94f771b036e9e1857e371cd3279841a15a892e6"
 dependencies = [
  "askama_escape",
- "dioxus-core",
- "dioxus-core-types",
- "rustc-hash 1.1.0",
+ "dioxus-core 0.7.10",
+ "dioxus-core-types 0.7.10",
+ "rustc-hash 2.1.3",
 ]
 
 [[package]]
@@ -2028,6 +2055,16 @@ name = "generational-box"
 version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a673cf4fb0ea6a91aa86c08695756dfe875277a912cdbf33db9a9f62d47ed82b"
+dependencies = [
+ "parking_lot",
+ "tracing",
+]
+
+[[package]]
+name = "generational-box"
+version = "0.7.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b8b2dc9b873cd1a8adb80aa5dcef9a8205f781a8a313d5ffb867248cb3bcb764"
 dependencies = [
  "parking_lot",
  "tracing",
@@ -2991,7 +3028,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6e9ec52138abedcc58dc17a7c6c0c00a2bdb4f3427c7f63fa97fd0d859155caf"
 dependencies = [
  "gtk-sys",
- "libloading",
+ "libloading 0.7.4",
  "once_cell",
 ]
 
@@ -3018,6 +3055,16 @@ checksum = "b67380fd3b2fbe7527a606e18729d21c6f3951633d0500574c4dc22d2d638b9f"
 dependencies = [
  "cfg-if",
  "winapi",
+]
+
+[[package]]
+name = "libloading"
+version = "0.8.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d7c4b02199fee7c5d21a5ae7d8cfa79a6ef5bb2fc834d6e9058e89c825efdc55"
+dependencies = [
+ "cfg-if",
+ "windows-link",
 ]
 
 [[package]]
@@ -3153,6 +3200,15 @@ name = "memchr"
 version = "2.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
+
+[[package]]
+name = "memfd"
+version = "0.6.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "57804b2c9b69967f1536a56f86297e367a33b19e98852ed624b84551cdbc0d90"
+dependencies = [
+ "rustix",
+]
 
 [[package]]
 name = "memmap2"
@@ -5214,6 +5270,34 @@ dependencies = [
  "quote",
  "rustversion",
  "syn 2.0.119",
+]
+
+[[package]]
+name = "subsecond"
+version = "0.7.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d350d5788fa94d560d92269266a50efc77b036bfca6675e420b64df7b3211f37"
+dependencies = [
+ "js-sys",
+ "libc",
+ "libloading 0.8.9",
+ "memfd",
+ "memmap2",
+ "serde",
+ "subsecond-types",
+ "thiserror 2.0.21",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+]
+
+[[package]]
+name = "subsecond-types"
+version = "0.7.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dcf32d66269b5fbb8558334e8d22b657b2f7af0dd2ef56c231541099a862e464"
+dependencies = [
+ "serde",
 ]
 
 [[package]]
