@@ -354,6 +354,7 @@ templates	delete_custom_template
 templates	delete_custom_template_category
 templates	list_custom_template_categories
 templates	list_custom_templates
+templates	update_custom_template
 ui	analyze_graph_density_ui
 ui	apply_document_style_preset_ui
 ui	asset_kind_ui

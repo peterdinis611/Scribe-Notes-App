@@ -8,6 +8,7 @@ import {
   Loader2,
   PackagePlus,
   Palette,
+  Pencil,
   Plus,
   Search,
   Sparkles,
@@ -21,6 +22,7 @@ import { confirm } from '@tauri-apps/plugin-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { CustomTemplateDialog } from '@/components/CustomTemplateDialog'
+import { EditCustomTemplateDialog } from '@/components/EditCustomTemplateDialog'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import {
   DropdownMenu,
@@ -60,6 +62,7 @@ import {
   deleteStoredCategory,
   deleteStoredTemplate,
   insertStoredTemplate,
+  updateStoredTemplate,
 } from '@/lib/db/template-collections'
 import {
   useCustomCategoriesLive,
@@ -117,6 +120,7 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
   const [selectedId, setSelectedId] = useState(BLANK_TEMPLATE_ID)
   const [creating, setCreating] = useState(false)
   const [customDialogOpen, setCustomDialogOpen] = useState(false)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [packBusy, setPackBusy] = useState(false)
 
   useEffect(() => {
@@ -536,16 +540,27 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
               </p>
               <div className="flex shrink-0 items-center gap-2">
                 {isCustomTemplate(selectedTemplate) && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={creating}
-                    className="text-[var(--color-destructive)] hover:text-[var(--color-destructive)]"
-                    onClick={() => void handleDeleteCustom()}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    {t('common.delete')}
-                  </Button>
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={creating}
+                      onClick={() => setEditDialogOpen(true)}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                      {t('templates.editTemplate')}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={creating}
+                      className="text-[var(--color-destructive)] hover:text-[var(--color-destructive)]"
+                      onClick={() => void handleDeleteCustom()}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      {t('common.delete')}
+                    </Button>
+                  </>
                 )}
                 <Button variant="ghost" size="sm" disabled={creating} onClick={onClose}>
                   {t('common.cancel')}
@@ -595,6 +610,25 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
               toast.error(t('templates.templateSaveError'), String(error))
             }
           })()
+        }}
+      />
+
+      <EditCustomTemplateDialog
+        open={editDialogOpen && isCustomTemplate(selectedTemplate)}
+        template={isCustomTemplate(selectedTemplate) ? selectedTemplate : null}
+        onOpenChange={setEditDialogOpen}
+        onSave={async (values) => {
+          if (!isCustomTemplate(selectedTemplate)) return
+          try {
+            await updateStoredTemplate({
+              ...selectedTemplate,
+              ...values,
+            })
+            toast.success(t('templates.templateUpdated'), values.name)
+          } catch (error) {
+            toast.error(t('templates.templateUpdateError'), String(error))
+            throw error
+          }
         }}
       />
     </>

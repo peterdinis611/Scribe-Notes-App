@@ -217,6 +217,78 @@ pub fn delete_custom_template_category(
     Ok(reassigned)
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateCustomTemplateInput {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub category: String,
+    pub title: String,
+    pub content_json: String,
+}
+
+#[tauri::command]
+pub fn update_custom_template(
+    state: State<'_, DbState>,
+    input: UpdateCustomTemplateInput,
+) -> Result<CustomTemplateRow, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+
+    let name = input.name.trim();
+    let title = input.title.trim();
+    if name.is_empty() {
+        return Err("Názov šablóny nemôže byť prázdny".to_string());
+    }
+    if title.is_empty() {
+        return Err("Názov dokumentu nemôže byť prázdny".to_string());
+    }
+    if input.id.trim().is_empty() {
+        return Err("Chýba ID šablóny".to_string());
+    }
+
+    let library_id = crate::libraries::active_library_id(&conn);
+    let description = input.description.trim().to_string();
+    let affected = conn
+        .execute(
+            "UPDATE custom_templates
+             SET name = ?1, description = ?2, category = ?3, title = ?4, content_json = ?5
+             WHERE id = ?6 AND library_id = ?7",
+            params![
+                name,
+                description,
+                input.category,
+                title,
+                input.content_json,
+                input.id,
+                library_id,
+            ],
+        )
+        .map_err(|e| e.to_string())?;
+
+    if affected == 0 {
+        return Err("Šablóna neexistuje".to_string());
+    }
+
+    let created_at: i64 = conn
+        .query_row(
+            "SELECT created_at FROM custom_templates WHERE id = ?1",
+            params![input.id],
+            |row| row.get(0),
+        )
+        .map_err(|e| e.to_string())?;
+
+    Ok(CustomTemplateRow {
+        id: input.id,
+        name: name.to_string(),
+        description,
+        category: input.category,
+        title: title.to_string(),
+        content_json: input.content_json,
+        created_at,
+    })
+}
+
 #[tauri::command]
 pub fn delete_custom_template(state: State<'_, DbState>, id: String) -> Result<(), String> {
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
@@ -293,5 +365,41 @@ mod tests {
         assert_eq!(templates.len(), 1);
         assert_eq!(templates[0].name, "Report");
         assert_eq!(templates[0].title, "Nový report");
+    }
+
+    #[test]
+    fn update_custom_template_mutates_row() {
+        let conn = in_memory_conn();
+        let now = 1_700_000_000i64;
+        let library_id = crate::libraries::active_library_id(&conn);
+
+        conn.execute(
+            "INSERT INTO custom_templates (id, name, description, category, title, content_json, created_at, library_id)
+             VALUES ('tpl-1', 'Report', 'Popis', 'general', 'Nový report', '{\"type\":\"doc\"}', ?1, ?2)",
+            params![now, library_id],
+        )
+        .unwrap();
+
+        conn.execute(
+            "UPDATE custom_templates
+             SET name = ?1, description = ?2, category = ?3, title = ?4, content_json = ?5
+             WHERE id = ?6 AND library_id = ?7",
+            params![
+                "Updated",
+                "New desc",
+                "business",
+                "Updated title",
+                "{\"type\":\"doc\",\"content\":[]}",
+                "tpl-1",
+                library_id,
+            ],
+        )
+        .unwrap();
+
+        let templates = list_templates(&conn).unwrap();
+        assert_eq!(templates.len(), 1);
+        assert_eq!(templates[0].name, "Updated");
+        assert_eq!(templates[0].category, "business");
+        assert_eq!(templates[0].title, "Updated title");
     }
 }

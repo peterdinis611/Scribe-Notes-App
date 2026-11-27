@@ -547,6 +547,7 @@ pub fn run() {
             commands::templates::delete_custom_template_category,
             commands::templates::list_custom_templates,
             commands::templates::create_custom_template,
+            commands::templates::update_custom_template,
             commands::templates::delete_custom_template,
             commands::search::search_documents,
             commands::nlp::nlp_status,

@@ -21087,3 +21087,23 @@ html.theme-transition .editor-status-bar {
 .toast-host--reduced-motion .toast-item-out {
   animation: none !important;
 }
+
+/* —— Simple template body editor —— */
+.template-simple-editor__prose {
+  min-height: 14rem;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--color-foreground);
+}
+
+.template-simple-editor__prose > *:first-child {
+  margin-top: 0;
+}
+
+.template-simple-editor__prose p.is-editor-empty:first-child::before {
+  color: var(--color-muted-foreground);
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}

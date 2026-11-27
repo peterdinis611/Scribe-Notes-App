@@ -2130,5 +2130,24 @@ export const createCustomTemplate = (input: CustomTemplateRow) =>
     },
   })
 
+export const updateCustomTemplate = (input: {
+  id: string
+  name: string
+  description: string
+  category: string
+  title: string
+  contentJson: string
+}) =>
+  invoke<CustomTemplateRow>('update_custom_template', {
+    input: {
+      id: input.id,
+      name: input.name,
+      description: input.description,
+      category: input.category,
+      title: input.title,
+      contentJson: input.contentJson,
+    },
+  })
+
 export const deleteCustomTemplate = (id: string) =>
   invoke<void>('delete_custom_template', { id })

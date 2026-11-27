@@ -8,6 +8,7 @@ import {
   deleteCustomTemplateCategory,
   listCustomTemplateCategories,
   listCustomTemplates,
+  updateCustomTemplate,
 } from '@/lib/db/api'
 import type { CustomTemplateCategory } from '@/lib/templates/categories'
 import { createCustomCategory } from '@/lib/templates/categories'
@@ -230,6 +231,44 @@ export async function insertStoredTemplate(template: CustomDocumentTemplate) {
     createdAt: row.createdAt,
   })
   customTemplatesCollection.insert(row)
+}
+
+export async function updateStoredTemplate(template: CustomDocumentTemplate) {
+  await initTemplateCollections()
+  if (!customTemplatesCollection) {
+    throw new Error('Šablóny nie sú pripravené')
+  }
+
+  const row = toStoredTemplate(template)
+  const updated = await updateCustomTemplate({
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    category: row.category,
+    title: row.title,
+    contentJson: row.contentJson,
+  })
+
+  if (customTemplatesCollection.has(row.id)) {
+    customTemplatesCollection.update(row.id, (draft) => {
+      draft.name = updated.name
+      draft.description = updated.description
+      draft.category = updated.category
+      draft.title = updated.title
+      draft.contentJson = updated.contentJson
+      draft.createdAt = updated.createdAt
+    })
+  } else {
+    customTemplatesCollection.insert({
+      id: updated.id,
+      name: updated.name,
+      description: updated.description,
+      category: updated.category,
+      title: updated.title,
+      contentJson: updated.contentJson,
+      createdAt: updated.createdAt,
+    })
+  }
 }
 
 export async function deleteStoredCategory(id: string) {
