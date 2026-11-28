@@ -5004,8 +5004,18 @@
     "creating": "Tworzenie…",
     "createDocument": "Utwórz dokument",
     "editTemplate": "Edytuj",
+    "editTemplateAria": "Edytuj szablon {{name}}",
     "editDialogDescription": "Zaktualizuj metadane i treść. Zmiany pozostaną lokalnie na tym Macu.",
+    "editDialogDescriptionMetadataOnly": "Zaktualizuj nazwę, tytuł, opis i kategorię. Treść pozostaje zablokowana, aby nie uszkodzić zaawansowanej lub uszkodzonej zawartości.",
     "editContentPlaceholder": "Napisz treść szablonu…",
+    "editContentCorrupt": "Nie udało się wczytać JSON treści tego szablonu. Możesz edytować metadane; oryginalna treść nie zostanie nadpisana.",
+    "editContentAdvanced": "Ten szablon zawiera bloki, których prosty edytor nie obsługuje (tabele, obrazy, callouty, diagramy…). Tylko metadane — aby edytować całą treść, utwórz dokument z szablonu.",
+    "editBodyLockedCorrupt": "Edycja treści jest zablokowana, dopóki zapisana zawartość nie da się bezpiecznie przetworzyć.",
+    "editBodyLockedAdvanced": "Edycja treści jest zablokowana dla bogatych szablonów. Utwórz dokument z szablonu i edytuj wszystko tam.",
+    "editDiscardTitle": "Odrzucić zmiany?",
+    "editDiscardConfirm": "Masz niezapisane zmiany w tym szablonie. Odrzucić je?",
+    "editDiscardConfirmOk": "Odrzuć",
+    "documentTitleRequired": "Tytuł dokumentu jest wymagany.",
     "saveChanges": "Zapisz zmiany",
     "templateUpdated": "Szablon zaktualizowany",
     "templateUpdateError": "Nie udało się zaktualizować szablonu",
@@ -5497,6 +5507,8 @@
   "codeBlock": {
     "copy": "Kopiuj kod",
     "copied": "Skopiowano",
+    "copiedToast": "Kod skopiowany",
+    "copyFailed": "Nie udało się skopiować kodu",
     "auto": "Automatyczny"
   },
   "image": {

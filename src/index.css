@@ -21089,11 +21089,23 @@ html.theme-transition .editor-status-bar {
 }
 
 /* —— Simple template body editor —— */
+.template-simple-editor,
+.template-simple-editor .tiptap,
+.template-simple-editor [contenteditable='true'] {
+  -webkit-app-region: no-drag;
+  -webkit-user-select: text;
+  user-select: text;
+  cursor: text;
+}
+
 .template-simple-editor__prose {
   min-height: 14rem;
   font-size: 14px;
   line-height: 1.55;
   color: var(--color-foreground);
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-app-region: no-drag;
 }
 
 .template-simple-editor__prose > *:first-child {

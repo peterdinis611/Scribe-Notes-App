@@ -5004,8 +5004,18 @@
     "creating": "Létrehozás…",
     "createDocument": "Dokumentum létrehozása",
     "editTemplate": "Szerkesztés",
+    "editTemplateAria": "{{name}} sablon szerkesztése",
     "editDialogDescription": "Frissítsd a metaadatokat és a tartalmat. A változások helyben maradnak ezen a Macen.",
+    "editDialogDescriptionMetadataOnly": "Frissítsd a nevet, címet, leírást és kategóriát. A törzs zárolva marad, hogy a gazdag vagy sérült tartalom ne sérüljön.",
     "editContentPlaceholder": "Írd meg a sablon szövegét…",
+    "editContentCorrupt": "A sablon törzsének JSON-ja nem tölthető be. A metaadatok szerkeszthetők; az eredeti törzs nem íródik felül.",
+    "editContentAdvanced": "Ez a sablon olyan blokkokat tartalmaz, amelyeket az egyszerű szerkesztő nem tud kezelni (táblázatok, képek, hívások, diagramok…). Csak metaadatok — a teljes törzshöz hozz létre dokumentumot a sablonból.",
+    "editBodyLockedCorrupt": "A törzs szerkesztése zárolva van, amíg a tárolt tartalom biztonságosan feldolgozható.",
+    "editBodyLockedAdvanced": "A törzs szerkesztése gazdag sablonoknál zárolva van. Hozz létre dokumentumot a sablonból, és ott szerkessz.",
+    "editDiscardTitle": "Változtatások elvetése?",
+    "editDiscardConfirm": "Nem mentett módosításaid vannak ezen a sablonon. Elveted őket?",
+    "editDiscardConfirmOk": "Elvetés",
+    "documentTitleRequired": "A dokumentum címe kötelező.",
     "saveChanges": "Változtatások mentése",
     "templateUpdated": "Sablon frissítve",
     "templateUpdateError": "A sablon frissítése sikertelen",
@@ -5497,6 +5507,8 @@
   "codeBlock": {
     "copy": "Kód másolása",
     "copied": "Másolva",
+    "copiedToast": "Kód bemásolva",
+    "copyFailed": "A kód másolása nem sikerült",
     "auto": "Automata"
   },
   "image": {

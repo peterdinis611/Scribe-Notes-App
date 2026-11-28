@@ -1,7 +1,45 @@
 use crate::db::DbState;
 use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
+use serde_json::Value as JsonValue;
 use tauri::State;
+
+const MAX_CONTENT_JSON_BYTES: usize = 2_000_000;
+
+fn validate_template_category(conn: &Connection, category: &str) -> Result<(), String> {
+    if scribe_ui::is_built_in_category(category) {
+        return Ok(());
+    }
+    if !scribe_ui::is_custom_category_id(category) {
+        return Err("Neplatná kategória šablóny".to_string());
+    }
+    let exists: bool = conn
+        .query_row(
+            "SELECT EXISTS(SELECT 1 FROM custom_template_categories WHERE id = ?1)",
+            params![category],
+            |row| row.get(0),
+        )
+        .map_err(|e| e.to_string())?;
+    if !exists {
+        return Err("Kategória neexistuje".to_string());
+    }
+    Ok(())
+}
+
+fn validate_content_json(content_json: &str) -> Result<(), String> {
+    if content_json.len() > MAX_CONTENT_JSON_BYTES {
+        return Err("Obsah šablóny je príliš veľký".to_string());
+    }
+    let value: JsonValue =
+        serde_json::from_str(content_json).map_err(|_| "Neplatný JSON obsahu šablóny".to_string())?;
+    let obj = value
+        .as_object()
+        .ok_or_else(|| "Obsah šablóny musí byť JSON objekt".to_string())?;
+    match obj.get("type").and_then(|v| v.as_str()) {
+        Some("doc") => Ok(()),
+        _ => Err("Obsah šablóny musí mať type \"doc\"".to_string()),
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -158,6 +196,8 @@ pub fn create_custom_template(
     if title.is_empty() {
         return Err("Názov dokumentu nemôže byť prázdny".to_string());
     }
+    validate_template_category(&conn, &input.category)?;
+    validate_content_json(&input.content_json)?;
 
     let library_id = crate::libraries::active_library_id(&conn);
     conn.execute(
@@ -217,6 +257,10 @@ pub fn delete_custom_template_category(
     Ok(reassigned)
 }
 
+fn default_update_content() -> bool {
+    true
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateCustomTemplateInput {
@@ -226,6 +270,9 @@ pub struct UpdateCustomTemplateInput {
     pub category: String,
     pub title: String,
     pub content_json: String,
+    /// When false, metadata is updated but `content_json` is left untouched (corrupt-body safety).
+    #[serde(default = "default_update_content")]
+    pub update_content: bool,
 }
 
 #[tauri::command]
@@ -246,11 +293,15 @@ pub fn update_custom_template(
     if input.id.trim().is_empty() {
         return Err("Chýba ID šablóny".to_string());
     }
+    validate_template_category(&conn, &input.category)?;
+    if input.update_content {
+        validate_content_json(&input.content_json)?;
+    }
 
     let library_id = crate::libraries::active_library_id(&conn);
     let description = input.description.trim().to_string();
-    let affected = conn
-        .execute(
+    let affected = if input.update_content {
+        conn.execute(
             "UPDATE custom_templates
              SET name = ?1, description = ?2, category = ?3, title = ?4, content_json = ?5
              WHERE id = ?6 AND library_id = ?7",
@@ -264,17 +315,33 @@ pub fn update_custom_template(
                 library_id,
             ],
         )
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| e.to_string())?
+    } else {
+        conn.execute(
+            "UPDATE custom_templates
+             SET name = ?1, description = ?2, category = ?3, title = ?4
+             WHERE id = ?5 AND library_id = ?6",
+            params![
+                name,
+                description,
+                input.category,
+                title,
+                input.id,
+                library_id,
+            ],
+        )
+        .map_err(|e| e.to_string())?
+    };
 
     if affected == 0 {
         return Err("Šablóna neexistuje".to_string());
     }
 
-    let created_at: i64 = conn
+    let (created_at, content_json): (i64, String) = conn
         .query_row(
-            "SELECT created_at FROM custom_templates WHERE id = ?1",
-            params![input.id],
-            |row| row.get(0),
+            "SELECT created_at, content_json FROM custom_templates WHERE id = ?1 AND library_id = ?2",
+            params![input.id, library_id],
+            |row| Ok((row.get(0)?, row.get(1)?)),
         )
         .map_err(|e| e.to_string())?;
 
@@ -284,7 +351,7 @@ pub fn update_custom_template(
         description,
         category: input.category,
         title: title.to_string(),
-        content_json: input.content_json,
+        content_json,
         created_at,
     })
 }
@@ -292,8 +359,16 @@ pub fn update_custom_template(
 #[tauri::command]
 pub fn delete_custom_template(state: State<'_, DbState>, id: String) -> Result<(), String> {
     let conn = state.conn.lock().map_err(|e| e.to_string())?;
-    conn.execute("DELETE FROM custom_templates WHERE id = ?1", params![id])
+    let library_id = crate::libraries::active_library_id(&conn);
+    let affected = conn
+        .execute(
+            "DELETE FROM custom_templates WHERE id = ?1 AND library_id = ?2",
+            params![id, library_id],
+        )
         .map_err(|e| e.to_string())?;
+    if affected == 0 {
+        return Err("Šablóna neexistuje".to_string());
+    }
     Ok(())
 }
 
@@ -401,5 +476,42 @@ mod tests {
         assert_eq!(templates[0].name, "Updated");
         assert_eq!(templates[0].category, "business");
         assert_eq!(templates[0].title, "Updated title");
+    }
+
+    #[test]
+    fn validate_content_json_requires_doc_type() {
+        assert!(validate_content_json(r#"{"type":"doc"}"#).is_ok());
+        assert!(validate_content_json(r#"{"type":"paragraph"}"#).is_err());
+        assert!(validate_content_json("not-json").is_err());
+    }
+
+    #[test]
+    fn validate_template_category_rejects_unknown_custom() {
+        let conn = in_memory_conn();
+        assert!(validate_template_category(&conn, "general").is_ok());
+        assert!(validate_template_category(&conn, "cat-missing").is_err());
+    }
+
+    #[test]
+    fn delete_custom_template_is_library_scoped() {
+        let conn = in_memory_conn();
+        let now = 1_700_000_000i64;
+        let library_id = crate::libraries::active_library_id(&conn);
+
+        conn.execute(
+            "INSERT INTO custom_templates (id, name, description, category, title, content_json, created_at, library_id)
+             VALUES ('tpl-1', 'Report', '', 'general', 'Title', '{\"type\":\"doc\"}', ?1, ?2)",
+            params![now, library_id],
+        )
+        .unwrap();
+
+        let affected = conn
+            .execute(
+                "DELETE FROM custom_templates WHERE id = ?1 AND library_id = ?2",
+                params!["tpl-1", library_id],
+            )
+            .unwrap();
+        assert_eq!(affected, 1);
+        assert!(list_templates(&conn).unwrap().is_empty());
     }
 }

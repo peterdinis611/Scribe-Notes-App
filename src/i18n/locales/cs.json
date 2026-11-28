@@ -5004,8 +5004,18 @@
     "creating": "Vytváření…",
     "createDocument": "Vytvořit dokument",
     "editTemplate": "Upravit",
+    "editTemplateAria": "Upravit šablonu {{name}}",
     "editDialogDescription": "Upravte metadata i obsah. Změny zůstanou lokálně na tomto Macu.",
+    "editDialogDescriptionMetadataOnly": "Upravte název, title, popis a kategorii. Tělo zůstává zamčené, aby se nepoškodil pokročilý nebo poškozený obsah.",
     "editContentPlaceholder": "Napište obsah šablony…",
+    "editContentCorrupt": "JSON těla této šablony se nepodařilo načíst. Metadata můžete upravit; původní tělo se nepřepíše.",
+    "editContentAdvanced": "Tato šablona obsahuje bloky, které jednoduchý editor neumí upravit (tabulky, obrázky, callouty, diagramy…). Pouze metadata — pro úpravu celého těla vytvořte dokument ze šablony.",
+    "editBodyLockedCorrupt": "Úprava těla je zamčená, dokud nelze uložený obsah bezpečně zpracovat.",
+    "editBodyLockedAdvanced": "Úprava těla je zamčená pro bohaté šablony. Vytvořte dokument ze šablony a upravte vše tam.",
+    "editDiscardTitle": "Zahodit změny?",
+    "editDiscardConfirm": "Máte neuložené úpravy této šablony. Zahodit je?",
+    "editDiscardConfirmOk": "Zahodit",
+    "documentTitleRequired": "Název dokumentu je povinný.",
     "saveChanges": "Uložit změny",
     "templateUpdated": "Šablona aktualizována",
     "templateUpdateError": "Šablonu se nepodařilo aktualizovat",
@@ -5497,6 +5507,8 @@
   "codeBlock": {
     "copy": "Kopírovat kód",
     "copied": "Zkopírováno",
+    "copiedToast": "Kód zkopírován",
+    "copyFailed": "Kód se nepodařilo zkopírovat",
     "auto": "Auto"
   },
   "image": {

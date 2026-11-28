@@ -2137,6 +2137,8 @@ export const updateCustomTemplate = (input: {
   category: string
   title: string
   contentJson: string
+  /** When false, backend leaves content_json untouched. */
+  updateContent?: boolean
 }) =>
   invoke<CustomTemplateRow>('update_custom_template', {
     input: {
@@ -2146,6 +2148,7 @@ export const updateCustomTemplate = (input: {
       category: input.category,
       title: input.title,
       contentJson: input.contentJson,
+      updateContent: input.updateContent ?? true,
     },
   })
 

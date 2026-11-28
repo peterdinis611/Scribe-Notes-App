@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useAppSelector } from '@/store/hooks'
 import {
   Bookmark,
   Briefcase,
@@ -122,16 +123,34 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
   const [customDialogOpen, setCustomDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [packBusy, setPackBusy] = useState(false)
+  const activeLibraryId = useAppSelector(
+    (state) => state.libraries.libraries.find((library) => library.isActive)?.id ?? null,
+  )
+  const prevLibraryIdRef = useRef(activeLibraryId)
 
   useEffect(() => {
-    if (!open) return
+    if (!open) {
+      setEditDialogOpen(false)
+      setCustomDialogOpen(false)
+      setPackBusy(false)
+      setCreating(false)
+      return
+    }
     setCategory('all')
     setQuery('')
     setSelectedId(BLANK_TEMPLATE_ID)
     setCreating(false)
     setCustomDialogOpen(false)
+    setEditDialogOpen(false)
     setPackBusy(false)
   }, [open])
+
+  useEffect(() => {
+    if (prevLibraryIdRef.current === activeLibraryId) return
+    prevLibraryIdRef.current = activeLibraryId
+    setEditDialogOpen(false)
+    setCustomDialogOpen(false)
+  }, [activeLibraryId])
 
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {
@@ -327,11 +346,15 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
         open={open}
         onOpenChange={(next) => !next && onClose()}
         // Native import/export panels need a non-modal host or they cancel immediately.
-        modal={!customDialogOpen && !packBusy}
+        modal={!customDialogOpen && !editDialogOpen && !packBusy}
       >
         {open && (
           <DialogContent
-            className="flex h-[min(680px,calc(100vh-40px))] max-w-[720px] flex-col gap-0 overflow-hidden p-0"
+            className={cn(
+              'flex h-[min(680px,calc(100vh-40px))] max-w-[720px] flex-col gap-0 overflow-hidden p-0',
+              editDialogOpen && 'pointer-events-none invisible',
+            )}
+            overlayClassName={editDialogOpen ? 'pointer-events-none opacity-0' : undefined}
             showClose
           >
             <div className="flex shrink-0 flex-col gap-1 border-b border-[var(--color-border)] px-5 pb-3.5 pt-[18px] pr-12">
@@ -508,6 +531,14 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
                         customCategories={customCategories}
                         selected={selectedId === template.id}
                         onSelect={() => setSelectedId(template.id)}
+                        onEdit={
+                          isCustomTemplate(template)
+                            ? () => {
+                                setSelectedId(template.id)
+                                setEditDialogOpen(true)
+                              }
+                            : undefined
+                        }
                       />
                     ))}
                   </div>
@@ -622,7 +653,20 @@ export function TemplatePicker({ open, onClose, onSelect }: TemplatePickerProps)
           try {
             await updateStoredTemplate({
               ...selectedTemplate,
-              ...values,
+              name: values.name,
+              description: values.description,
+              category: values.category,
+              title: values.title,
+              content: values.content,
+              ...(values.preserveRawContent
+                ? {
+                    contentCorrupt: true,
+                    contentJsonRaw: selectedTemplate.contentJsonRaw,
+                  }
+                : {
+                    contentCorrupt: undefined,
+                    contentJsonRaw: undefined,
+                  }),
             })
             toast.success(t('templates.templateUpdated'), values.name)
           } catch (error) {
@@ -641,12 +685,14 @@ function TemplateCard({
   selected,
   variant = 'grid',
   onSelect,
+  onEdit,
 }: {
   template: DocumentTemplate
   customCategories: CustomTemplateCategory[]
   selected: boolean
   variant?: 'grid' | 'hero'
   onSelect: () => void
+  onEdit?: () => void
 }) {
   const { t } = useTranslation()
   const categoryLabel = getCategoryLabel(template.category, customCategories)
@@ -658,16 +704,38 @@ function TemplateCard({
     : customCategoryPreviewClass
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       className={cn(
-        'titlebar-no-drag flex w-full flex-col gap-2.5 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-background)] p-3 text-left transition-[border-color,background]',
+        'titlebar-no-drag relative flex w-full flex-col gap-2.5 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-background)] p-3 text-left transition-[border-color,background]',
         variant === 'hero' && 'sm:flex-row sm:items-center',
         selected && 'border-[var(--color-foreground)] bg-[var(--color-hover)]',
         !selected && 'hover:bg-[var(--color-hover)]',
       )}
       onClick={onSelect}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          onSelect()
+        }
+      }}
     >
+      {onEdit ? (
+        <IconTooltip label={t('templates.editTemplate')}>
+          <button
+            type="button"
+            aria-label={t('templates.editTemplateAria', { name: template.name })}
+            className="absolute top-2 right-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-muted-foreground)] transition-colors hover:bg-[var(--color-hover)] hover:text-[var(--color-foreground)]"
+            onClick={(event) => {
+              event.stopPropagation()
+              onEdit()
+            }}
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </button>
+        </IconTooltip>
+      ) : null}
       <div
         className={cn(
           'flex h-[72px] w-full shrink-0 flex-col justify-between rounded-[var(--radius-sm)] p-2.5',
@@ -683,7 +751,7 @@ function TemplateCard({
         </div>
       </div>
       <div className="min-w-0 flex-1">
-        <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start justify-between gap-2 pr-8">
           <p className="m-0 text-[14px] font-semibold tracking-[-0.015em] text-[var(--color-foreground)]">
             {template.name}
           </p>
@@ -695,7 +763,7 @@ function TemplateCard({
           {template.description || t('templates.customTemplateFallback')}
         </p>
       </div>
-    </button>
+    </div>
   )
 }
 

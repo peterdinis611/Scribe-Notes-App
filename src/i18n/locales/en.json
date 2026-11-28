@@ -5059,8 +5059,18 @@
     "creating": "Creating…",
     "createDocument": "Create document",
     "editTemplate": "Edit",
+    "editTemplateAria": "Edit template {{name}}",
     "editDialogDescription": "Update metadata and body. Changes stay local on this Mac.",
+    "editDialogDescriptionMetadataOnly": "Update name, title, description, and category. The body stays locked to protect advanced or damaged content.",
     "editContentPlaceholder": "Write the template body…",
+    "editContentCorrupt": "This template’s body JSON could not be loaded. You can still edit metadata; the original body will not be overwritten.",
+    "editContentAdvanced": "This template uses blocks the simple editor cannot edit (tables, images, callouts, diagrams, …). Metadata only — create a document from the template to edit the full body.",
+    "editBodyLockedCorrupt": "Body editing is locked until the stored content can be parsed safely.",
+    "editBodyLockedAdvanced": "Body editing is locked for rich templates. Create a document from this template to edit everything.",
+    "editDiscardTitle": "Discard changes?",
+    "editDiscardConfirm": "You have unsaved edits to this template. Discard them?",
+    "editDiscardConfirmOk": "Discard",
+    "documentTitleRequired": "Document title is required.",
     "saveChanges": "Save changes",
     "templateUpdated": "Template updated",
     "templateUpdateError": "Failed to update template",
@@ -5559,6 +5569,8 @@
   "codeBlock": {
     "copy": "Copy code",
     "copied": "Copied",
+    "copiedToast": "Code copied",
+    "copyFailed": "Couldn’t copy code",
     "auto": "Auto"
   },
   "image": {

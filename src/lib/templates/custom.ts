@@ -7,6 +7,10 @@ import { isValidCategoryId } from '@/lib/templates/categories'
 export type CustomDocumentTemplate = DocumentTemplate & {
   isCustom: true
   createdAt: number
+  /** True when `content_json` failed to parse; body edits must not overwrite the raw row. */
+  contentCorrupt?: boolean
+  /** Original `content_json` preserved when parse failed. */
+  contentJsonRaw?: string
 }
 
 export type CustomTemplateInput = {

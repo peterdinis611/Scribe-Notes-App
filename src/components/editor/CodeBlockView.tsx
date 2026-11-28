@@ -6,6 +6,7 @@ import { CodeLanguageMenu } from '@/components/editor-toolbar/CodeLanguageMenu'
 import { ScribeSyntaxHighlighter } from '@/components/editor/ScribeSyntaxHighlighter'
 import { getCodeLanguageLabel } from '@/lib/editor/code-languages'
 import { cn } from '@/lib/utils'
+import { toast } from '@/lib/toast'
 import { IconTooltip } from '@/components/ui/tooltip'
 
 export function CodeBlockView({ node, updateAttributes, selected, editor }: NodeViewProps) {
@@ -19,9 +20,11 @@ export function CodeBlockView({ node, updateAttributes, selected, editor }: Node
     try {
       await navigator.clipboard.writeText(node.textContent)
       setCopied(true)
+      toast.success(t('codeBlock.copiedToast'))
       window.setTimeout(() => setCopied(false), 1600)
     } catch {
       setCopied(false)
+      toast.error(t('codeBlock.copyFailed'))
     }
   }
 

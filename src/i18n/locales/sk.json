@@ -5069,8 +5069,18 @@
     "creating": "Vytváram…",
     "createDocument": "Vytvoriť dokument",
     "editTemplate": "Upraviť",
+    "editTemplateAria": "Upraviť šablónu {{name}}",
     "editDialogDescription": "Uprav metadáta aj obsah. Zmeny zostanú lokálne na tomto Macu.",
+    "editDialogDescriptionMetadataOnly": "Uprav názov, title, popis a kategóriu. Telo ostáva zamknuté, aby sa nepoškodil pokročilý alebo poškodený obsah.",
     "editContentPlaceholder": "Napíš obsah šablóny…",
+    "editContentCorrupt": "JSON tela tejto šablóny sa nepodarilo načítať. Metadáta môžeš upraviť; pôvodné telo sa neprepíše.",
+    "editContentAdvanced": "Táto šablóna obsahuje bloky, ktoré jednoduchý editor nevie upraviť (tabuľky, obrázky, callouty, diagramy…). Iba metadáta — na úpravu celého tela vytvor dokument zo šablóny.",
+    "editBodyLockedCorrupt": "Úprava tela je zamknutá, kým sa uložený obsah nedá bezpečne spracovať.",
+    "editBodyLockedAdvanced": "Úprava tela je zamknutá pre bohaté šablóny. Vytvor dokument zo šablóny a uprav všetko tam.",
+    "editDiscardTitle": "Zahodiť zmeny?",
+    "editDiscardConfirm": "Máš neuložené úpravy tejto šablóny. Zahodiť ich?",
+    "editDiscardConfirmOk": "Zahodiť",
+    "documentTitleRequired": "Názov dokumentu je povinný.",
     "saveChanges": "Uložiť zmeny",
     "templateUpdated": "Šablóna aktualizovaná",
     "templateUpdateError": "Nepodarilo sa aktualizovať šablónu",
@@ -5577,6 +5587,8 @@
   "codeBlock": {
     "copy": "Kopírovať kód",
     "copied": "Skopírované",
+    "copiedToast": "Kód skopírovaný",
+    "copyFailed": "Kód sa nepodarilo skopírovať",
     "auto": "Auto"
   },
   "image": {

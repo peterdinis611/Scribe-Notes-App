@@ -1,4 +1,3 @@
-import type { JSONContent } from '@tiptap/core'
 import { createCollection, type Collection } from '@tanstack/react-db'
 import { localOnlyCollectionOptions } from '@tanstack/db'
 import {
@@ -13,6 +12,7 @@ import {
 import type { CustomTemplateCategory } from '@/lib/templates/categories'
 import { createCustomCategory } from '@/lib/templates/categories'
 import type { CustomDocumentTemplate } from '@/lib/templates/custom'
+import { parseTemplateContentJson } from '@/lib/templates/simple-editor-content'
 import { kvGet, kvRemove, kvSet } from '@/lib/storage/kv'
 import {
   readCustomTemplateCategories,
@@ -152,24 +152,24 @@ async function migrateLegacyLocalStorage() {
 }
 
 export function toStoredTemplate(template: CustomDocumentTemplate): StoredCustomTemplateRow {
+  const contentJson =
+    template.contentCorrupt && typeof template.contentJsonRaw === 'string'
+      ? template.contentJsonRaw
+      : JSON.stringify(template.content)
+
   return {
     id: template.id,
     name: template.name,
     description: template.description,
     category: template.category,
     title: template.title,
-    contentJson: JSON.stringify(template.content),
+    contentJson,
     createdAt: template.createdAt,
   }
 }
 
 export function fromStoredTemplate(row: StoredCustomTemplateRow): CustomDocumentTemplate {
-  let content: JSONContent = { type: 'doc', content: [{ type: 'paragraph' }] }
-  try {
-    content = JSON.parse(row.contentJson) as JSONContent
-  } catch {
-    // Keep fallback content for corrupted rows.
-  }
+  const { content, corrupt } = parseTemplateContentJson(row.contentJson)
 
   return {
     id: row.id,
@@ -180,6 +180,9 @@ export function fromStoredTemplate(row: StoredCustomTemplateRow): CustomDocument
     content,
     isCustom: true,
     createdAt: row.createdAt,
+    ...(corrupt
+      ? { contentCorrupt: true, contentJsonRaw: row.contentJson }
+      : {}),
   }
 }
 
@@ -240,6 +243,7 @@ export async function updateStoredTemplate(template: CustomDocumentTemplate) {
   }
 
   const row = toStoredTemplate(template)
+  const updateContent = !template.contentCorrupt
   const updated = await updateCustomTemplate({
     id: row.id,
     name: row.name,
@@ -247,6 +251,7 @@ export async function updateStoredTemplate(template: CustomDocumentTemplate) {
     category: row.category,
     title: row.title,
     contentJson: row.contentJson,
+    updateContent,
   })
 
   if (customTemplatesCollection.has(row.id)) {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { JSONContent } from '@tiptap/core'
 import { EditorContent, useEditor } from '@tiptap/react'
 import Placeholder from '@tiptap/extension-placeholder'
@@ -6,6 +6,7 @@ import StarterKit from '@tiptap/starter-kit'
 import TaskItem from '@tiptap/extension-task-item'
 import TaskList from '@tiptap/extension-task-list'
 import Underline from '@tiptap/extension-underline'
+import { confirm } from '@tauri-apps/plugin-dialog'
 import {
   Bold,
   Heading2,
@@ -31,12 +32,14 @@ import {
 import { Input } from '@/components/ui/input'
 import { createAndStoreCategory } from '@/lib/db/template-collections'
 import { useCustomCategoriesLive } from '@/hooks/useTemplateCollections'
+import { TauriInputFix } from '@/lib/editor/tauri-input-fix'
 import {
   BUILT_IN_TEMPLATE_CATEGORIES,
   getBuiltInCategoryLabel,
   type TemplateCategoryId,
 } from '@/lib/templates'
 import type { CustomDocumentTemplate } from '@/lib/templates/custom'
+import { hasUnsupportedSimpleEditorNodes } from '@/lib/templates/simple-editor-content'
 import { cn } from '@/lib/utils'
 import { toast } from '@/lib/toast'
 import { IconTooltip } from '@/components/ui/tooltip'
@@ -47,6 +50,8 @@ export type EditCustomTemplateValues = {
   category: TemplateCategoryId
   title: string
   content: JSONContent
+  /** When true, persist original content_json instead of re-serializing content. */
+  preserveRawContent?: boolean
 }
 
 type EditCustomTemplateDialogProps = {
@@ -72,9 +77,24 @@ export function EditCustomTemplateDialog({
   const [newCategoryName, setNewCategoryName] = useState('')
   const [creatingCategory, setCreatingCategory] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [editorDirty, setEditorDirty] = useState(false)
+  const baselineRef = useRef<{
+    name: string
+    title: string
+    description: string
+    category: TemplateCategoryId
+  } | null>(null)
+
+  const contentCorrupt = Boolean(template?.contentCorrupt)
+  const contentAdvanced = useMemo(
+    () => Boolean(template && !contentCorrupt && hasUnsupportedSimpleEditorNodes(template.content)),
+    [template, contentCorrupt],
+  )
+  const bodyEditable = Boolean(template && !contentCorrupt && !contentAdvanced)
 
   const extensions = useMemo(
     () => [
+      TauriInputFix.configure({}),
       StarterKit.configure({
         heading: { levels: [2, 3] },
         codeBlock: false,
@@ -92,14 +112,20 @@ export function EditCustomTemplateDialog({
   const editor = useEditor(
     {
       extensions,
-      content: template?.content ?? { type: 'doc', content: [{ type: 'paragraph' }] },
+      content: { type: 'doc', content: [{ type: 'paragraph' }] },
+      editable: bodyEditable,
       editorProps: {
         attributes: {
           class: 'template-simple-editor__prose tiptap focus:outline-none',
         },
+        handleDOMEvents: {
+          // Keep native drag-select working inside stacked Tauri dialogs.
+          selectstart: () => false,
+        },
       },
+      onUpdate: () => setEditorDirty(true),
     },
-    [open, template?.id],
+    [open, template?.id, bodyEditable],
   )
 
   useEffect(() => {
@@ -112,17 +138,62 @@ export function EditCustomTemplateDialog({
     setNewCategoryName('')
     setCreatingCategory(false)
     setSaving(false)
-    if (editor && !editor.isDestroyed) {
+    setEditorDirty(false)
+    baselineRef.current = {
+      name: template.name,
+      title: template.title,
+      description: template.description,
+      category: template.category,
+    }
+    if (editor && !editor.isDestroyed && bodyEditable) {
+      editor.setEditable(true)
       editor.commands.setContent(structuredClone(template.content), { emitUpdate: false })
     }
-  }, [open, template, editor])
+  }, [open, template, editor, bodyEditable])
 
   useEffect(() => {
     if (open) return
     if (editor && !editor.isDestroyed) {
       editor.commands.clearContent(true)
     }
+    baselineRef.current = null
+    setEditorDirty(false)
   }, [open, editor])
+
+  const isDirty = useCallback(() => {
+    const baseline = baselineRef.current
+    if (!baseline) return false
+    if (
+      name !== baseline.name ||
+      title !== baseline.title ||
+      description !== baseline.description ||
+      category !== baseline.category
+    ) {
+      return true
+    }
+    return bodyEditable && editorDirty
+  }, [name, title, description, category, bodyEditable, editorDirty])
+
+  const requestOpenChange = useCallback(
+    async (next: boolean) => {
+      if (next) {
+        onOpenChange(true)
+        return
+      }
+      if (saving) return
+      if (isDirty()) {
+        const confirmed = await confirm(t('templates.editDiscardConfirm'), {
+          title: t('templates.editDiscardTitle'),
+          kind: 'warning',
+          okLabel: t('templates.editDiscardConfirmOk'),
+          cancelLabel: t('common.cancel'),
+        })
+        if (!confirmed) return
+      }
+      onOpenChange(false)
+    },
+    [isDirty, onOpenChange, saving, t],
+  )
 
   function selectCategory(next: TemplateCategoryId) {
     setCategory(next)
@@ -147,10 +218,11 @@ export function EditCustomTemplateDialog({
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
-    if (!editor || !template || saving) return
+    if (!template || saving) return
     const nextTitle = title.trim()
     const nextName = name.trim() || nextTitle
     if (!nextTitle) return
+    if (bodyEditable && !editor) return
 
     setSaving(true)
     try {
@@ -159,8 +231,14 @@ export function EditCustomTemplateDialog({
         title: nextTitle,
         description: description.trim(),
         category,
-        content: editor.getJSON(),
+        content:
+          bodyEditable && editor
+            ? editor.getJSON()
+            : structuredClone(template.content),
+        preserveRawContent: contentCorrupt,
       })
+      baselineRef.current = null
+      setEditorDirty(false)
       onOpenChange(false)
     } catch {
       // Parent shows toast; keep dialog open.
@@ -169,16 +247,31 @@ export function EditCustomTemplateDialog({
     }
   }
 
-  const canSave = Boolean(title.trim()) && Boolean(editor)
+  const canSave = Boolean(title.trim()) && (!bodyEditable || Boolean(editor))
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(next) => void requestOpenChange(next)}>
       {open && template ? (
-        <DialogContent className="titlebar-no-drag z-[90] flex max-h-[min(92vh,880px)] w-[min(920px,calc(100vw-2rem))] max-w-none flex-col gap-0 overflow-hidden p-0">
+        <DialogContent
+          overlayClassName="z-[88]"
+          className="titlebar-no-drag z-[90] flex max-h-[min(92vh,880px)] w-[min(920px,calc(100vw-2rem))] max-w-none flex-col gap-0 overflow-hidden p-0 [user-select:text]"
+          onOpenAutoFocus={(event) => {
+            // Keep focus in the dialog without scrolling/stealing caret from the body editor.
+            event.preventDefault()
+            const target = event.currentTarget.querySelector<HTMLInputElement>(
+              'input:not([disabled])',
+            )
+            target?.focus({ preventScroll: true })
+          }}
+        >
           <form className="flex min-h-0 flex-1 flex-col" onSubmit={(e) => void handleSubmit(e)}>
             <DialogHeader className="shrink-0 border-b border-[var(--color-border)] px-5 py-4">
               <DialogTitle>{t('templates.editTemplate')}</DialogTitle>
-              <DialogDescription>{t('templates.editDialogDescription')}</DialogDescription>
+              <DialogDescription>
+                {contentCorrupt || contentAdvanced
+                  ? t('templates.editDialogDescriptionMetadataOnly')
+                  : t('templates.editDialogDescription')}
+              </DialogDescription>
             </DialogHeader>
 
             <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto px-5 py-4 lg:grid-cols-[240px_minmax(0,1fr)]">
@@ -203,7 +296,13 @@ export function EditCustomTemplateDialog({
                     value={title}
                     placeholder={t('templates.defaultDocumentTitle')}
                     onChange={(event) => setTitle(event.target.value)}
+                    aria-invalid={!title.trim()}
                   />
+                  {!title.trim() ? (
+                    <span className="text-[11px] text-[var(--color-destructive)]">
+                      {t('templates.documentTitleRequired')}
+                    </span>
+                  ) : null}
                 </label>
 
                 <label className="grid gap-1.5">
@@ -277,81 +376,114 @@ export function EditCustomTemplateDialog({
               </div>
 
               <div className="template-simple-editor flex min-h-[320px] flex-col overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-canvas)]">
-                <div className="flex flex-wrap items-center gap-0.5 border-b border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1.5">
-                  <ToolbarButton
-                    label={t('templates.editToolbar.bold')}
-                    active={editor?.isActive('bold')}
-                    onClick={() => editor?.chain().focus().toggleBold().run()}
+                {contentCorrupt ? (
+                  <div
+                    role="alert"
+                    className="m-3 rounded-[var(--radius-sm)] border border-[color-mix(in_srgb,var(--color-destructive)_35%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-destructive)_8%,var(--color-surface))] px-3 py-2 text-[12px] leading-snug text-[var(--color-foreground)]"
                   >
-                    <Bold className="h-3.5 w-3.5" />
-                  </ToolbarButton>
-                  <ToolbarButton
-                    label={t('templates.editToolbar.italic')}
-                    active={editor?.isActive('italic')}
-                    onClick={() => editor?.chain().focus().toggleItalic().run()}
+                    {t('templates.editContentCorrupt')}
+                  </div>
+                ) : null}
+                {contentAdvanced ? (
+                  <div
+                    role="status"
+                    className="m-3 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[12px] leading-snug text-[var(--color-muted-foreground)]"
                   >
-                    <Italic className="h-3.5 w-3.5" />
-                  </ToolbarButton>
-                  <ToolbarButton
-                    label={t('templates.editToolbar.underline')}
-                    active={editor?.isActive('underline')}
-                    onClick={() => editor?.chain().focus().toggleUnderline().run()}
-                  >
-                    <UnderlineIcon className="h-3.5 w-3.5" />
-                  </ToolbarButton>
-                  <span className="mx-1 h-4 w-px bg-[var(--color-border)]" aria-hidden />
-                  <ToolbarButton
-                    label={t('templates.editToolbar.heading2')}
-                    active={editor?.isActive('heading', { level: 2 })}
-                    onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
-                  >
-                    <Heading2 className="h-3.5 w-3.5" />
-                  </ToolbarButton>
-                  <ToolbarButton
-                    label={t('templates.editToolbar.heading3')}
-                    active={editor?.isActive('heading', { level: 3 })}
-                    onClick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()}
-                  >
-                    <Heading3 className="h-3.5 w-3.5" />
-                  </ToolbarButton>
-                  <span className="mx-1 h-4 w-px bg-[var(--color-border)]" aria-hidden />
-                  <ToolbarButton
-                    label={t('templates.editToolbar.bulletList')}
-                    active={editor?.isActive('bulletList')}
-                    onClick={() => editor?.chain().focus().toggleBulletList().run()}
-                  >
-                    <List className="h-3.5 w-3.5" />
-                  </ToolbarButton>
-                  <ToolbarButton
-                    label={t('templates.editToolbar.orderedList')}
-                    active={editor?.isActive('orderedList')}
-                    onClick={() => editor?.chain().focus().toggleOrderedList().run()}
-                  >
-                    <ListOrdered className="h-3.5 w-3.5" />
-                  </ToolbarButton>
-                  <ToolbarButton
-                    label={t('templates.editToolbar.taskList')}
-                    active={editor?.isActive('taskList')}
-                    onClick={() => editor?.chain().focus().toggleTaskList().run()}
-                  >
-                    <ListTodo className="h-3.5 w-3.5" />
-                  </ToolbarButton>
-                  <ToolbarButton
-                    label={t('templates.editToolbar.blockquote')}
-                    active={editor?.isActive('blockquote')}
-                    onClick={() => editor?.chain().focus().toggleBlockquote().run()}
-                  >
-                    <Quote className="h-3.5 w-3.5" />
-                  </ToolbarButton>
-                </div>
-                <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
-                  <EditorContent editor={editor} />
-                </div>
+                    {t('templates.editContentAdvanced')}
+                  </div>
+                ) : null}
+
+                {bodyEditable ? (
+                  <>
+                    <div className="flex flex-wrap items-center gap-0.5 border-b border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1.5">
+                      <ToolbarButton
+                        label={t('templates.editToolbar.bold')}
+                        active={editor?.isActive('bold')}
+                        onClick={() => editor?.chain().focus().toggleBold().run()}
+                      >
+                        <Bold className="h-3.5 w-3.5" />
+                      </ToolbarButton>
+                      <ToolbarButton
+                        label={t('templates.editToolbar.italic')}
+                        active={editor?.isActive('italic')}
+                        onClick={() => editor?.chain().focus().toggleItalic().run()}
+                      >
+                        <Italic className="h-3.5 w-3.5" />
+                      </ToolbarButton>
+                      <ToolbarButton
+                        label={t('templates.editToolbar.underline')}
+                        active={editor?.isActive('underline')}
+                        onClick={() => editor?.chain().focus().toggleUnderline().run()}
+                      >
+                        <UnderlineIcon className="h-3.5 w-3.5" />
+                      </ToolbarButton>
+                      <span className="mx-1 h-4 w-px bg-[var(--color-border)]" aria-hidden />
+                      <ToolbarButton
+                        label={t('templates.editToolbar.heading2')}
+                        active={editor?.isActive('heading', { level: 2 })}
+                        onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
+                      >
+                        <Heading2 className="h-3.5 w-3.5" />
+                      </ToolbarButton>
+                      <ToolbarButton
+                        label={t('templates.editToolbar.heading3')}
+                        active={editor?.isActive('heading', { level: 3 })}
+                        onClick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()}
+                      >
+                        <Heading3 className="h-3.5 w-3.5" />
+                      </ToolbarButton>
+                      <span className="mx-1 h-4 w-px bg-[var(--color-border)]" aria-hidden />
+                      <ToolbarButton
+                        label={t('templates.editToolbar.bulletList')}
+                        active={editor?.isActive('bulletList')}
+                        onClick={() => editor?.chain().focus().toggleBulletList().run()}
+                      >
+                        <List className="h-3.5 w-3.5" />
+                      </ToolbarButton>
+                      <ToolbarButton
+                        label={t('templates.editToolbar.orderedList')}
+                        active={editor?.isActive('orderedList')}
+                        onClick={() => editor?.chain().focus().toggleOrderedList().run()}
+                      >
+                        <ListOrdered className="h-3.5 w-3.5" />
+                      </ToolbarButton>
+                      <ToolbarButton
+                        label={t('templates.editToolbar.taskList')}
+                        active={editor?.isActive('taskList')}
+                        onClick={() => editor?.chain().focus().toggleTaskList().run()}
+                      >
+                        <ListTodo className="h-3.5 w-3.5" />
+                      </ToolbarButton>
+                      <ToolbarButton
+                        label={t('templates.editToolbar.blockquote')}
+                        active={editor?.isActive('blockquote')}
+                        onClick={() => editor?.chain().focus().toggleBlockquote().run()}
+                      >
+                        <Quote className="h-3.5 w-3.5" />
+                      </ToolbarButton>
+                    </div>
+                    <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
+                      <EditorContent editor={editor} />
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex min-h-0 flex-1 items-center justify-center px-6 py-10 text-center text-[13px] text-[var(--color-muted-foreground)]">
+                    {contentCorrupt
+                      ? t('templates.editBodyLockedCorrupt')
+                      : t('templates.editBodyLockedAdvanced')}
+                  </div>
+                )}
               </div>
             </div>
 
             <DialogFooter className="shrink-0 border-t border-[var(--color-border)] px-5 py-3">
-              <Button type="button" variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={saving}
+                onClick={() => void requestOpenChange(false)}
+              >
                 {t('common.cancel')}
               </Button>
               <Button type="submit" variant="default" size="sm" disabled={!canSave || saving}>
@@ -382,6 +514,7 @@ function ToolbarButton({
         type="button"
         aria-label={label}
         aria-pressed={active}
+        onMouseDown={(event) => event.preventDefault()}
         onClick={onClick}
         className={cn(
           'inline-flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-muted-foreground)] transition-colors',
