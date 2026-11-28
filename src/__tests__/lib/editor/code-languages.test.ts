@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   CODE_LANGUAGES,
+  detectCodeLanguage,
   filterCodeLanguages,
   getCodeLanguageLabel,
   resolveCodeLanguage,
@@ -35,6 +36,37 @@ describe('getCodeLanguageLabel', () => {
   it('returns configured labels and raw fallback', () => {
     expect(getCodeLanguageLabel('python')).toBe('Python')
     expect(getCodeLanguageLabel('obscure-lang')).toBe('obscure-lang')
+  })
+})
+
+describe('detectCodeLanguage', () => {
+  it('labels an unlabeled Next.js snippet as javascript', () => {
+    const code = `import { cacheLife, cacheTag } from 'next/cache';
+
+export async function getProducts() {
+  'use cache';
+  cacheLife('hours');
+  cacheTag('products');
+  return db.query.products.findMany();
+}`
+    expect(detectCodeLanguage(code)).toBe('javascript')
+  })
+
+  it('prefers typescript when annotations are present', () => {
+    expect(
+      detectCodeLanguage('export interface User { id: string }\nconst user: User = { id: "1" }'),
+    ).toBe('typescript')
+  })
+
+  it('recognizes rust, python, and json', () => {
+    expect(detectCodeLanguage('fn main() {\n    let x = 1;\n}')).toBe('rust')
+    expect(detectCodeLanguage('def hello():\n    return 1\n')).toBe('python')
+    expect(detectCodeLanguage('{"a":1,"b":[2,3]}')).toBe('json')
+  })
+
+  it('leaves prose and tiny fragments unlabeled', () => {
+    expect(detectCodeLanguage('Na pohovore odporúčam povedať, že cache je opt-in.')).toBeNull()
+    expect(detectCodeLanguage('const n')).toBeNull()
   })
 })
 

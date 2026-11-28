@@ -1,24 +1,39 @@
 import { NodeViewContent, NodeViewWrapper, type NodeViewProps } from '@tiptap/react'
-import { useDeferredValue, useState } from 'react'
+import { useDeferredValue, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Check, Copy } from 'lucide-react'
 import { CodeLanguageMenu } from '@/components/editor-toolbar/CodeLanguageMenu'
 import { ScribeSyntaxHighlighter } from '@/components/editor/ScribeSyntaxHighlighter'
-import { getCodeLanguageLabel } from '@/lib/editor/code-languages'
+import { copyCodeBlockToClipboard } from '@/lib/editor/code-block-clipboard'
+import { detectCodeLanguage, getCodeLanguageLabel } from '@/lib/editor/code-languages'
 import { cn } from '@/lib/utils'
 import { toast } from '@/lib/toast'
 import { IconTooltip } from '@/components/ui/tooltip'
 
 export function CodeBlockView({ node, updateAttributes, selected, editor }: NodeViewProps) {
   const { t } = useTranslation()
-  const language = (node.attrs.language as string | null) ?? null
+  const storedLanguage = (node.attrs.language as string | null) ?? null
+  const detectedLanguage =
+    !storedLanguage || storedLanguage === 'auto' ? detectCodeLanguage(node.textContent) : null
+  const language =
+    storedLanguage && storedLanguage !== 'auto' ? storedLanguage : detectedLanguage
   const code = useDeferredValue(node.textContent)
   const [copied, setCopied] = useState(false)
   const editable = editor.isEditable
+  const autoLocked = useRef(false)
+  const appliedLanguage = useRef<string | null>(null)
+
+  useEffect(() => {
+    if (!editable || autoLocked.current) return
+    if (storedLanguage && storedLanguage !== 'auto') return
+    if (!detectedLanguage || appliedLanguage.current === detectedLanguage) return
+    appliedLanguage.current = detectedLanguage
+    updateAttributes({ language: detectedLanguage })
+  }, [detectedLanguage, editable, storedLanguage, updateAttributes])
 
   async function copyCode() {
     try {
-      await navigator.clipboard.writeText(node.textContent)
+      await copyCodeBlockToClipboard(node.textContent, language)
       setCopied(true)
       toast.success(t('codeBlock.copiedToast'))
       window.setTimeout(() => setCopied(false), 1600)
@@ -36,10 +51,14 @@ export function CodeBlockView({ node, updateAttributes, selected, editor }: Node
       <div className="scribe-code-block__bar" contentEditable={false}>
         {editable ? (
           <CodeLanguageMenu
-            language={language}
+            language={storedLanguage}
             editor={editor}
             triggerClassName="scribe-code-block__lang"
-            onSelect={(id) => updateAttributes({ language: id === 'auto' ? null : id })}
+            onSelect={(id) => {
+              autoLocked.current = id === 'auto'
+              if (id !== 'auto') appliedLanguage.current = id
+              updateAttributes({ language: id === 'auto' ? null : id })
+            }}
           />
         ) : (
           <span className="scribe-code-block__lang-label">{getCodeLanguageLabel(language)}</span>

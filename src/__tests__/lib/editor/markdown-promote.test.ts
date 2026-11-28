@@ -52,6 +52,29 @@ describe('promoteMarkdownSpecialBlocks', () => {
     expect(promoted.content?.[3]?.type).toBe('codeBlock')
   })
 
+  it('sets a language on an unlabeled code block', () => {
+    const doc: JSONContent = {
+      type: 'doc',
+      content: [
+        {
+          type: 'codeBlock',
+          attrs: { language: null },
+          content: [
+            {
+              type: 'text',
+              text: "import { cacheLife } from 'next/cache';\nexport function getProducts() {\n  return db.query.products.findMany();\n}",
+            },
+          ],
+        },
+      ],
+    }
+    const promoted = promoteMarkdownSpecialBlocks(doc)
+    expect(promoted.content?.[0]).toMatchObject({
+      type: 'codeBlock',
+      attrs: { language: 'javascript' },
+    })
+  })
+
   it('uses a default mermaid flowchart when source is empty', () => {
     const doc: JSONContent = {
       type: 'doc',

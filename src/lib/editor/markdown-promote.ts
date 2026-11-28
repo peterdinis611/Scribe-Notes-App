@@ -1,6 +1,7 @@
 /** Keep in sync with `crates/scribe-ui` / `scribe-video` counterparts. */
 import type { JSONContent } from '@tiptap/core'
 import { promoteMarkdownSpecialBlocksNative } from '@/lib/db/api'
+import { detectCodeLanguage } from '@/lib/editor/code-languages'
 import { D3_CHART_DEFAULT_SOURCE } from '@/lib/editor/d3-chart'
 import { MAP_DEFAULT_SOURCE } from '@/lib/editor/map'
 import { parseVideoFence } from '@/lib/editor/video'
@@ -53,6 +54,16 @@ function promoteNode(node: JSONContent): JSONContent {
       return {
         type: 'leafletMap',
         attrs: { source: text.trim() || MAP_DEFAULT_SOURCE },
+      }
+    }
+
+    if (!language) {
+      const detected = detectCodeLanguage(text)
+      if (detected) {
+        return {
+          ...node,
+          attrs: { ...node.attrs, language: detected },
+        }
       }
     }
   }
