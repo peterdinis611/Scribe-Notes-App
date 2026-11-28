@@ -9,9 +9,6 @@ import { useAppSelector } from '@/store/hooks'
 export function EditorViewModeToggle({ className }: { className?: string }) {
   const { t } = useTranslation()
   const viewMode = useAppSelector((state) => state.settings.editorViewMode)
-  const actions = editorRefs.modeActions
-  if (!actions) return null
-
   const isMarkdown = viewMode === 'markdown'
 
   return (
@@ -27,7 +24,9 @@ export function EditorViewModeToggle({ className }: { className?: string }) {
           variant={isMarkdown ? 'ghost' : 'default'}
           size="sm"
           className="h-7 gap-1 px-2 text-[12px] [[data-layout-tier=medium]_&]:w-8 [[data-layout-tier=medium]_&]:min-w-8 [[data-layout-tier=medium]_&]:px-0 [[data-layout-tier=narrow]_&]:w-8 [[data-layout-tier=narrow]_&]:min-w-8 [[data-layout-tier=narrow]_&]:px-0 [[data-layout-tier=tight]_&]:w-8 [[data-layout-tier=tight]_&]:min-w-8 [[data-layout-tier=tight]_&]:px-0"
-          onClick={() => actions.switchToRich()}
+          onClick={() => {
+            void editorRefs.modeActions?.switchToRich()
+          }}
           aria-label={t('viewMode.rich')}
           aria-pressed={!isMarkdown}
         >
@@ -43,7 +42,9 @@ export function EditorViewModeToggle({ className }: { className?: string }) {
           variant={isMarkdown ? 'default' : 'ghost'}
           size="sm"
           className="h-7 gap-1 px-2 text-[12px] [[data-layout-tier=medium]_&]:w-8 [[data-layout-tier=medium]_&]:min-w-8 [[data-layout-tier=medium]_&]:px-0 [[data-layout-tier=narrow]_&]:w-8 [[data-layout-tier=narrow]_&]:min-w-8 [[data-layout-tier=narrow]_&]:px-0 [[data-layout-tier=tight]_&]:w-8 [[data-layout-tier=tight]_&]:min-w-8 [[data-layout-tier=tight]_&]:px-0"
-          onClick={() => actions.switchToMarkdown()}
+          onClick={() => {
+            editorRefs.modeActions?.switchToMarkdown()
+          }}
           aria-label={t('viewMode.markdown')}
           aria-pressed={isMarkdown}
         >

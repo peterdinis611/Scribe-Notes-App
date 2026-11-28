@@ -35,7 +35,10 @@ export function safeEditorCanRedo(editor: Editor): boolean {
   }
 }
 
-type SafeSetContentOptions = SetContentOptions
+type SafeSetContentOptions = SetContentOptions & {
+  /** TipTap Markdown extension option (not on core SetContentOptions). */
+  contentType?: 'json' | 'html' | 'markdown'
+}
 
 export function setEditorContent(
   editor: Editor | null,
@@ -45,8 +48,7 @@ export function setEditorContent(
   if (!isEditorViewReady(editor)) return false
 
   try {
-    editor.commands.setContent(content, options)
-    return true
+    return editor.commands.setContent(content, options) !== false
   } catch {
     return false
   }

@@ -289,11 +289,34 @@ export function DocumentEditor() {
   }, [editor, persistViewMode])
 
   const switchToRich = useCallback(async () => {
-    if (!editor) return
+    if (!editor || editor.isDestroyed) return
 
     const markdown = markdownDraftRef.current
 
+    // Flip UI first so `.editor-content-host` is visible/laid out. Applying
+    // markdown while the ProseMirror host is clipped (MD mode) often fails in WebKit.
+    persistViewMode('rich')
+
+    const waitFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+    await waitFrame()
+    await waitFrame()
+
+    let ready = isEditorViewReady(editor)
+    for (let attempt = 0; !ready && attempt < 40; attempt += 1) {
+      await waitFrame()
+      ready = isEditorViewReady(editor)
+    }
+
     const applyMarkdown = (): boolean => {
+      try {
+        const contentJson = parseMarkdownToContentJson(markdown)
+        if (setEditorContent(editor, JSON.parse(contentJson) as object, { emitUpdate: false })) {
+          return true
+        }
+      } catch {
+        // Fall through to TipTap markdown parse / plain text.
+      }
+
       if (
         setEditorContent(editor, markdown, {
           contentType: 'markdown',
@@ -303,18 +326,19 @@ export function DocumentEditor() {
         return true
       }
 
-      try {
-        const contentJson = parseMarkdownToContentJson(markdown)
-        return setEditorContent(editor, JSON.parse(contentJson) as object, { emitUpdate: false })
-      } catch {
-        return false
-      }
-    }
-
-    let ready = isEditorViewReady(editor)
-    for (let attempt = 0; !ready && attempt < 24; attempt += 1) {
-      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
-      ready = isEditorViewReady(editor)
+      const blocks = markdown.split(/\n{2,}/)
+      const paragraphs = (blocks.length > 0 ? blocks : ['']).map((block) => {
+        const text = block.replace(/\n/g, ' ').trimEnd()
+        return {
+          type: 'paragraph' as const,
+          content: text ? [{ type: 'text' as const, text }] : [],
+        }
+      })
+      return setEditorContent(
+        editor,
+        { type: 'doc', content: paragraphs },
+        { emitUpdate: false },
+      )
     }
 
     if (!applyMarkdown()) {
@@ -325,7 +349,6 @@ export function DocumentEditor() {
     if (activeId) {
       await flushSave()
     }
-    persistViewMode('rich')
   }, [activeId, editor, flushSave, persistViewMode, t])
 
   const handleMarkdownChange = useCallback(
